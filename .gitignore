@@ -1,0 +1,5 @@
+# Cargo output
+/target/
+
+# If someone spends a lot of money to pollute repos
+.DS_Store

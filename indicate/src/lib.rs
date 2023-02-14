@@ -4,11 +4,13 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use trustfall_core::{ir::FieldValue, schema::Schema};
 
+mod token;
+
+const RAW_SCHEMA: &'static str = include_str!("schema.trustfall.graphql");
+
 lazy_static! {
-    static ref SCHEMA: Schema = {
-        Schema::parse(include_str!("schema.trustfall.graphql"))
-            .expect("Could not parse schema!")
-    };
+    static ref SCHEMA: Schema =
+        { Schema::parse(RAW_SCHEMA).expect("Could not parse schema!") };
 }
 
 /// Type representing a thread-safe JSON object, like
@@ -27,6 +29,8 @@ struct Query<'a> {
     args: ObjectMap,
 }
 
+/// Executes a Trustfall query at a defined path, using the schema
+/// provided by `indicate`.
 pub fn execute_query(path: &Path) {
     let raw_query =
         fs::read_to_string(path).expect("Could not read query at {path}!");

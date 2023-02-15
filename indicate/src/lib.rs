@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
 
+use cargo_metadata::{Metadata, MetadataCommand};
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use trustfall_core::{ir::FieldValue, schema::Schema};
@@ -38,4 +39,12 @@ pub fn execute_query(path: &Path) {
     let query: Query = ron::from_str(&raw_query)
         .expect("Could not parse the raw query as .ron!");
     todo!("Use the adapter")
+}
+
+/// Extracts metadata from a `Cargo.toml` file by its direct path
+pub fn extract_metadata_from_path(path: &Path) -> Metadata {
+    MetadataCommand::new()
+        .manifest_path(path)
+        .exec()
+        .expect(&format!("Could not extract metadata from path {:?}", path))
 }

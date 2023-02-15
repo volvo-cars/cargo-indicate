@@ -35,6 +35,7 @@ mod test {
     /// Verify that all `Node` variants are types in
     /// the schema, and that all types are nodes variants
     #[test]
+    #[ignore = "not possible at this point"]
     fn verify_nodes_in_schema() {
         // TODO: Use trustfall_core::schema::Schema to
         // access vertexes

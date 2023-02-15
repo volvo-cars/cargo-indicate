@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use trustfall_core::{ir::FieldValue, schema::Schema};
 
+mod dependency;
 mod node;
 
 const RAW_SCHEMA: &'static str = include_str!("schema.trustfall.graphql");
@@ -20,13 +21,13 @@ lazy_static! {
 ///     "value": true,
 /// }
 /// ```
-type ObjectMap = Arc<BTreeMap<Arc<str>, FieldValue>>;
+type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
 
 /// Struct representing a query to `indicate`
 #[derive(Debug, Clone, Deserialize)]
 struct Query<'a> {
     query: &'a str,
-    args: ObjectMap,
+    args: Arc<ObjectMap>,
 }
 
 /// Executes a Trustfall query at a defined path, using the schema

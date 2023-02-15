@@ -46,3 +46,28 @@ This is the actual types that can be used to create queries.
 
 Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 """
+
+type RootQuery {
+    DirectDependencies: [Dependency!]!
+    Dependencies(depth: Int!): [Dependency!]!
+}
+
+# A (not necessarily strict) subset of the cargo_metadata::Dependency type
+type Dependency {
+    name: String!
+    source: String
+    
+    # req
+    requiredVersion: String
+    
+    # If this is from another registry than crates.io
+    nonCratesio: bool
+}
+
+# interface Website {
+#     url: String!
+# }
+
+# interface Repository implements Website {
+#     url: String!
+# }

@@ -48,26 +48,13 @@ Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 """
 
 type RootQuery {
-    DirectDependencies: [Dependency!]!
-    Dependencies(depth: Int!): [Dependency!]!
+    RootPackage: Package!
 }
 
-# A (not necessarily strict) subset of the cargo_metadata::Dependency type
-type Dependency {
-    name: String!
-    source: String
-    
-    # req
-    requiredVersion: String
-    
-    # If this is from another registry than crates.io
-    nonCratesio: bool
+# See `cargo_metadata::Package`
+type Package {
+    id: ID!,
+    name: String!,
+    version: String!,
+    dependencies: [Package!]!
 }
-
-# interface Website {
-#     url: String!
-# }
-
-# interface Repository implements Website {
-#     url: String!
-# }

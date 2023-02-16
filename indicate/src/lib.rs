@@ -5,8 +5,9 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use trustfall_core::{ir::FieldValue, schema::Schema};
 
-mod dependency;
-mod node;
+mod adapter;
+mod package;
+mod vertex;
 
 const RAW_SCHEMA: &'static str = include_str!("schema.trustfall.graphql");
 

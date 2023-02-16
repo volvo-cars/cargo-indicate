@@ -1,0 +1,106 @@
+use std::{collections::BTreeMap, iter::Map, rc::Rc};
+
+use cargo_metadata::{Metadata, Package, PackageId};
+use trustfall_core::{
+    field_property,
+    interpreter::{
+        basic_adapter::BasicAdapter, helpers::resolve_property_with,
+        VertexIterator,
+    },
+    ir::FieldValue,
+};
+
+use crate::vertex::Vertex;
+
+struct IndicateAdapter {
+    metadata: Metadata,
+}
+
+/// Helper methods to resolve fields using the metadata
+impl IndicateAdapter {
+    fn new(metadata: Metadata) -> Self {
+        Self { metadata }
+    }
+}
+
+/// The functions here are essentially the fields on the RootQuery
+impl IndicateAdapter {
+    fn root_package(&self) -> VertexIterator<'static, Vertex> {
+        let root = self
+            .metadata
+            .root_package()
+            .expect("No root package found!");
+        let v = Vertex::Package(Rc::new(root.clone()));
+        Box::new(std::iter::once(v))
+    }
+}
+
+impl BasicAdapter<'static> for IndicateAdapter {
+    type Vertex = Vertex;
+
+    fn resolve_starting_vertices(
+        &mut self,
+        edge_name: &str,
+        _parameters: Option<&trustfall_core::ir::EdgeParameters>,
+    ) -> VertexIterator<'static, Self::Vertex> {
+        match edge_name {
+            // These edge names should match 1:1 for `schema.trustfall.graphql`
+            "RootPackage" => self.root_package(),
+            _ => unreachable!(),
+        }
+    }
+
+    fn resolve_property(
+        &mut self,
+        contexts: trustfall_core::interpreter::ContextIterator<
+            'static,
+            Self::Vertex,
+        >,
+        type_name: &str,
+        property_name: &str,
+    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
+        'static,
+        Self::Vertex,
+        trustfall_core::ir::FieldValue,
+    > {
+        match (type_name, property_name) {
+            ("Package", "id") => {
+                resolve_property_with(contexts, field_property!(as_package, id))
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn resolve_neighbors(
+        &mut self,
+        contexts: trustfall_core::interpreter::ContextIterator<
+            'static,
+            Self::Vertex,
+        >,
+        type_name: &str,
+        edge_name: &str,
+        parameters: Option<&trustfall_core::ir::EdgeParameters>,
+    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
+        'static,
+        Self::Vertex,
+        VertexIterator<'static, Self::Vertex>,
+    > {
+        todo!()
+    }
+
+    fn resolve_coercion(
+        &mut self,
+        contexts: trustfall_core::interpreter::ContextIterator<
+            'static,
+            Self::Vertex,
+        >,
+        type_name: &str,
+        coerce_to_type: &str,
+    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
+        'static,
+        Self::Vertex,
+        bool,
+    > {
+        todo!()
+    }
+}

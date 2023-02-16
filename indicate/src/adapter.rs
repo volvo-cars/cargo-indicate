@@ -113,7 +113,7 @@ impl BasicAdapter<'static> for IndicateAdapter {
         >,
         type_name: &str,
         edge_name: &str,
-        parameters: Option<&trustfall_core::ir::EdgeParameters>,
+        _parameters: Option<&trustfall_core::ir::EdgeParameters>,
     ) -> trustfall_core::interpreter::ContextOutcomeIterator<
         'static,
         Self::Vertex,
@@ -126,20 +126,25 @@ impl BasicAdapter<'static> for IndicateAdapter {
                 // First get all dependencies, and then resolve their package
                 // by finding that dependency by its ID in the metadata
                 Box::new(contexts.map(|ctx| {
-                    let current_vertex = ctx.current_token;
+                    let current_vertex = &ctx.current_token;
                     let neighbors_iter: VertexIterator<'static, Self::Vertex> =
                         match current_vertex {
                             None => Box::new(std::iter::empty()),
                             Some(vertex) => {
                                 // This is in fact a Package, otherwise it would be `None`
                                 let package = vertex.as_package().unwrap();
-                                let dependency_ids = self.direct_dependencies.get(&package.id).expect(&format!("Could not extract dependency IDs for package {}", &package.id));
+
+                                let dependency_ids = self.direct_dependencies
+                                    .get(&package.id)
+                                    .expect(&format!("Could not extract dependency IDs for package {}", &package.id));
+
                                 let dependencies = dependency_ids
                                     .iter()
                                     .map(|id| {
                                         let p = self.packages.get(id).unwrap();
                                         Vertex::Package(p.clone())
                                     });
+
                                 Box::new(dependencies)
                             }
                         };

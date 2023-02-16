@@ -6,7 +6,6 @@ use serde::Deserialize;
 use trustfall_core::{ir::FieldValue, schema::Schema};
 
 mod adapter;
-mod package;
 mod vertex;
 
 const RAW_SCHEMA: &'static str = include_str!("schema.trustfall.graphql");
@@ -48,4 +47,27 @@ pub fn extract_metadata_from_path(path: &Path) -> Metadata {
         .manifest_path(path)
         .exec()
         .expect(&format!("Could not extract metadata from path {:?}", path))
+}
+
+#[cfg(test)]
+mod test {
+    use std::path::Path;
+
+    use crate::extract_metadata_from_path;
+
+    const TEST_ROOT: &'static str = "test_data/fake_crates";
+
+    macro_rules! fake_crate {
+        ($name:literal) => {
+            Path::new(&format!("{TEST_ROOT}/{}/Cargo.toml", $name))
+        };
+    }
+
+    #[test]
+    #[ignore = "debugging purposes"]
+    fn dependency_resolve() {
+        let metadata =
+            extract_metadata_from_path(fake_crate!("direct_dependencies"));
+        println!("{:#?}", metadata.resolve.map(|n| n.nodes).unwrap());
+    }
 }

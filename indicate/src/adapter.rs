@@ -30,7 +30,7 @@ impl IndicateAdapter {
             .metadata
             .root_package()
             .expect("No root package found!");
-        let v = Vertex::Package(Rc::new(root.clone()));
+        let v = Vertex::Package(Rc::new(root.clone().into()));
         Box::new(std::iter::once(v))
     }
 }
@@ -64,9 +64,24 @@ impl BasicAdapter<'static> for IndicateAdapter {
         trustfall_core::ir::FieldValue,
     > {
         match (type_name, property_name) {
-            ("Package", "id") => {
-                resolve_property_with(contexts, field_property!(as_package, id))
-            }
+            ("Package", "id") => resolve_property_with(contexts, |v| {
+                if let Some(s) = v.as_package() {
+                    FieldValue::String(s.id.to_string())
+                } else {
+                    unreachable!("Not a package!")
+                }
+            }),
+            ("Package", "name") => resolve_property_with(
+                contexts,
+                field_property!(as_package, name),
+            ),
+            ("Package", "version") => resolve_property_with(contexts, |v| {
+                if let Some(s) = v.as_package() {
+                    FieldValue::String(s.version.to_string())
+                } else {
+                    unreachable!("Not a package!")
+                }
+            }),
             _ => unreachable!(),
         }
     }
@@ -85,7 +100,47 @@ impl BasicAdapter<'static> for IndicateAdapter {
         Self::Vertex,
         VertexIterator<'static, Self::Vertex>,
     > {
-        todo!()
+        // These are all possible neighboring vertexes, i.e. parts of a vertex
+        // that are not scalar values (`FieldValue`)
+        match (type_name, edge_name) {
+            ("Package", "dependencies") => {
+                // First get all dependencies, and then resolve their package
+                // by finding that dependency by its ID in the metadata
+                Box::new(contexts.map(|ctx| {
+                    let current_vertex = ctx.active_vertex();
+                    let neighbors_iter: VertexIterator<'static, Self::Vertex> =
+                        match current_vertex {
+                            None => Box::new((std::iter::empty())),
+                            Some(vertex) => {
+                                // This is in fact a Package, otherwise it would be `None`
+                                let package = vertex.as_package().unwrap();
+                                let dep_package_ids =
+                                    package.dependencies.map(|d| d.id);
+
+                                // This might take ownership of some packages
+                                // however I am unsure Extracts all packages
+                                // that have the ID listed as a dependency by
+                                // this package vertex
+                                let dependencies = self
+                                    .metadata
+                                    .packages
+                                    .iter()
+                                    .filter_map(|p| {
+                                        if dep_package_ids.contains(p.id) {
+                                            Some(Vertex::Package(p))
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .into_iter();
+                                Box::new(dependencies)
+                            }
+                        };
+                    (ctx, neighbors_iter)
+                }))
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn resolve_coercion(

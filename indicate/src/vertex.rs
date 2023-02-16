@@ -30,21 +30,11 @@ impl Vertex {
     }
 }
 
-/// Provides a way to convert the inner value of a vertex to
-/// to a Vertex containing that value
-///
-/// TODO: Replace with proc macro
-macro_rules! vertex_from {
-    ($type:ty, $vertex_variant:ident) => {
-        impl From<$type> for Vertex {
-            fn from(f: $type) -> Self {
-                Self::$vertex_variant(Rc::from(f))
-            }
-        }
-    };
+impl From<Package> for Vertex {
+    fn from(value: Package) -> Self {
+        Self::Package(Rc::new(value.into()))
+    }
 }
-
-vertex_from!(Package, Package);
 
 #[cfg(test)]
 mod test {

@@ -40,6 +40,24 @@ impl IndicateAdapter {
             direct_dependencies,
         }
     }
+
+    fn dependencies(
+        &self,
+        package_id: &PackageId,
+    ) -> VertexIterator<'static, Vertex> {
+        let dependency_ids =
+            self.direct_dependencies.get(&package_id).expect(&format!(
+                "Could not extract dependency IDs for package {}",
+                &package_id
+            ));
+
+        let dependencies = dependency_ids.iter().map(|id| {
+            let p = self.packages.get(id).unwrap();
+            Vertex::Package(p.clone())
+        });
+
+        Box::new(dependencies)
+    }
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -134,18 +152,7 @@ impl BasicAdapter<'static> for IndicateAdapter {
                                 // This is in fact a Package, otherwise it would be `None`
                                 let package = vertex.as_package().unwrap();
 
-                                let dependency_ids = self.direct_dependencies
-                                    .get(&package.id)
-                                    .expect(&format!("Could not extract dependency IDs for package {}", &package.id));
-
-                                let dependencies = dependency_ids
-                                    .iter()
-                                    .map(|id| {
-                                        let p = self.packages.get(id).unwrap();
-                                        Vertex::Package(p.clone())
-                                    });
-
-                                Box::new(dependencies)
+                                self.dependencies(&package.id)
                             }
                         };
                     (ctx, neighbors_iter)

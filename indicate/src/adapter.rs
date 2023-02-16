@@ -1,10 +1,6 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    iter::Map,
-    rc::Rc,
-};
+use std::{collections::BTreeMap, rc::Rc};
 
-use cargo_metadata::{Metadata, Package, PackageId};
+use cargo_metadata::{Dependency, Metadata, Package, PackageId};
 use trustfall_core::{
     field_property,
     interpreter::{
@@ -19,18 +15,30 @@ use crate::vertex::Vertex;
 struct IndicateAdapter {
     metadata: Metadata,
     packages: BTreeMap<PackageId, Rc<Package>>,
+
+    /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
+    direct_dependencies: BTreeMap<PackageId, Rc<Vec<PackageId>>>,
 }
 
 /// Helper methods to resolve fields using the metadata
 impl IndicateAdapter {
     fn new(metadata: Metadata) -> Self {
-        let packages = BTreeMap::new();
+        let mut packages = BTreeMap::new();
         metadata
             .packages
             .iter()
-            .map(|p| packages.insert(p.id, Rc::new(p.clone())));
+            .map(|p| packages.insert(p.id.clone(), Rc::new(p.clone())));
+        let mut direct_dependencies = BTreeMap::new();
+        metadata.resolve.as_ref().unwrap().nodes.iter().map(|n| {
+            direct_dependencies
+                .insert(n.id.clone(), Rc::new(n.dependencies.clone()))
+        });
 
-        Self { metadata, packages }
+        Self {
+            metadata,
+            packages,
+            direct_dependencies,
+        }
     }
 }
 
@@ -118,20 +126,19 @@ impl BasicAdapter<'static> for IndicateAdapter {
                 // First get all dependencies, and then resolve their package
                 // by finding that dependency by its ID in the metadata
                 Box::new(contexts.map(|ctx| {
-                    let current_vertex = ctx.active_vertex();
+                    let current_vertex = ctx.current_token;
                     let neighbors_iter: VertexIterator<'static, Self::Vertex> =
                         match current_vertex {
-                            None => Box::new((std::iter::empty())),
+                            None => Box::new(std::iter::empty()),
                             Some(vertex) => {
                                 // This is in fact a Package, otherwise it would be `None`
                                 let package = vertex.as_package().unwrap();
-                                let dependencies =
-                                    package.dependencies.filter_map(|id| {
-                                        if let Some(p) = self.packages.get(id) {
-                                            Some(Vertex::Package(p.clone()))
-                                        } else {
-                                            None
-                                        }
+                                let dependency_ids = self.direct_dependencies.get(&package.id).expect(&format!("Could not extract dependency IDs for package {}", &package.id));
+                                let dependencies = dependency_ids
+                                    .iter()
+                                    .map(|id| {
+                                        let p = self.packages.get(id).unwrap();
+                                        Vertex::Package(p.clone())
                                     });
                                 Box::new(dependencies)
                             }

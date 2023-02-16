@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, iter::Map, rc::Rc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    iter::Map,
+    rc::Rc,
+};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall_core::{
@@ -14,12 +18,19 @@ use crate::vertex::Vertex;
 
 struct IndicateAdapter {
     metadata: Metadata,
+    packages: BTreeMap<PackageId, Rc<Package>>,
 }
 
 /// Helper methods to resolve fields using the metadata
 impl IndicateAdapter {
     fn new(metadata: Metadata) -> Self {
-        Self { metadata }
+        let packages = BTreeMap::new();
+        metadata
+            .packages
+            .iter()
+            .map(|p| packages.insert(p.id, Rc::new(p.clone())));
+
+        Self { metadata, packages }
     }
 }
 
@@ -114,25 +125,14 @@ impl BasicAdapter<'static> for IndicateAdapter {
                             Some(vertex) => {
                                 // This is in fact a Package, otherwise it would be `None`
                                 let package = vertex.as_package().unwrap();
-                                let dep_package_ids =
-                                    package.dependencies.map(|d| d.id);
-
-                                // This might take ownership of some packages
-                                // however I am unsure Extracts all packages
-                                // that have the ID listed as a dependency by
-                                // this package vertex
-                                let dependencies = self
-                                    .metadata
-                                    .packages
-                                    .iter()
-                                    .filter_map(|p| {
-                                        if dep_package_ids.contains(p.id) {
-                                            Some(Vertex::Package(p))
+                                let dependencies =
+                                    package.dependencies.filter_map(|id| {
+                                        if let Some(p) = self.packages.get(id) {
+                                            Some(Vertex::Package(p.clone()))
                                         } else {
                                             None
                                         }
-                                    })
-                                    .into_iter();
+                                    });
                                 Box::new(dependencies)
                             }
                         };

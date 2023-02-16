@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
 
 use cargo_metadata::{Metadata, MetadataCommand};

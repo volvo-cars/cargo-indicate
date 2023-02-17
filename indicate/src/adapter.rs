@@ -55,10 +55,14 @@ impl<'a> IndicateAdapter<'a> {
                 &package_id
             ));
 
-        let dependencies = dependency_ids.iter().map(|id| {
-            let p = self.packages.get(id).unwrap();
-            Vertex::Package(Rc::clone(&p))
-        });
+        let dependencies = dependency_ids
+            .iter()
+            .map(|id| {
+                let p = self.packages.get(id).unwrap();
+                Vertex::Package(Rc::clone(&p))
+            })
+            .collect::<Vec<Vertex>>()
+            .into_iter();
 
         Box::new(dependencies)
     }

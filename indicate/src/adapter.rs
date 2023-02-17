@@ -57,7 +57,7 @@ impl IndicateAdapter {
 
         let dependencies = dependency_ids.iter().map(|id| {
             let p = self.packages.get(id).unwrap();
-            Vertex::Package(p.clone())
+            Vertex::Package(Rc::clone(&p))
         });
 
         Box::new(dependencies)

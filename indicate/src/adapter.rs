@@ -12,8 +12,8 @@ use trustfall_core::{
 
 use crate::vertex::Vertex;
 
-struct IndicateAdapter {
-    metadata: Metadata,
+struct IndicateAdapter<'a> {
+    metadata: &'a Metadata,
     packages: HashMap<PackageId, Rc<Package>>,
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
@@ -21,8 +21,8 @@ struct IndicateAdapter {
 }
 
 /// Helper methods to resolve fields using the metadata
-impl IndicateAdapter {
-    fn new(metadata: Metadata) -> Self {
+impl<'a> IndicateAdapter<'a> {
+    fn new(metadata: &'a Metadata) -> Self {
         let mut packages = HashMap::with_capacity(metadata.packages.len());
 
         metadata
@@ -48,7 +48,7 @@ impl IndicateAdapter {
     fn dependencies(
         &self,
         package_id: &PackageId,
-    ) -> VertexIterator<'static, Vertex> {
+    ) -> VertexIterator<'a, Vertex> {
         let dependency_ids =
             self.direct_dependencies.get(&package_id).expect(&format!(
                 "Could not extract dependency IDs for package {}",
@@ -65,7 +65,7 @@ impl IndicateAdapter {
 }
 
 /// The functions here are essentially the fields on the RootQuery
-impl IndicateAdapter {
+impl IndicateAdapter<'_> {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
         let root = self
             .metadata
@@ -76,14 +76,14 @@ impl IndicateAdapter {
     }
 }
 
-impl BasicAdapter<'static> for IndicateAdapter {
+impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
     type Vertex = Vertex;
 
     fn resolve_starting_vertices(
         &mut self,
         edge_name: &str,
         _parameters: Option<&trustfall_core::ir::EdgeParameters>,
-    ) -> VertexIterator<'static, Self::Vertex> {
+    ) -> VertexIterator<'a, Self::Vertex> {
         match edge_name {
             // These edge names should match 1:1 for `schema.trustfall.graphql`
             "RootPackage" => self.root_package(),
@@ -94,13 +94,13 @@ impl BasicAdapter<'static> for IndicateAdapter {
     fn resolve_property(
         &mut self,
         contexts: trustfall_core::interpreter::ContextIterator<
-            'static,
+            'a,
             Self::Vertex,
         >,
         type_name: &str,
         property_name: &str,
     ) -> trustfall_core::interpreter::ContextOutcomeIterator<
-        'static,
+        'a,
         Self::Vertex,
         trustfall_core::ir::FieldValue,
     > {
@@ -130,16 +130,16 @@ impl BasicAdapter<'static> for IndicateAdapter {
     fn resolve_neighbors(
         &mut self,
         contexts: trustfall_core::interpreter::ContextIterator<
-            'static,
+            'a,
             Self::Vertex,
         >,
         type_name: &str,
         edge_name: &str,
         _parameters: Option<&trustfall_core::ir::EdgeParameters>,
     ) -> trustfall_core::interpreter::ContextOutcomeIterator<
-        'static,
+        'a,
         Self::Vertex,
-        VertexIterator<'static, Self::Vertex>,
+        VertexIterator<'a, Self::Vertex>,
     > {
         // These are all possible neighboring vertexes, i.e. parts of a vertex
         // that are not scalar values (`FieldValue`)
@@ -149,13 +149,12 @@ impl BasicAdapter<'static> for IndicateAdapter {
                 // by finding that dependency by its ID in the metadata
                 Box::new(contexts.map(|ctx| {
                     let current_vertex = &ctx.current_token;
-                    let neighbors_iter: VertexIterator<'static, Self::Vertex> =
+                    let neighbors_iter: VertexIterator<'a, Self::Vertex> =
                         match current_vertex {
                             None => Box::new(std::iter::empty()),
                             Some(vertex) => {
                                 // This is in fact a Package, otherwise it would be `None`
                                 let package = vertex.as_package().unwrap();
-
                                 self.dependencies(&package.id)
                             }
                         };
@@ -169,13 +168,13 @@ impl BasicAdapter<'static> for IndicateAdapter {
     fn resolve_coercion(
         &mut self,
         contexts: trustfall_core::interpreter::ContextIterator<
-            'static,
+            'a,
             Self::Vertex,
         >,
         type_name: &str,
         coerce_to_type: &str,
     ) -> trustfall_core::interpreter::ContextOutcomeIterator<
-        'static,
+        'a,
         Self::Vertex,
         bool,
     > {

@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
-use cargo_metadata::{Dependency, Metadata, Package, PackageId};
+use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall_core::{
     field_property,
     interpreter::{
@@ -14,21 +14,25 @@ use crate::vertex::Vertex;
 
 struct IndicateAdapter {
     metadata: Metadata,
-    packages: BTreeMap<PackageId, Rc<Package>>,
+    packages: HashMap<PackageId, Rc<Package>>,
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
-    direct_dependencies: BTreeMap<PackageId, Rc<Vec<PackageId>>>,
+    direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
 }
 
 /// Helper methods to resolve fields using the metadata
 impl IndicateAdapter {
     fn new(metadata: Metadata) -> Self {
-        let mut packages = BTreeMap::new();
+        let mut packages = HashMap::with_capacity(metadata.packages.len());
+
         metadata
             .packages
             .iter()
             .map(|p| packages.insert(p.id.clone(), Rc::new(p.clone())));
-        let mut direct_dependencies = BTreeMap::new();
+
+        let mut direct_dependencies =
+            HashMap::with_capacity(metadata.packages.len());
+
         metadata.resolve.as_ref().unwrap().nodes.iter().map(|n| {
             direct_dependencies
                 .insert(n.id.clone(), Rc::new(n.dependencies.clone()))

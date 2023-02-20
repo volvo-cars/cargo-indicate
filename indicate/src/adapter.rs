@@ -1,13 +1,12 @@
 use std::{collections::HashMap, rc::Rc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
-use trustfall_core::{
-    field_property,
-    interpreter::{
-        basic_adapter::BasicAdapter, helpers::resolve_property_with,
-        VertexIterator,
+use trustfall::{
+    provider::{
+        field_property, resolve_property_with, BasicAdapter, ContextIterator,
+        ContextOutcomeIterator, EdgeParameters, VertexIterator,
     },
-    ir::FieldValue,
+    FieldValue,
 };
 
 use crate::vertex::Vertex;
@@ -34,8 +33,9 @@ impl<'a> IndicateAdapter<'a> {
             HashMap::with_capacity(metadata.packages.len());
 
         metadata.resolve.as_ref().unwrap().nodes.iter().map(|n| {
-            direct_dependencies
-                .insert(n.id.clone(), Rc::new(n.dependencies.clone()))
+            let id = n.id.clone();
+            let deps = n.dependencies.clone();
+            direct_dependencies.insert(id, Rc::new(deps))
         });
 
         Self {
@@ -86,7 +86,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
     fn resolve_starting_vertices(
         &mut self,
         edge_name: &str,
-        _parameters: Option<&trustfall_core::ir::EdgeParameters>,
+        _parameters: &EdgeParameters,
     ) -> VertexIterator<'a, Self::Vertex> {
         match edge_name {
             // These edge names should match 1:1 for `schema.trustfall.graphql`
@@ -97,17 +97,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
 
     fn resolve_property(
         &mut self,
-        contexts: trustfall_core::interpreter::ContextIterator<
-            'a,
-            Self::Vertex,
-        >,
+        contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         property_name: &str,
-    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
-        'a,
-        Self::Vertex,
-        trustfall_core::ir::FieldValue,
-    > {
+    ) -> ContextOutcomeIterator<'a, Self::Vertex, FieldValue> {
         match (type_name, property_name) {
             ("Package", "id") => resolve_property_with(contexts, |v| {
                 if let Some(s) = v.as_package() {
@@ -133,14 +126,11 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
 
     fn resolve_neighbors(
         &mut self,
-        contexts: trustfall_core::interpreter::ContextIterator<
-            'a,
-            Self::Vertex,
-        >,
+        contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         edge_name: &str,
-        _parameters: Option<&trustfall_core::ir::EdgeParameters>,
-    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
+        _parameters: &EdgeParameters,
+    ) -> ContextOutcomeIterator<
         'a,
         Self::Vertex,
         VertexIterator<'a, Self::Vertex>,
@@ -152,7 +142,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 // First get all dependencies, and then resolve their package
                 // by finding that dependency by its ID in the metadata
                 Box::new(contexts.map(|ctx| {
-                    let current_vertex = &ctx.current_token;
+                    let current_vertex = &ctx.active_vertex();
                     let neighbors_iter: VertexIterator<'a, Self::Vertex> =
                         match current_vertex {
                             None => Box::new(std::iter::empty()),
@@ -171,17 +161,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
 
     fn resolve_coercion(
         &mut self,
-        contexts: trustfall_core::interpreter::ContextIterator<
-            'a,
-            Self::Vertex,
-        >,
+        contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         coerce_to_type: &str,
-    ) -> trustfall_core::interpreter::ContextOutcomeIterator<
-        'a,
-        Self::Vertex,
-        bool,
-    > {
+    ) -> ContextOutcomeIterator<'a, Self::Vertex, bool> {
         todo!()
     }
 }

@@ -1,11 +1,10 @@
 #![deny(unsafe_code)]
-
 use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
 
 use cargo_metadata::{Metadata, MetadataCommand};
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use trustfall_core::{ir::FieldValue, schema::Schema};
+use trustfall::{FieldValue, Schema};
 
 mod adapter;
 mod vertex;

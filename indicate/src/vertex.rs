@@ -4,30 +4,14 @@
 use std::rc::Rc;
 
 use cargo_metadata::Package;
+use trustfall::provider::TrustfallEnumVertex;
 
 /// A node in the GraphQL schema as defined in the schema.
 ///
 /// Each node wraps a reference to some type of actual data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, TrustfallEnumVertex)]
 pub(crate) enum Vertex {
     Package(Rc<Package>),
-}
-
-impl Vertex {
-    /// Provides the `__typename` property
-    pub fn typename(&self) -> &'static str {
-        match self {
-            Vertex::Package(_) => "Package",
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn as_package(&self) -> Option<&Package> {
-        match self {
-            Vertex::Package(d) => Some(d.as_ref()),
-            _ => None,
-        }
-    }
 }
 
 impl From<Package> for Vertex {

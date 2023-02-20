@@ -1,0 +1,10 @@
+[
+  {
+    "name": "libc",
+    "version": "0.2.139"
+  },
+  {
+    "name": "syn",
+    "version": "1.0.107"
+  }
+]

@@ -94,6 +94,7 @@ mod test {
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
     #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
+    #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
     fn query_tests(fake_crate: &str, query_name: &str) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate}/Cargo.toml");

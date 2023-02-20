@@ -1,0 +1,38 @@
+[
+  {
+    "name": "proc-macro2",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.51"
+  },
+  {
+    "name": "unicode-ident",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.6"
+  },
+  {
+    "name": "quote",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.23"
+  },
+  {
+    "name": "proc-macro2",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.51"
+  },
+  {
+    "name": "unicode-ident",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.6"
+  },
+  {
+    "name": "unicode-ident",
+    "root_name": "syn",
+    "root_version": "1.0.107",
+    "version": "1.0.6"
+  }
+]

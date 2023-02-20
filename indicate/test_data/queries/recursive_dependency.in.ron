@@ -1,0 +1,21 @@
+// This query will retrieve all dependencies of the dependencies listed
+// in the `Cargo.toml` file under [dependencies]
+Query(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output(name: "root_name")
+            version @output(name: "root_version")
+            dependencies {
+                dependencies @recurse(depth: 5000) {
+                    name @output
+                    version @output
+                }
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

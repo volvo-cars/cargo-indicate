@@ -1,4 +1,5 @@
 #![deny(unsafe_code)]
+#![feature(iter_collect_into)]
 use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
 
 use cargo_metadata::{Metadata, MetadataCommand};
@@ -9,7 +10,7 @@ use trustfall::{FieldValue, Schema};
 mod adapter;
 mod vertex;
 
-const RAW_SCHEMA: &'static str = include_str!("schema.trustfall.graphql");
+const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
 lazy_static! {
     static ref SCHEMA: Schema =
@@ -47,7 +48,9 @@ pub fn extract_metadata_from_path(path: &Path) -> Metadata {
     MetadataCommand::new()
         .manifest_path(path)
         .exec()
-        .expect(&format!("Could not extract metadata from path {:?}", path))
+        .unwrap_or_else(|_| {
+            panic!("Could not extract metadata from path {:?}", path)
+        })
 }
 
 #[cfg(test)]

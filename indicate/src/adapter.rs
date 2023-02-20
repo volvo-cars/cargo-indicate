@@ -4,7 +4,7 @@ use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall::{
     provider::{
         field_property, resolve_property_with, BasicAdapter, ContextIterator,
-        ContextOutcomeIterator, EdgeParameters, VertexIterator,
+        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
     },
     FieldValue,
 };
@@ -21,22 +21,29 @@ struct IndicateAdapter<'a> {
 
 /// Helper methods to resolve fields using the metadata
 impl<'a> IndicateAdapter<'a> {
-    fn new(metadata: &'a Metadata) -> Self {
+    pub fn new(metadata: &'a Metadata) -> Self {
         let mut packages = HashMap::with_capacity(metadata.packages.len());
 
-        metadata
-            .packages
-            .iter()
-            .map(|p| packages.insert(p.id.clone(), Rc::new(p.clone())));
+        for p in &metadata.packages {
+            let id = p.id.clone();
+            let package = p.clone();
+            packages.insert(id, Rc::new(package));
+        }
 
         let mut direct_dependencies =
             HashMap::with_capacity(metadata.packages.len());
 
-        metadata.resolve.as_ref().unwrap().nodes.iter().map(|n| {
-            let id = n.id.clone();
-            let deps = n.dependencies.clone();
-            direct_dependencies.insert(id, Rc::new(deps))
-        });
+        for node in metadata
+            .resolve
+            .as_ref()
+            .expect("No nodes found!")
+            .nodes
+            .iter()
+        {
+            let id = node.id.clone();
+            let deps = node.dependencies.clone();
+            direct_dependencies.insert(id, Rc::new(deps));
+        }
 
         Self {
             metadata,
@@ -48,18 +55,22 @@ impl<'a> IndicateAdapter<'a> {
     fn dependencies(
         &self,
         package_id: &PackageId,
-    ) -> VertexIterator<'a, Vertex> {
-        let dependency_ids =
-            self.direct_dependencies.get(&package_id).expect(&format!(
-                "Could not extract dependency IDs for package {}",
-                &package_id
-            ));
+    ) -> VertexIterator<'static, Vertex> {
+        let dependency_ids = self
+            .direct_dependencies
+            .get(&package_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "Could not extract dependency IDs for package {}",
+                    &package_id
+                )
+            });
 
         let dependencies = dependency_ids
             .iter()
             .map(|id| {
                 let p = self.packages.get(id).unwrap();
-                Vertex::Package(Rc::clone(&p))
+                Vertex::Package(Rc::clone(p))
             })
             .collect::<Vec<Vertex>>()
             .into_iter();
@@ -75,7 +86,7 @@ impl IndicateAdapter<'_> {
             .metadata
             .root_package()
             .expect("No root package found!");
-        let v = Vertex::Package(Rc::new(root.clone().into()));
+        let v = Vertex::Package(Rc::new(root.clone()));
         Box::new(std::iter::once(v))
     }
 }
@@ -141,19 +152,27 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
             ("Package", "dependencies") => {
                 // First get all dependencies, and then resolve their package
                 // by finding that dependency by its ID in the metadata
-                Box::new(contexts.map(|ctx| {
-                    let current_vertex = &ctx.active_vertex();
-                    let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                        match current_vertex {
-                            None => Box::new(std::iter::empty()),
-                            Some(vertex) => {
-                                // This is in fact a Package, otherwise it would be `None`
-                                let package = vertex.as_package().unwrap();
-                                self.dependencies(&package.id)
-                            }
-                        };
-                    (ctx, neighbors_iter)
-                }))
+                let res = contexts
+                    .map(|ctx| {
+                        let current_vertex = &ctx.active_vertex();
+                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
+                            match current_vertex {
+                                None => Box::new(std::iter::empty()),
+                                Some(vertex) => {
+                                    // This is in fact a Package, otherwise it would be `None`
+                                    let package = vertex.as_package().unwrap();
+                                    self.dependencies(&package.id)
+                                }
+                            };
+                        (ctx, neighbors_iter)
+                    })
+                    .collect::<Vec<(
+                        DataContext<Self::Vertex>,
+                        VertexIterator<'a, Self::Vertex>,
+                    )>>()
+                    .into_iter();
+
+                Box::new(res)
             }
             _ => unreachable!(),
         }

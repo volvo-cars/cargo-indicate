@@ -16,7 +16,7 @@ pub(crate) enum Vertex {
 
 impl From<Package> for Vertex {
     fn from(value: Package) -> Self {
-        Self::Package(Rc::new(value.into()))
+        Self::Package(Rc::new(value))
     }
 }
 

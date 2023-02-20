@@ -1,0 +1,20 @@
+[
+  {
+    "dep_name": {
+      "List": [
+        {
+          "String": "libc"
+        },
+        {
+          "String": "syn"
+        }
+      ]
+    },
+    "root_package_name": {
+      "String": "direct_dependencies"
+    },
+    "root_package_version": {
+      "String": "0.1.0"
+    }
+  }
+]

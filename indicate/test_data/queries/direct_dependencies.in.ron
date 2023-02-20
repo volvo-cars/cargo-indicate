@@ -1,0 +1,14 @@
+Query(
+    query: r#"
+{
+    RootPackage {
+        name @output(name: "root_package_name")
+        version @output(name: "root_package_version")
+        dependencies @fold {
+            name @output(name: "dep_name")
+        }
+    }
+}
+    "#,
+    args: {}
+)

@@ -3,3 +3,6 @@
 
 # If someone spends a lot of money to pollute repos
 .DS_Store
+
+# For parameterized tests
+*.expected.ron

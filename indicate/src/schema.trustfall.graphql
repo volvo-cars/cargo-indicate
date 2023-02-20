@@ -1,13 +1,11 @@
-"""
-This is not truly a GraphQL file; Instead it is a GraphQL representation of the
-types provided by indicator.
+# This is not truly a GraphQL file; Instead it is a GraphQL representation of the
+# types provided by indicator.
 
-_This is the single source of truth for `indicator`. Any deviation from it is to
-be considered a bug._
+# _This is the single source of truth for `indicator`. Any deviation from it is to
+# be considered a bug._
 
-This is the currently supported Trustfall directives. They are handled by the
-Trustfall engine.
-"""
+# This is the currently supported Trustfall directives. They are handled by the
+# Trustfall engine.
 schema {
     query: RootQuery
 }

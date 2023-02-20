@@ -10,7 +10,7 @@ use trustfall::provider::TrustfallEnumVertex;
 ///
 /// Each node wraps a reference to some type of actual data.
 #[derive(Debug, Clone, TrustfallEnumVertex)]
-pub(crate) enum Vertex {
+pub enum Vertex {
     Package(Rc<Package>),
 }
 

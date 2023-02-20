@@ -11,7 +11,7 @@ use trustfall::{
 
 use crate::vertex::Vertex;
 
-struct IndicateAdapter<'a> {
+pub struct IndicateAdapter<'a> {
     metadata: &'a Metadata,
     packages: HashMap<PackageId, Rc<Package>>,
 

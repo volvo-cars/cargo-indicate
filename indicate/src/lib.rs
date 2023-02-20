@@ -1,11 +1,13 @@
 #![deny(unsafe_code)]
 #![feature(iter_collect_into)]
-use std::{collections::BTreeMap, fs, path::Path, sync::Arc};
+use std::{
+    cell::RefCell, collections::BTreeMap, fs, path::Path, rc::Rc, sync::Arc,
+};
 
+use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
 use lazy_static::lazy_static;
-use serde::Deserialize;
-use trustfall::{FieldValue, Schema};
+use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 mod adapter;
 mod vertex;
@@ -17,30 +19,29 @@ lazy_static! {
         Schema::parse(RAW_SCHEMA).expect("Could not parse schema!");
 }
 
-/// Type representing a thread-safe JSON object, like
-/// ```json
-/// {
-///     "name": "hello",
-///     "value": true,
-/// }
-/// ```
-type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
-
-/// Struct representing a query to `indicate`
-#[derive(Debug, Clone, Deserialize)]
-struct Query<'a> {
-    query: &'a str,
-    args: Arc<ObjectMap>,
-}
-
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
-pub fn execute_query(path: &Path) {
-    let raw_query =
-        fs::read_to_string(path).expect("Could not read query at {path}!");
-    let query: Query = ron::from_str(&raw_query)
-        .expect("Could not parse the raw query as .ron!");
-    todo!("Use the adapter")
+pub fn execute_query(query_path: &Path, metadata_path: &Path) {
+    let raw_query = fs::read_to_string(query_path)
+        .expect("Could not read query at {path}!");
+
+    let metadata = extract_metadata_from_path(metadata_path);
+    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(&metadata)));
+    let res = trustfall_execute_query(
+        &SCHEMA,
+        adapter,
+        &raw_query,
+        BTreeMap::new() as BTreeMap<Arc<str>, FieldValue>,
+    );
+
+    match res {
+        Err(e) => panic!("Could not execute query due to error: {}", e),
+        Ok(i) => {
+            for r in i {
+                println!("{:#?}", r);
+            }
+        }
+    }
 }
 
 /// Extracts metadata from a `Cargo.toml` file by its direct path

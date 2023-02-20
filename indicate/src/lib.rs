@@ -7,6 +7,7 @@ use std::{
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
 use lazy_static::lazy_static;
+use serde::Deserialize;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 mod adapter;
@@ -19,19 +20,37 @@ lazy_static! {
         Schema::parse(RAW_SCHEMA).expect("Could not parse schema!");
 }
 
+/// Type representing a thread-safe JSON object, like
+/// ```json
+/// {
+///     "name": "hello",
+///     "value": true,
+/// }
+/// ```
+type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
+
+#[derive(Debug, Clone, Deserialize)]
+struct Query<'a> {
+    pub query: &'a str,
+    pub variables: ObjectMap,
+}
+
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
 pub fn execute_query(query_path: &Path, metadata_path: &Path) {
     let raw_query = fs::read_to_string(query_path)
         .expect("Could not read query at {path}!");
 
+    let full_query = ron::from_str::<Query>(&raw_query)
+        .expect("Could not deserialize query!");
+
     let metadata = extract_metadata_from_path(metadata_path);
     let adapter = Rc::new(RefCell::new(IndicateAdapter::new(&metadata)));
     let res = trustfall_execute_query(
         &SCHEMA,
         adapter,
-        &raw_query,
-        BTreeMap::new() as BTreeMap<Arc<str>, FieldValue>,
+        full_query.query,
+        full_query.variables,
     );
 
     match res {

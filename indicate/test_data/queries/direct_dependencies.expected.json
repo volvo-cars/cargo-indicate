@@ -1,20 +1,10 @@
 [
   {
-    "dep_name": {
-      "List": [
-        {
-          "String": "libc"
-        },
-        {
-          "String": "syn"
-        }
-      ]
-    },
-    "root_package_name": {
-      "String": "direct_dependencies"
-    },
-    "root_package_version": {
-      "String": "0.1.0"
-    }
+    "dep_name": [
+      "libc",
+      "syn"
+    ],
+    "root_package_name": "direct_dependencies",
+    "root_package_version": "0.1.0"
   }
 ]

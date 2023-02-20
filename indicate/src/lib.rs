@@ -8,7 +8,10 @@ use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
 use lazy_static::lazy_static;
 use serde::Deserialize;
-use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
+use trustfall::{
+    execute_query as trustfall_execute_query, FieldValue, Schema,
+    TransparentValue,
+};
 
 mod adapter;
 mod vertex;
@@ -33,6 +36,16 @@ type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
 struct Query<'a> {
     pub query: &'a str,
     pub args: ObjectMap,
+}
+
+/// Transform a result from [`execute_query`] to one where the fields can easily be
+/// serialized to JSON using [`TransparentValue`].
+pub fn transparent_results(
+    res: Vec<BTreeMap<Arc<str>, FieldValue>>,
+) -> Vec<BTreeMap<Arc<str>, TransparentValue>> {
+    res.into_iter()
+        .map(|entry| entry.into_iter().map(|(k, v)| (k, v.into())).collect())
+        .collect()
 }
 
 /// Executes a Trustfall query at a defined path, using the schema
@@ -77,16 +90,10 @@ mod test {
     use std::{fs, path::Path};
     use test_case::test_case;
 
-    use crate::execute_query;
-
-    // lazy_static! {
-    //     static ref TEST_ROOT: PathBuf = PathBuf::from("test_data/");
-    //     static ref TEST_CRATES: PathBuf =
-    //         PathBuf::from("test_data/fake_crates/");
-    //     static ref TEST_QUERIES: PathBuf = PathBuf::from("test_data/queries/");
-    // }
+    use crate::{execute_query, transparent_results};
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
+    #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
     fn query_tests(fake_crate: &str, query_name: &str) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate}/Cargo.toml");
@@ -99,7 +106,9 @@ mod test {
             format!("test_data/queries/{query_name}.expected.json");
         let expected_result_name = Path::new(&raw_expected_result_path);
 
-        let res = execute_query(query_path, cargo_toml_path);
+        // We use `TransparentValue for neater JSON serialization
+        let res =
+            transparent_results(execute_query(query_path, cargo_toml_path));
         let res_json_string = serde_json::to_string_pretty(&res)
             .expect("Could not convert result to string");
 

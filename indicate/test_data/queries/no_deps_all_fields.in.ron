@@ -1,0 +1,11 @@
+Query(
+    query: r#"
+{
+    RootPackage {
+        name @output
+        version @output
+    }
+}
+"#,
+    args: {}
+)

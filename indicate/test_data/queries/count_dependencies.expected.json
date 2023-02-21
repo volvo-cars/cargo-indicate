@@ -1,0 +1,19 @@
+[
+  {
+    "dep_name": [],
+    "name": "libc",
+    "number": 0
+  },
+  {
+    "dep_name": [
+      "proc-macro2",
+      "unicode-ident",
+      "quote",
+      "proc-macro2",
+      "unicode-ident",
+      "unicode-ident"
+    ],
+    "name": "syn",
+    "number": 6
+  }
+]

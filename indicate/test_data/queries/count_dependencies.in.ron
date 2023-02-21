@@ -1,0 +1,19 @@
+// Counts the number of dependencies for each direct dependency,
+// and lists them. This means some dependencies may be counted twice
+Query(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output
+            dependencies @fold @transform(op: "count") @output(name: "number") {
+                dependencies @recurse(depth: 30) {
+                    name @output(name: "dep_name")
+                }
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

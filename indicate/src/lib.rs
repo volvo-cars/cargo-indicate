@@ -96,6 +96,7 @@ mod test {
     #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
     #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
     #[test_case("direct_dependencies", "recursive_dependency" ; "retrieve recursive dependency information")]
+    #[test_case("direct_dependencies", "count_dependencies" ; "count the number of dependencies used by each dependency")]
     fn query_tests(fake_crate: &str, query_name: &str) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate}/Cargo.toml");

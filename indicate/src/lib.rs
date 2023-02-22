@@ -14,6 +14,7 @@ use trustfall::{
 };
 
 mod adapter;
+mod github;
 mod vertex;
 
 const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");

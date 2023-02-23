@@ -45,15 +45,15 @@ static GITHUB_CLIENT: Lazy<octorust::Client> = Lazy::new(|| {
     // TODO: This should probably be dynamic depending on settings and cfg
     let http_cache = <dyn HttpCache>::in_home_dir();
 
+    // TODO: Better handling of agent
+    let agent = std::env::var("USER_AGENT")
+        .expect("USER_AGENT environment variable not set");
+
     // TODO: Better handling of token
     let credentials = Credentials::Token(
         std::env::var("GITHUB_API_TOKEN")
             .expect("GITHUB_API_TOKEN environment variable not set"),
     );
-
-    // TODO: Better handling of agent
-    let agent = std::env::var("USER_AGENT")
-        .expect("USER_AGENT environment variable not set");
 
     Client::custom(
         agent,

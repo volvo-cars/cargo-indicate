@@ -212,7 +212,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 contexts,
                 field_property!(as_git_hub_repository, name),
             ),
-            ("GitHubRepository", "starCount") => resolve_property_with(
+            ("GitHubRepository", "starsCount") => resolve_property_with(
                 contexts,
                 field_property!(as_git_hub_repository, stargazers_count),
             ),
@@ -230,9 +230,11 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 contexts,
                 field_property!(as_git_hub_user, name),
             ),
-            ("GitHubUser", "createdAt") => resolve_property_with(
+            ("GitHubUser", "unixCreatedAt") => resolve_property_with(
                 contexts,
-                field_property!(as_git_hub_user, created_at),
+                field_property!(as_git_hub_user, created_at, {
+                    created_at.into() // Convert to Unix timestamp
+                }),
             ),
             ("GitHubUser", "followersCount") => resolve_property_with(
                 contexts,
@@ -242,7 +244,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 contexts,
                 field_property!(as_git_hub_user, email),
             ),
-            _ => unreachable!(),
+            (t, p) => {
+                unreachable!("unreachable property combination: {t}, {p}")
+            }
         }
     }
 
@@ -303,7 +307,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     }
                 })
             }
-            _ => unreachable!(),
+            (t, e) => {
+                unreachable!("unreachable neighbor combination: {t}, {e}")
+            }
         }
     }
 

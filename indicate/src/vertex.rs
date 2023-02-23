@@ -28,7 +28,7 @@ impl Vertex {
         match self {
             Vertex::Webpage(url) => Some(url.as_ref()),
             Vertex::Repository(url) => Some(url.as_ref()),
-            Vertex::GitHubRepository(r) => Some(&r.url),
+            Vertex::GitHubRepository(r) => Some(&r.html_url),
             _ => None,
         }
     }
@@ -36,7 +36,7 @@ impl Vertex {
     pub fn as_repository(&self) -> Option<&str> {
         match self {
             Vertex::Repository(url) => Some(url.as_ref()),
-            Vertex::GitHubRepository(r) => Some(&r.url),
+            Vertex::GitHubRepository(r) => Some(&r.html_url),
             _ => None,
         }
     }
@@ -48,15 +48,15 @@ impl From<Package> for Vertex {
     }
 }
 
-#[cfg(test)]
-mod test {
-    /// Verify that all `Vertex` variants are types in
-    /// the schema, and that all types are nodes variants
-    #[test]
-    #[ignore = "not possible at this point"]
-    fn verify_nodes_in_schema() {
-        // TODO: Use trustfall_core::schema::Schema to
-        // access vertexes
-        todo!()
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     /// Verify that all `Vertex` variants are types in
+//     /// the schema, and that all types are nodes variants
+//     #[test]
+//     #[ignore = "not possible at this point"]
+//     fn verify_nodes_in_schema() {
+//         // TODO: Use trustfall_core::schema::Schema to
+//         // access vertexes
+//         todo!()
+//     }
+// }

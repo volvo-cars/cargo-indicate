@@ -105,6 +105,7 @@ mod test {
     #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
     #[test_case("direct_dependencies", "recursive_dependency" ; "retrieve recursive dependency information")]
     #[test_case("direct_dependencies", "count_dependencies" ; "count the number of dependencies used by each dependency")]
+    #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple github repository query")]
     fn query_tests(fake_crate: &str, query_name: &str) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate}/Cargo.toml");

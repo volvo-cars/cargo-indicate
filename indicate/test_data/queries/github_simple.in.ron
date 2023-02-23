@@ -1,0 +1,21 @@
+Query(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output(name: "dep_name")
+            repository {
+                ... on GitHubRepository {
+                    url @output
+                    name @output
+                    starsCount @output
+                    forksCount @output
+                    hasIssues @output
+                }
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

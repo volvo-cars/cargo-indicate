@@ -1,0 +1,18 @@
+[
+  {
+    "dep_name": "libc",
+    "forksCount": 844,
+    "hasIssues": true,
+    "name": "libc",
+    "starsCount": 1612,
+    "url": "https://github.com/rust-lang/libc"
+  },
+  {
+    "dep_name": "syn",
+    "forksCount": 264,
+    "hasIssues": true,
+    "name": "syn",
+    "starsCount": 2055,
+    "url": "https://github.com/dtolnay/syn"
+  }
+]

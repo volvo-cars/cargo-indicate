@@ -83,6 +83,6 @@ type GitHubRepository implements Repository & Webpage {
 type GitHubUser {
     name: String!
     createdAt: Date
-    followers: Int!
+    followersCount: Int!
     email: String!
 }

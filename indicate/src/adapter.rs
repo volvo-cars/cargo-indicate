@@ -3,8 +3,9 @@ use std::{collections::HashMap, rc::Rc};
 use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall::{
     provider::{
-        field_property, resolve_property_with, BasicAdapter, ContextIterator,
-        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
+        accessor_property, field_property, resolve_property_with, BasicAdapter,
+        ContextIterator, ContextOutcomeIterator, DataContext, EdgeParameters,
+        VertexIterator,
     },
     FieldValue,
 };
@@ -141,6 +142,40 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     Some(url) => FieldValue::String(url.to_owned()),
                 })
             }
+            ("GitHubRepository", "name") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, name),
+            ),
+            ("GitHubRepository", "starCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, stargazers_count),
+            ),
+            ("GitHubRepository", "forksCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, forks_count),
+            ),
+            ("GitHubRepository", "hasIssues") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, has_issues, {
+                    (*has_issues).into()
+                }),
+            ),
+            ("GitHubUser", "name") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, name),
+            ),
+            ("GitHubUser", "createdAt") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, created_at),
+            ),
+            ("GitHubUser", "followersCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, followers),
+            ),
+            ("GitHubUser", "email") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, email),
+            ),
             _ => unreachable!(),
         }
     }

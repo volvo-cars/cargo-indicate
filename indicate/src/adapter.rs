@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Debug, iter::Empty, rc::Rc, sync::Arc};
+use std::{
+    collections::HashMap, fmt::Debug, iter::Empty, rc::Rc, sync::Arc,
+    thread::current,
+};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall::{
@@ -275,7 +278,38 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         type_name: &str,
         coerce_to_type: &str,
     ) -> ContextOutcomeIterator<'a, Self::Vertex, bool> {
-        todo!()
+        Box::new(
+            contexts
+                .map(|ctx| {
+                    let current_vertex = &ctx.active_vertex();
+                    let current_vertex = match current_vertex {
+                        Some(v) => v,
+                        None => return (ctx, false),
+                    };
+
+                    let can_coerce = match (
+                        type_name.as_ref() as &str,
+                        coerce_to_type.as_ref(),
+                    ) {
+                        (_, "Repository") => {
+                            current_vertex.as_repository().is_some()
+                        }
+                        (_, "GitHubRepository") => {
+                            current_vertex.as_git_hub_repository().is_some()
+                        }
+                        unhandled => {
+                            unreachable!(
+                                "the coersion {:?} is unhandled",
+                                unhandled
+                            )
+                        }
+                    };
+
+                    (ctx, can_coerce)
+                })
+                .collect::<Vec<(DataContext<Self::Vertex>, bool)>>()
+                .into_iter(),
+        )
     }
 }
 

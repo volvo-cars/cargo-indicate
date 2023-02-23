@@ -33,7 +33,7 @@ impl Vertex {
         }
     }
 
-    fn as_repository(&self) -> Option<&str> {
+    pub fn as_repository(&self) -> Option<&str> {
         match self {
             Vertex::Repository(url) => Some(url.as_ref()),
             Vertex::GitHubRepository(r) => Some(&r.url),

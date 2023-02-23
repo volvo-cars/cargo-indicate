@@ -22,6 +22,15 @@ pub(crate) struct GitHubRepositoryId<'a> {
     repo: &'a str,
 }
 
+impl<'a> From<(&'a str, &'a str)> for GitHubRepositoryId<'a> {
+    fn from(value: (&'a str, &'a str)) -> Self {
+        Self {
+            owner: value.0,
+            repo: value.1,
+        }
+    }
+}
+
 static GITHUB_CLIENT: Lazy<octorust::Client> = Lazy::new(|| {
     // It might be a good idea to cache GitHub URLs in a HashMap, that only
     // exists in memory for one set of queries. This way, the amount of even
@@ -101,7 +110,7 @@ impl<'a> GitHubClient<'a> {
 
     pub fn get_public_user(
         &mut self,
-        username: &'a str,
+        username: &str,
     ) -> Option<Arc<PublicUser>> {
         match self.user_cache.get(username) {
             Some(r) => Some(Arc::clone(r)),

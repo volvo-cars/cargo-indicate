@@ -11,7 +11,10 @@ Query(
                     starsCount @output
                     forksCount @output
                     hasIssues @output
+                    archived @output
+                    fork @output
                 }
+                
             }
         }
     }

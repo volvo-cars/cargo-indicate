@@ -1,6 +1,8 @@
 [
   {
+    "archived": false,
     "dep_name": "libc",
+    "fork": false,
     "forksCount": 844,
     "hasIssues": true,
     "name": "libc",
@@ -8,7 +10,9 @@
     "url": "https://github.com/rust-lang/libc"
   },
   {
+    "archived": false,
     "dep_name": "syn",
+    "fork": false,
     "forksCount": 264,
     "hasIssues": true,
     "name": "syn",

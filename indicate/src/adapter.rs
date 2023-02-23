@@ -1,15 +1,11 @@
-use std::{
-    collections::HashMap, fmt::Debug, iter::Empty, rc::Rc, sync::Arc,
-    thread::current,
-};
+use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
-        accessor_property, field_property, resolve_property_with, BasicAdapter,
-        ContextIterator, ContextOutcomeIterator, DataContext, EdgeParameters,
-        VertexIterator,
+        field_property, resolve_property_with, BasicAdapter, ContextIterator,
+        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
     },
     FieldValue,
 };
@@ -224,6 +220,18 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 contexts,
                 field_property!(as_git_hub_repository, has_issues, {
                     (*has_issues).into()
+                }),
+            ),
+            ("GitHubRepository", "archived") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, archived, {
+                    (*archived).into()
+                }),
+            ),
+            ("GitHubRepository", "fork") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, fork, {
+                    (*fork).into()
                 }),
             ),
             ("GitHubUser", "name") => resolve_property_with(

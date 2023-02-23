@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, iter::Empty, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall::{
@@ -209,6 +209,54 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                                     self.dependencies(&package.id)
                                 }
                             };
+                        (ctx, neighbors_iter)
+                    })
+                    .collect::<Vec<(
+                        DataContext<Self::Vertex>,
+                        VertexIterator<'a, Self::Vertex>,
+                    )>>()
+                    .into_iter();
+
+                Box::new(res)
+            }
+            ("GitHubRepository", "owner") => {
+                let res = contexts
+                    .map(|ctx| {
+                        let current_vertex = &ctx.active_vertex();
+                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
+                            match current_vertex {
+                                None => Box::new(std::iter::empty()),
+                                Some(vertex) => {
+                                    // Must be GitHubRepository according to guarantees from Trustfall
+                                    let gh_repo =
+                                        vertex.as_git_hub_repository().unwrap();
+                                    match &gh_repo.owner {
+                                        None => Box::new(std::iter::empty()),
+                                        Some(simple_user) => {
+                                            let user = self
+                                                .github_client
+                                                .get_public_user(
+                                                    &simple_user.name,
+                                                );
+
+                                            // TODO: A bit sketchy error handling here
+                                            match user {
+                                                None => {
+                                                    Box::new(std::iter::empty())
+                                                }
+                                                Some(u) => {
+                                                    Box::new(std::iter::once(
+                                                        Vertex::GitHubUser(
+                                                            Arc::clone(&u),
+                                                        ),
+                                                    ))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+
                         (ctx, neighbors_iter)
                     })
                     .collect::<Vec<(

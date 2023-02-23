@@ -123,7 +123,7 @@ impl<'a> IndicateAdapter<'a> {
 /// Resolve the neighbor of a vertex, when it is known that the Vertex can be
 /// downcast using an `as_<type>`. The passed closure will be used to resolve
 /// the desired neighbors
-fn resolve_vertex_neighbor<'a, V, F>(
+fn resolve_vertex_neighbors<'a, V, F>(
     contexts: ContextIterator<'a, V>,
     mut resolve: F,
 ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
@@ -265,7 +265,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                resolve_vertex_neighbor(contexts, |vertex| {
+                resolve_vertex_neighbors(contexts, |vertex| {
                     // This is in fact a Package, otherwise it would be `None`
                     // First get all dependencies, and then resolve their package
                     // by finding that dependency by its ID in the metadata
@@ -274,7 +274,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 })
             }
             ("Package", "repository") => {
-                resolve_vertex_neighbor(contexts, |v| {
+                resolve_vertex_neighbors(contexts, |v| {
                     // Must be package
                     let package = v.as_package().unwrap();
                     match &package.repository {
@@ -286,7 +286,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 })
             }
             ("GitHubRepository", "owner") => {
-                resolve_vertex_neighbor(contexts, |vertex| {
+                resolve_vertex_neighbors(contexts, |vertex| {
                     // Must be GitHubRepository according to guarantees from Trustfall
                     let gh_repo = vertex.as_git_hub_repository().unwrap();
                     match &gh_repo.owner {

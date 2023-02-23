@@ -76,8 +76,8 @@ type GitHubRepository implements Repository & Webpage {
     starsCount: Int!
     forksCount: Int!
     
+    # If the issues page is available for this repository
     hasIssues: Bool!
-
 }
 
 type GitHubUser {

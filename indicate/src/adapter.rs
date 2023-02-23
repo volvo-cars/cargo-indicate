@@ -114,6 +114,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         type_name: &str,
         property_name: &str,
     ) -> ContextOutcomeIterator<'a, Self::Vertex, FieldValue> {
+        // This match statement must contain _all_ possible types provided
+        // by `schema.trustfall.graphql`
         match (type_name, property_name) {
             ("Package", "id") => resolve_property_with(contexts, |v| {
                 if let Some(s) = v.as_package() {
@@ -133,6 +135,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     unreachable!("Not a package!")
                 }
             }),
+            ("Webpage" | "Repository" | "GitHubRepository", "url") => {
+                resolve_property_with(contexts, |v| match v.as_webpage() {
+                    None => FieldValue::Null,
+                    Some(url) => FieldValue::String(url.to_owned()),
+                })
+            }
             _ => unreachable!(),
         }
     }

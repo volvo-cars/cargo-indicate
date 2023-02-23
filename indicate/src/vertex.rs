@@ -13,10 +13,33 @@ use trustfall::provider::TrustfallEnumVertex;
 #[derive(Debug, Clone, TrustfallEnumVertex)]
 pub enum Vertex {
     Package(Rc<Package>),
-    Webpage(Rc<str>),
-    Repository(Rc<str>),
+
+    #[trustfall(skip_conversion)]
+    Webpage(String),
+
+    #[trustfall(skip_conversion)]
+    Repository(String),
     GitHubRepository(Arc<FullRepository>),
     GitHubUser(Arc<PublicUser>),
+}
+
+impl Vertex {
+    pub fn as_webpage(&self) -> Option<&str> {
+        match self {
+            Vertex::Webpage(url) => Some(url.as_ref()),
+            Vertex::Repository(url) => Some(url.as_ref()),
+            Vertex::GitHubRepository(r) => Some(&r.url),
+            _ => None,
+        }
+    }
+
+    fn as_repository(&self) -> Option<&str> {
+        match self {
+            Vertex::Repository(url) => Some(url.as_ref()),
+            Vertex::GitHubRepository(r) => Some(&r.url),
+            _ => None,
+        }
+    }
 }
 
 impl From<Package> for Vertex {

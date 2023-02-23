@@ -219,6 +219,35 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
 
                 Box::new(res)
             }
+            ("Package", "repository") => {
+                let res = contexts
+                    .map(|ctx| {
+                        let current_vertex = &ctx.active_vertex();
+                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
+                            match current_vertex {
+                                None => Box::new(std::iter::empty()),
+                                Some(v) => {
+                                    // Must be package
+                                    let package = v.as_package().unwrap();
+                                    match &package.repository {
+                                        Some(url) => Box::new(std::iter::once(
+                                            get_repository_from_url(&url),
+                                        )),
+                                        None => Box::new(std::iter::empty()),
+                                    }
+                                }
+                            };
+
+                        (ctx, neighbors_iter)
+                    })
+                    .collect::<Vec<(
+                        DataContext<Self::Vertex>,
+                        VertexIterator<'a, Self::Vertex>,
+                    )>>()
+                    .into_iter();
+
+                Box::new(res)
+            }
             ("GitHubRepository", "owner") => {
                 let res = contexts
                     .map(|ctx| {
@@ -279,4 +308,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
     ) -> ContextOutcomeIterator<'a, Self::Vertex, bool> {
         todo!()
     }
+}
+
+/// Returns a form of repository, i.e. a variant that implements the
+/// `schema.trustfall.graphql` `repository` interface
+fn get_repository_from_url(url: &str) -> Vertex {
+    todo!()
 }

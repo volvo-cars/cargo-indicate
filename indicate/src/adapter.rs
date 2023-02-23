@@ -82,6 +82,29 @@ impl<'a> IndicateAdapter<'a> {
     }
 }
 
+macro_rules! vertex_neighbor {
+    ($contexts:ident, $vertex:ident, $b:block) => {
+        Box::new(
+            $contexts
+                .map(|ctx| {
+                    let current_vertex = &ctx.active_vertex();
+                    let neighbors_iter: VertexIterator<'a, Self::Vertex> =
+                        match current_vertex {
+                            None => Box::new(std::iter::empty()),
+                            Some($vertex) => $b,
+                        };
+
+                    (ctx, neighbors_iter)
+                })
+                .collect::<Vec<(
+                    DataContext<Self::Vertex>,
+                    VertexIterator<'a, Self::Vertex>,
+                )>>()
+                .into_iter(),
+        )
+    };
+}
+
 /// The functions here are essentially the fields on the RootQuery
 impl IndicateAdapter<'_> {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
@@ -195,106 +218,45 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                // First get all dependencies, and then resolve their package
-                // by finding that dependency by its ID in the metadata
-                let res = contexts
-                    .map(|ctx| {
-                        let current_vertex = &ctx.active_vertex();
-                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                            match current_vertex {
-                                None => Box::new(std::iter::empty()),
-                                Some(vertex) => {
-                                    // This is in fact a Package, otherwise it would be `None`
-                                    let package = vertex.as_package().unwrap();
-                                    self.dependencies(&package.id)
-                                }
-                            };
-                        (ctx, neighbors_iter)
-                    })
-                    .collect::<Vec<(
-                        DataContext<Self::Vertex>,
-                        VertexIterator<'a, Self::Vertex>,
-                    )>>()
-                    .into_iter();
-
-                Box::new(res)
+                vertex_neighbor!(contexts, vertex, {
+                    // This is in fact a Package, otherwise it would be `None`
+                    // First get all dependencies, and then resolve their package
+                    // by finding that dependency by its ID in the metadata
+                    let package = vertex.as_package().unwrap();
+                    self.dependencies(&package.id)
+                })
             }
-            ("Package", "repository") => {
-                let res = contexts
-                    .map(|ctx| {
-                        let current_vertex = &ctx.active_vertex();
-                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                            match current_vertex {
-                                None => Box::new(std::iter::empty()),
-                                Some(v) => {
-                                    // Must be package
-                                    let package = v.as_package().unwrap();
-                                    match &package.repository {
-                                        Some(url) => Box::new(std::iter::once(
-                                            get_repository_from_url(&url),
-                                        )),
-                                        None => Box::new(std::iter::empty()),
-                                    }
-                                }
-                            };
-
-                        (ctx, neighbors_iter)
-                    })
-                    .collect::<Vec<(
-                        DataContext<Self::Vertex>,
-                        VertexIterator<'a, Self::Vertex>,
-                    )>>()
-                    .into_iter();
-
-                Box::new(res)
-            }
+            ("Package", "repository") => vertex_neighbor!(contexts, v, {
+                // Must be package
+                let package = v.as_package().unwrap();
+                match &package.repository {
+                    Some(url) => {
+                        Box::new(std::iter::once(get_repository_from_url(&url)))
+                    }
+                    None => Box::new(std::iter::empty()),
+                }
+            }),
             ("GitHubRepository", "owner") => {
-                let res = contexts
-                    .map(|ctx| {
-                        let current_vertex = &ctx.active_vertex();
-                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                            match current_vertex {
+                vertex_neighbor!(contexts, vertex, {
+                    // Must be GitHubRepository according to guarantees from Trustfall
+                    let gh_repo = vertex.as_git_hub_repository().unwrap();
+                    match &gh_repo.owner {
+                        None => Box::new(std::iter::empty()),
+                        Some(simple_user) => {
+                            let user = self
+                                .github_client
+                                .get_public_user(&simple_user.name);
+
+                            // TODO: A bit sketchy error handling here
+                            match user {
                                 None => Box::new(std::iter::empty()),
-                                Some(vertex) => {
-                                    // Must be GitHubRepository according to guarantees from Trustfall
-                                    let gh_repo =
-                                        vertex.as_git_hub_repository().unwrap();
-                                    match &gh_repo.owner {
-                                        None => Box::new(std::iter::empty()),
-                                        Some(simple_user) => {
-                                            let user = self
-                                                .github_client
-                                                .get_public_user(
-                                                    &simple_user.name,
-                                                );
-
-                                            // TODO: A bit sketchy error handling here
-                                            match user {
-                                                None => {
-                                                    Box::new(std::iter::empty())
-                                                }
-                                                Some(u) => {
-                                                    Box::new(std::iter::once(
-                                                        Vertex::GitHubUser(
-                                                            Arc::clone(&u),
-                                                        ),
-                                                    ))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            };
-
-                        (ctx, neighbors_iter)
-                    })
-                    .collect::<Vec<(
-                        DataContext<Self::Vertex>,
-                        VertexIterator<'a, Self::Vertex>,
-                    )>>()
-                    .into_iter();
-
-                Box::new(res)
+                                Some(u) => Box::new(std::iter::once(
+                                    Vertex::GitHubUser(Arc::clone(&u)),
+                                )),
+                            }
+                        }
+                    }
+                })
             }
             _ => unreachable!(),
         }

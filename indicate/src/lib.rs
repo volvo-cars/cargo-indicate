@@ -6,8 +6,9 @@ use std::{
 
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
+use tokio::runtime::Runtime;
 use trustfall::{
     execute_query as trustfall_execute_query, FieldValue, Schema,
     TransparentValue,
@@ -19,10 +20,16 @@ mod vertex;
 
 const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
-lazy_static! {
-    static ref SCHEMA: Schema =
-        Schema::parse(RAW_SCHEMA).expect("Could not parse schema!");
-}
+static SCHEMA: Lazy<Schema> =
+    Lazy::new(|| Schema::parse(RAW_SCHEMA).expect("Could not parse schema!"));
+
+/// async tokio runtime to be able to resolve `async` API client libraries
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("could not create tokio runtime")
+});
 
 /// Type representing a thread-safe JSON object, like
 /// ```json

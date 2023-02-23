@@ -9,7 +9,7 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::vertex::Vertex;
+use crate::{github::GitHubClient, vertex::Vertex};
 
 pub struct IndicateAdapter<'a> {
     metadata: &'a Metadata,
@@ -17,6 +17,7 @@ pub struct IndicateAdapter<'a> {
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
+    github_client: GitHubClient<'a>,
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -49,6 +50,7 @@ impl<'a> IndicateAdapter<'a> {
             metadata,
             packages,
             direct_dependencies,
+            github_client: GitHubClient::new(),
         }
     }
 

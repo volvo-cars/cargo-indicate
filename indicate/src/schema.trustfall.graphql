@@ -77,12 +77,12 @@ type GitHubRepository implements Repository & Webpage {
     forksCount: Int!
     
     # If the issues page is available for this repository
-    hasIssues: Bool!
+    hasIssues: Boolean!
 }
 
 type GitHubUser {
     name: String!
-    createdAt: Date
+    unixCreatedAt: Int
     followersCount: Int!
     email: String!
 }

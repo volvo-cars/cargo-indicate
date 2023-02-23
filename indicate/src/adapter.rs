@@ -334,7 +334,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                         }
                         unhandled => {
                             unreachable!(
-                                "the coersion {:?} is unhandled",
+                                "the coercion {:?} is unhandled",
                                 unhandled
                             )
                         }

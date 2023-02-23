@@ -54,6 +54,9 @@ static GITHUB_CLIENT: Lazy<octorust::Client> = Lazy::new(|| {
 static GITHUB_REPOS_CLIENT: Lazy<octorust::repos::Repos> =
     Lazy::new(|| octorust::repos::Repos::new(GITHUB_CLIENT.clone()));
 
+static GITHUB_USERS_CLIENT: Lazy<octorust::users::Users> =
+    Lazy::new(|| octorust::users::Users::new(GITHUB_CLIENT.clone()));
+
 /// Wrapper for interacting with the GitHub API. Caches previous requests, and
 /// will not remake queries it has already made. Uses the global static clients
 /// of its module.
@@ -89,6 +92,39 @@ impl<'a> GitHubClient<'a> {
                     }
                     Err(e) => {
                         eprintln!("Failed to resolve GitHub repository {}/{} due to error: {e}", id.owner, id.repo);
+                        None
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn get_public_user(
+        &mut self,
+        username: &'a str,
+    ) -> Option<Arc<PublicUser>> {
+        match self.user_cache.get(username) {
+            Some(r) => Some(Arc::clone(r)),
+            None => {
+                let future = GITHUB_USERS_CLIENT.get_by_username(username);
+
+                // We just block until this resolves for now
+                match RUNTIME.block_on(future) {
+                    Ok(u) => {
+                        // Insert into the cache
+                        let u = u.public_user().expect(
+                            "could not convert user response to public user",
+                        ).to_owned();
+
+                        let arc_pubu = Arc::new(u);
+                        self.user_cache.insert(
+                            username.clone().into(),
+                            Arc::clone(&arc_pubu),
+                        );
+                        Some(arc_pubu)
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to resolve GitHub user {} due to error: {e}", username);
                         None
                     }
                 }

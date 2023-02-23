@@ -17,13 +17,19 @@ use crate::RUNTIME;
 /// A unique identifier of a GitHub repository consisting of the owner and the
 /// repository, i.e. on the form github.com/<owner>/<repository>
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct GitHubRepositoryId<'a> {
-    owner: &'a str,
-    repo: &'a str,
+pub(crate) struct GitHubRepositoryId {
+    owner: String,
+    repo: String,
 }
 
-impl<'a> From<(&'a str, &'a str)> for GitHubRepositoryId<'a> {
-    fn from(value: (&'a str, &'a str)) -> Self {
+impl GitHubRepositoryId {
+    pub fn new(owner: String, repo: String) -> Self {
+        Self { owner, repo }
+    }
+}
+
+impl From<(String, String)> for GitHubRepositoryId {
+    fn from(value: (String, String)) -> Self {
         Self {
             owner: value.0,
             repo: value.1,
@@ -69,12 +75,12 @@ static GITHUB_USERS_CLIENT: Lazy<octorust::users::Users> =
 /// Wrapper for interacting with the GitHub API. Caches previous requests, and
 /// will not remake queries it has already made. Uses the global static clients
 /// of its module.
-pub(crate) struct GitHubClient<'a> {
-    repo_cache: HashMap<GitHubRepositoryId<'a>, Arc<FullRepository>>,
+pub(crate) struct GitHubClient {
+    repo_cache: HashMap<GitHubRepositoryId, Arc<FullRepository>>,
     user_cache: HashMap<Arc<str>, Arc<PublicUser>>,
 }
 
-impl<'a> GitHubClient<'a> {
+impl GitHubClient {
     pub fn new() -> Self {
         Self {
             repo_cache: HashMap::new(),
@@ -84,12 +90,12 @@ impl<'a> GitHubClient<'a> {
 
     pub fn get_repository(
         &mut self,
-        id: &GitHubRepositoryId<'a>,
+        id: &GitHubRepositoryId,
     ) -> Option<Arc<FullRepository>> {
         match self.repo_cache.get(&id) {
             Some(r) => Some(Arc::clone(r)),
             None => {
-                let future = GITHUB_REPOS_CLIENT.get(id.owner, id.repo);
+                let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
 
                 // We just block until this resolves for now
                 match RUNTIME.block_on(future) {

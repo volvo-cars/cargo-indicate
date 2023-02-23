@@ -4,6 +4,7 @@ use std::{
 };
 
 use cargo_metadata::{Metadata, Package, PackageId};
+use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
         accessor_property, field_property, resolve_property_with, BasicAdapter,
@@ -13,7 +14,10 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::{github::GitHubClient, vertex::Vertex};
+use crate::{
+    github::{GitHubClient, GitHubRepositoryId},
+    vertex::Vertex,
+};
 
 pub struct IndicateAdapter<'a> {
     metadata: &'a Metadata,
@@ -21,7 +25,7 @@ pub struct IndicateAdapter<'a> {
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
-    github_client: GitHubClient<'a>,
+    github_client: GitHubClient,
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -82,6 +86,37 @@ impl<'a> IndicateAdapter<'a> {
             .into_iter();
 
         Box::new(dependencies)
+    }
+
+    /// Returns a form of repository, i.e. a variant that implements the
+    /// `schema.trustfall.graphql` `repository` interface
+    fn get_repository_from_url(&mut self, url: &str) -> Vertex {
+        // TODO: Better identification of repository URLs...
+        if url.contains("github.com") {
+            match GitUrl::parse(url) {
+                Err(_) => Vertex::Repository(String::from(url.clone())),
+                Ok(gurl) => {
+                    if matches!(gurl.host, Some(x) if x == "github.com") {
+                        let id = GitHubRepositoryId::new(
+                            gurl.owner.unwrap_or_else(|| {
+                                panic!("repository {url} had no owner",)
+                            }),
+                            gurl.name,
+                        );
+                        if let Some(fr) = self.github_client.get_repository(&id)
+                        {
+                            Vertex::GitHubRepository(fr)
+                        } else {
+                            Vertex::Repository(String::from(url.clone()))
+                        }
+                    } else {
+                        Vertex::Repository(String::from(url.clone()))
+                    }
+                }
+            }
+        } else {
+            Vertex::Repository(String::from(url.clone()))
+        }
     }
 }
 
@@ -240,7 +275,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     let package = v.as_package().unwrap();
                     match &package.repository {
                         Some(url) => Box::new(std::iter::once(
-                            get_repository_from_url(&url),
+                            self.get_repository_from_url(&url),
                         )),
                         None => Box::new(std::iter::empty()),
                     }
@@ -311,10 +346,4 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 .into_iter(),
         )
     }
-}
-
-/// Returns a form of repository, i.e. a variant that implements the
-/// `schema.trustfall.graphql` `repository` interface
-fn get_repository_from_url(url: &str) -> Vertex {
-    todo!()
 }

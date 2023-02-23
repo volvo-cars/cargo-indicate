@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::Empty, rc::Rc, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, iter::Empty, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use trustfall::{
@@ -82,27 +82,32 @@ impl<'a> IndicateAdapter<'a> {
     }
 }
 
-macro_rules! vertex_neighbor {
-    ($contexts:ident, $vertex:ident, $b:block) => {
-        Box::new(
-            $contexts
-                .map(|ctx| {
-                    let current_vertex = &ctx.active_vertex();
-                    let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                        match current_vertex {
-                            None => Box::new(std::iter::empty()),
-                            Some($vertex) => $b,
-                        };
+/// Resolve the neighbor of a vertex, when it is known that the Vertex can be
+/// downcast using an `as_<type>`. The passed closure will be used to resolve
+/// the desired neighbors
+fn resolve_vertex_neighbor<'a, V, F>(
+    contexts: ContextIterator<'a, V>,
+    mut resolve: F,
+) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
+where
+    V: Clone + Debug + 'a,
+    F: FnMut(&V) -> VertexIterator<'a, V>,
+{
+    Box::new(
+        contexts
+            .map(|ctx| {
+                let current_vertex = &ctx.active_vertex();
+                let neighbors_iter: VertexIterator<'a, V> = match current_vertex
+                {
+                    None => Box::new(std::iter::empty()),
+                    Some(v) => resolve(v),
+                };
 
-                    (ctx, neighbors_iter)
-                })
-                .collect::<Vec<(
-                    DataContext<Self::Vertex>,
-                    VertexIterator<'a, Self::Vertex>,
-                )>>()
-                .into_iter(),
-        )
-    };
+                (ctx, neighbors_iter)
+            })
+            .collect::<Vec<(DataContext<V>, VertexIterator<'a, V>)>>()
+            .into_iter(),
+    )
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -218,7 +223,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                vertex_neighbor!(contexts, vertex, {
+                resolve_vertex_neighbor(contexts, |vertex| {
                     // This is in fact a Package, otherwise it would be `None`
                     // First get all dependencies, and then resolve their package
                     // by finding that dependency by its ID in the metadata
@@ -226,18 +231,20 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     self.dependencies(&package.id)
                 })
             }
-            ("Package", "repository") => vertex_neighbor!(contexts, v, {
-                // Must be package
-                let package = v.as_package().unwrap();
-                match &package.repository {
-                    Some(url) => {
-                        Box::new(std::iter::once(get_repository_from_url(&url)))
+            ("Package", "repository") => {
+                resolve_vertex_neighbor(contexts, |v| {
+                    // Must be package
+                    let package = v.as_package().unwrap();
+                    match &package.repository {
+                        Some(url) => Box::new(std::iter::once(
+                            get_repository_from_url(&url),
+                        )),
+                        None => Box::new(std::iter::empty()),
                     }
-                    None => Box::new(std::iter::empty()),
-                }
-            }),
+                })
+            }
             ("GitHubRepository", "owner") => {
-                vertex_neighbor!(contexts, vertex, {
+                resolve_vertex_neighbor(contexts, |vertex| {
                     // Must be GitHubRepository according to guarantees from Trustfall
                     let gh_repo = vertex.as_git_hub_repository().unwrap();
                     match &gh_repo.owner {

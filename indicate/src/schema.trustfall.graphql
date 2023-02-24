@@ -75,6 +75,7 @@ type GitHubRepository implements Repository & Webpage {
     
     starsCount: Int!
     forksCount: Int!
+    openIssuesCount: Int!
     
     # If the issues page is available for this repository
     hasIssues: Boolean!
@@ -86,7 +87,7 @@ type GitHubRepository implements Repository & Webpage {
 
 type GitHubUser {
     username: String!
+    email: String!
     unixCreatedAt: Int
     followersCount: Int!
-    email: String!
 }

@@ -37,12 +37,13 @@ impl From<(String, String)> for GitHubRepositoryId {
     }
 }
 
+/// Static global client used to connect to GitHub
+///
+/// Will use an HTTP cache to only retrieve full API responses if the data has
+/// changed, otherwise it will use data cached locally on the machine.
 static GITHUB_CLIENT: Lazy<octorust::Client> = Lazy::new(|| {
-    // It might be a good idea to cache GitHub URLs in a HashMap, that only
-    // exists in memory for one set of queries. This way, the amount of even
-    // slight requests is held at a minimum
-
-    // TODO: This should probably be dynamic depending on settings and cfg
+    // TODO: This should probably be dynamic depending on settings and cfg,
+    // but this is currently not supported by octorust
     let http_cache = <dyn HttpCache>::in_home_dir();
 
     // TODO: Better handling of agent
@@ -88,6 +89,11 @@ impl GitHubClient {
         }
     }
 
+    /// Retrieves a GitHub repository from a [`GitHubRepositoryId`]
+    ///
+    /// Will first try to see if this instance has retrieved this repository
+    /// before, if so it will return a cached value. If not, it will try to use
+    /// an HTTP cache to only retrieve the data if it has changed.
     pub fn get_repository(
         &mut self,
         id: &GitHubRepositoryId,
@@ -114,6 +120,11 @@ impl GitHubClient {
         }
     }
 
+    /// Retrieves a GitHub repository from a GitHub username
+    ///
+    /// Will first try to see if this instance has retrieved this user
+    /// before, if so it will return a cached value. If not, it will try to use
+    /// an HTTP cache to only retrieve the data if it has changed.
     pub fn get_public_user(
         &mut self,
         username: &str,

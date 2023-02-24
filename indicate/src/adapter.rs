@@ -21,7 +21,7 @@ pub struct IndicateAdapter<'a> {
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
-    github_client: GitHubClient,
+    gh_client: GitHubClient,
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -54,7 +54,7 @@ impl<'a> IndicateAdapter<'a> {
             metadata,
             packages,
             direct_dependencies,
-            github_client: GitHubClient::new(),
+            gh_client: GitHubClient::new(),
         }
     }
 
@@ -90,25 +90,28 @@ impl<'a> IndicateAdapter<'a> {
         // TODO: Better identification of repository URLs...
         if url.contains("github.com") {
             match GitUrl::parse(url) {
-                Err(_) => Vertex::Repository(String::from(url.clone())),
                 Ok(gurl) => {
                     if matches!(gurl.host, Some(x) if x == "github.com") {
+                        // This is in fact a GitHub url, we attempt to retrieve it
                         let id = GitHubRepositoryId::new(
                             gurl.owner.unwrap_or_else(|| {
                                 panic!("repository {url} had no owner",)
                             }),
                             gurl.name,
                         );
-                        if let Some(fr) = self.github_client.get_repository(&id)
-                        {
+
+                        if let Some(fr) = self.gh_client.get_repository(&id) {
                             Vertex::GitHubRepository(fr)
                         } else {
+                            // We were unable to retrieve the repository
                             Vertex::Repository(String::from(url.clone()))
                         }
                     } else {
+                        // The host is not github.com
                         Vertex::Repository(String::from(url.clone()))
                     }
                 }
+                Err(_) => Vertex::Repository(String::from(url.clone())),
             }
         } else {
             Vertex::Repository(String::from(url.clone()))
@@ -118,7 +121,10 @@ impl<'a> IndicateAdapter<'a> {
 
 /// Resolve the neighbor of a vertex, when it is known that the Vertex can be
 /// downcast using an `as_<type>`. The passed closure will be used to resolve
-/// the desired neighbors
+/// the desired neighbors.
+///
+/// There is room for performance improvements here, as it must currently
+/// collect an iterator to ensure lifetimes.
 fn resolve_vertex_neighbors<'a, V, F>(
     contexts: ContextIterator<'a, V>,
     mut resolve: F,
@@ -133,8 +139,8 @@ where
                 let current_vertex = &ctx.active_vertex();
                 let neighbors_iter: VertexIterator<'a, V> = match current_vertex
                 {
-                    None => Box::new(std::iter::empty()),
                     Some(v) => resolve(v),
+                    None => Box::new(std::iter::empty()),
                 };
 
                 (ctx, neighbors_iter)
@@ -147,10 +153,7 @@ where
 /// The functions here are essentially the fields on the RootQuery
 impl IndicateAdapter<'_> {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
-        let root = self
-            .metadata
-            .root_package()
-            .expect("No root package found!");
+        let root = self.metadata.root_package().expect("no root package found");
         let v = Vertex::Package(Rc::new(root.clone()));
         Box::new(std::iter::once(v))
     }
@@ -167,7 +170,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         match edge_name {
             // These edge names should match 1:1 for `schema.trustfall.graphql`
             "RootPackage" => self.root_package(),
-            _ => unreachable!(),
+            e => {
+                unreachable!("edge {e} has no resolution as a starting vertex")
+            }
         }
     }
 
@@ -302,20 +307,19 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     // Must be GitHubRepository according to guarantees from Trustfall
                     let gh_repo = vertex.as_git_hub_repository().unwrap();
                     match &gh_repo.owner {
-                        None => Box::new(std::iter::empty()),
                         Some(simple_user) => {
                             let user = self
-                                .github_client
+                                .gh_client
                                 .get_public_user(&simple_user.login);
 
-                            // TODO: A bit sketchy error handling here
                             match user {
-                                None => Box::new(std::iter::empty()),
                                 Some(u) => Box::new(std::iter::once(
                                     Vertex::GitHubUser(Arc::clone(&u)),
                                 )),
+                                None => Box::new(std::iter::empty()),
                             }
                         }
+                        None => Box::new(std::iter::empty()),
                     }
                 })
             }
@@ -350,10 +354,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                         (_, "GitHubRepository") => {
                             current_vertex.as_git_hub_repository().is_some()
                         }
-                        unhandled => {
+                        (t1, t2) => {
                             unreachable!(
-                                "the coercion {:?} is unhandled",
-                                unhandled
+                                "the coercion from {t1} to {t2} is unhandled but was attempted",
                             )
                         }
                     };

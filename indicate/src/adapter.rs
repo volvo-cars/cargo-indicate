@@ -203,8 +203,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
             }),
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
-                    None => FieldValue::Null,
                     Some(url) => FieldValue::String(url.to_owned()),
+                    None => FieldValue::Null,
                 })
             }
             ("GitHubRepository", "name") => resolve_property_with(
@@ -225,21 +225,15 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
             ),
             ("GitHubRepository", "hasIssues") => resolve_property_with(
                 contexts,
-                field_property!(as_git_hub_repository, has_issues, {
-                    (*has_issues).into()
-                }),
+                field_property!(as_git_hub_repository, has_issues),
             ),
             ("GitHubRepository", "archived") => resolve_property_with(
                 contexts,
-                field_property!(as_git_hub_repository, archived, {
-                    (*archived).into()
-                }),
+                field_property!(as_git_hub_repository, archived),
             ),
             ("GitHubRepository", "fork") => resolve_property_with(
                 contexts,
-                field_property!(as_git_hub_repository, fork, {
-                    (*fork).into()
-                }),
+                field_property!(as_git_hub_repository, fork),
             ),
             ("GitHubUser", "username") => resolve_property_with(
                 contexts,

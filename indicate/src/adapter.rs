@@ -62,10 +62,8 @@ impl<'a> IndicateAdapter<'a> {
         &self,
         package_id: &PackageId,
     ) -> VertexIterator<'static, Vertex> {
-        let dependency_ids = self
-            .direct_dependencies
-            .get(&package_id)
-            .unwrap_or_else(|| {
+        let dependency_ids =
+            self.direct_dependencies.get(package_id).unwrap_or_else(|| {
                 panic!(
                     "Could not extract dependency IDs for package {}",
                     &package_id
@@ -104,17 +102,17 @@ impl<'a> IndicateAdapter<'a> {
                             Vertex::GitHubRepository(fr)
                         } else {
                             // We were unable to retrieve the repository
-                            Vertex::Repository(String::from(url.clone()))
+                            Vertex::Repository(String::from(url))
                         }
                     } else {
                         // The host is not github.com
-                        Vertex::Repository(String::from(url.clone()))
+                        Vertex::Repository(String::from(url))
                     }
                 }
-                Err(_) => Vertex::Repository(String::from(url.clone())),
+                Err(_) => Vertex::Repository(String::from(url)),
             }
         } else {
-            Vertex::Repository(String::from(url.clone()))
+            Vertex::Repository(String::from(url))
         }
     }
 }
@@ -296,7 +294,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     let package = v.as_package().unwrap();
                     match &package.repository {
                         Some(url) => Box::new(std::iter::once(
-                            self.get_repository_from_url(&url),
+                            self.get_repository_from_url(url),
                         )),
                         None => Box::new(std::iter::empty()),
                     }
@@ -345,8 +343,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     };
 
                     let can_coerce = match (
-                        type_name.as_ref() as &str,
-                        coerce_to_type.as_ref(),
+                        type_name as &str,
+                        coerce_to_type
                     ) {
                         (_, "Repository") => {
                             current_vertex.as_repository().is_some()

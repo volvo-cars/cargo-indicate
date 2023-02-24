@@ -98,7 +98,7 @@ impl GitHubClient {
         &mut self,
         id: &GitHubRepositoryId,
     ) -> Option<Arc<FullRepository>> {
-        match self.repo_cache.get(&id) {
+        match self.repo_cache.get(id) {
             Some(r) => Some(Arc::clone(r)),
             None => {
                 let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
@@ -143,10 +143,8 @@ impl GitHubClient {
                         ).to_owned();
 
                         let arc_pubu = Arc::new(u);
-                        self.user_cache.insert(
-                            username.clone().into(),
-                            Arc::clone(&arc_pubu),
-                        );
+                        self.user_cache
+                            .insert(username.into(), Arc::clone(&arc_pubu));
                         Some(arc_pubu)
                     }
                     Err(e) => {

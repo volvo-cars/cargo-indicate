@@ -1,5 +1,18 @@
+//! Library for `cargo-indicate`, providing a way to query dependencies across
+//! different sources of information such as crates.io metadata, GitHub etc.
+//!
+//! Queries are written using [`trustfall`], a query engine for writing queries
+//! across data sources. Currently only GraphQL-like schemas are available. The
+//! following is the schema used that can be used to construct queries. Note
+//! that only the directives provided here can be used.
+//!
+//! # Schema
+//! _The following code is automatically included from the
+//! `src/schema.trustfall.graphql` file_
+//! ```graphql
+#![doc = include_str!("schema.trustfall.graphql")]
+//! ```
 #![deny(unsafe_code)]
-#![feature(iter_collect_into)]
 use std::{
     cell::RefCell, collections::BTreeMap, fs, path::Path, rc::Rc, sync::Arc,
 };

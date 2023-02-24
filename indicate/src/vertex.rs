@@ -1,10 +1,14 @@
 //! Includes the tokens that correspond to the types and relationships
 //! defined by [`SCHEMA`](crate::SCHEMA).
 
-use std::{rc::Rc, sync::Arc};
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use cargo_metadata::Package;
 use octorust::types::{FullRepository, PublicUser};
+use rustsec::{
+    advisory::{self, affected::FunctionPath},
+    Advisory, VersionReq,
+};
 use trustfall::provider::TrustfallEnumVertex;
 
 /// A node in the GraphQL schema as defined in the schema.
@@ -21,6 +25,10 @@ pub enum Vertex {
     Repository(String),
     GitHubRepository(Arc<FullRepository>),
     GitHubUser(Arc<PublicUser>),
+    Advisory(Rc<Advisory>),
+    AdvisoryMetadata(Rc<advisory::Metadata>),
+    AffectedFunctionVersions(Rc<HashMap<FunctionPath, Vec<VersionReq>>>),
+    CvssBase(Rc<cvss::v3::base::Base>),
 }
 
 impl Vertex {

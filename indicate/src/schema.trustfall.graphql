@@ -56,7 +56,9 @@ type Package {
     version: String!,
     repository: Webpage
     dependencies: [Package!]!
-    advisoryHistory(affected: Affected): [Advisory!]!
+    
+    # For arch and OS, see `platforms::target`
+    advisoryHistory(includeWithdrawn: Boolean, arch: String, os: String, severity: Severity): [Advisory!]!
 }
 
 interface Webpage {
@@ -106,6 +108,7 @@ type AdvisoryMetadata {
     title: String!
     description: String!
     unixDateReported: Int!
+    severity: Severity
     
     # If it was reported in error, this will indicate when it was withdrawn
     unixDateWithdrawn: Int
@@ -119,6 +122,7 @@ type Affected {
     functions: [AffectedFunctionVersions!]!
 }
 
+# `Map<FunctionPath, Vec<VersionReq>>` from `rustsec::advisory::Affected`
 type AffectedFunctionVersions {
     function_path: String!
     versions: [String!]!
@@ -135,6 +139,15 @@ type CvssBase {
     confidentiality: Confidentiality
     integrity: Integrity
     availability: Availability
+}
+
+# `rustsec::advisory::Severity`
+enum Severity {
+    NONE,
+    LOW,
+    MEDIUM,
+    HIGH,
+    CRITICAL,
 }
 
 # `cvss::v3::base::AttackVector`

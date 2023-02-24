@@ -955,6 +955,7 @@ name = "indicate"
 version = "0.1.0"
 dependencies = [
  "cargo_metadata",
+ "cvss",
  "git-url-parse",
  "octorust",
  "once_cell",

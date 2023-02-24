@@ -28,6 +28,7 @@ use trustfall::{
 };
 
 mod adapter;
+mod advisory;
 mod repo;
 mod vertex;
 

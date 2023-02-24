@@ -6,11 +6,11 @@ Query(
             name @output(name: "dep_name")
             repository {
                 ... on GitHubRepository {
-                    url @output
-                    name @output
-                    hasIssues @output
-                    archived @output
-                    fork @output
+                    owner {
+                        username @output(name: "owner_gh_username")
+                        unixCreatedAt @output
+                        email @output
+                    }
                 }
                 
             }

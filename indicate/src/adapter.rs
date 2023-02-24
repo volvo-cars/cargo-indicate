@@ -234,9 +234,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     (*fork).into()
                 }),
             ),
-            ("GitHubUser", "name") => resolve_property_with(
+            ("GitHubUser", "username") => resolve_property_with(
                 contexts,
-                field_property!(as_git_hub_user, name),
+                field_property!(as_git_hub_user, login),
             ),
             ("GitHubUser", "unixCreatedAt") => resolve_property_with(
                 contexts,
@@ -302,7 +302,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                         Some(simple_user) => {
                             let user = self
                                 .github_client
-                                .get_public_user(&simple_user.name);
+                                .get_public_user(&simple_user.login);
 
                             // TODO: A bit sketchy error handling here
                             match user {

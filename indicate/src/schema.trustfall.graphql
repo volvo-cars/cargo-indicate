@@ -85,7 +85,7 @@ type GitHubRepository implements Repository & Webpage {
 }
 
 type GitHubUser {
-    name: String!
+    username: String!
     unixCreatedAt: Int
     followersCount: Int!
     email: String!

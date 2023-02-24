@@ -56,6 +56,7 @@ type Package {
     version: String!,
     repository: Webpage
     dependencies: [Package!]!
+    advisoryHistory(affected: Affected): [Advisory!]!
 }
 
 interface Webpage {
@@ -90,4 +91,102 @@ type GitHubUser {
     email: String!
     unixCreatedAt: Int
     followersCount: Int!
+}
+
+# `rustsec::advisory::Advisory`
+type Advisory {
+    metadata: AdvisoryMetadata!
+    affected: [Affected!]!
+    versions: [String!]!
+}
+
+# `rustsec::advisory::Metadata`
+type AdvisoryMetadata {
+    id: ID!
+    title: String!
+    description: String!
+    unixDateReported: Int!
+    
+    # If it was reported in error, this will indicate when it was withdrawn
+    unixDateWithdrawn: Int
+    cvss: CvssBase
+}
+
+# `rustsec::advisory::Affected`
+type Affected {
+    arch: [String!]!
+    os: [String!]!
+    functions: [AffectedFunctionVersions!]!
+}
+
+type AffectedFunctionVersions {
+    function_path: String!
+    versions: [String!]!
+}
+
+# `cvss::v3::base::Base`
+type CvssBase {
+    minorVersion: Int!
+    attackVector: attackVector
+    attackComplexity: AttackComplexity
+    privilegesRequired: PrivilegesRequired
+    userInteraction: UserInteraction
+    scope: Scope
+    confidentiality: Confidentiality
+    integrity: Integrity
+    availability: Availability
+}
+
+# `cvss::v3::base::AttackVector`
+enum AttackVector {
+    PHYSICAL
+    LOCAL
+    ADJACENT
+    NETWORK
+}
+
+# `cvss::v3::base::AttackComplexity`
+enum AttackComplexity {
+    HIGH
+    LOW
+}
+
+# `cvss::v3::base::PrivilegesRequired`
+enum PrivilegesRequired {
+    HIGH
+    LOW
+    NONE
+}
+
+# `cvss::v3::base::UserInteraction`
+enum UserInteraction {
+    REQUIRED
+    NONE
+}
+
+# `cvss::v3::base::Scope`
+enum Scope {
+    UNCHANGED
+    CHANGED
+}
+
+# `cvss::v3::base::Confidentiality`
+enum Confidentiality {
+    NONE
+    LOW
+    HIGH
+}
+
+# `cvss::v3::base::Integrity`
+enum Integrity {
+    NONE
+    LOW
+    HIGH
+}
+
+# `cvss::v3::base::Availability`
+enum Availability {
+    NONE
+    LOW
+    HIGH
 }

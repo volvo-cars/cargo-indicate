@@ -58,7 +58,7 @@ type Package {
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
-    advisoryHistory(includeWithdrawn: Boolean, arch: String, os: String, severity: Severity): [Advisory!]!
+    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, severity: Severity): [Advisory!]!
 }
 
 interface Webpage {

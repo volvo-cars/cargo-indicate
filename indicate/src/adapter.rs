@@ -11,7 +11,7 @@ use trustfall::{
 };
 
 use crate::{
-    github::{GitHubClient, GitHubRepositoryId},
+    repo::github::{GitHubClient, GitHubRepositoryId},
     vertex::Vertex,
 };
 

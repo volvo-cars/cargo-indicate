@@ -1,0 +1,22 @@
+Query(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output(name: "dep_name")
+            repository {
+                ... on GitHubRepository {
+                    owner {
+                        username @output(name: "owner_gh_username")
+                        unixCreatedAt @output
+                        email @output
+                    }
+                }
+                
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

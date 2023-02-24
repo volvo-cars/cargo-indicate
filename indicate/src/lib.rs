@@ -1,27 +1,48 @@
+//! Library for `cargo-indicate`, providing a way to query dependencies across
+//! different sources of information such as crates.io metadata, GitHub etc.
+//!
+//! Queries are written using [`trustfall`], a query engine for writing queries
+//! across data sources. Currently only GraphQL-like schemas are available. The
+//! following is the schema used that can be used to construct queries. Note
+//! that only the directives provided here can be used.
+//!
+//! # Schema
+//! _The following code is automatically included from the
+//! `src/schema.trustfall.graphql` file_
+//! ```graphql
+#![doc = include_str!("schema.trustfall.graphql")]
+//! ```
 #![deny(unsafe_code)]
-#![feature(iter_collect_into)]
 use std::{
     cell::RefCell, collections::BTreeMap, fs, path::Path, rc::Rc, sync::Arc,
 };
 
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::Deserialize;
+use tokio::runtime::Runtime;
 use trustfall::{
     execute_query as trustfall_execute_query, FieldValue, Schema,
     TransparentValue,
 };
 
 mod adapter;
+mod repo;
 mod vertex;
 
 const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
-lazy_static! {
-    static ref SCHEMA: Schema =
-        Schema::parse(RAW_SCHEMA).expect("Could not parse schema!");
-}
+static SCHEMA: Lazy<Schema> =
+    Lazy::new(|| Schema::parse(RAW_SCHEMA).expect("Could not parse schema!"));
+
+/// async tokio runtime to be able to resolve `async` API client libraries
+static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("could not create tokio runtime")
+});
 
 /// Type representing a thread-safe JSON object, like
 /// ```json
@@ -97,6 +118,8 @@ mod test {
     #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
     #[test_case("direct_dependencies", "recursive_dependency" ; "retrieve recursive dependency information")]
     #[test_case("direct_dependencies", "count_dependencies" ; "count the number of dependencies used by each dependency")]
+    #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
+    #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
     fn query_tests(fake_crate: &str, query_name: &str) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate}/Cargo.toml");

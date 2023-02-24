@@ -54,5 +54,40 @@ type Package {
     id: ID!,
     name: String!,
     version: String!,
+    repository: Webpage
     dependencies: [Package!]!
+}
+
+interface Webpage {
+    url: String!
+}
+
+interface Repository implements Webpage {
+    url: String!
+}
+
+type GitHubRepository implements Repository & Webpage {
+    # From Repository and Webpage
+    url: String!
+
+    owner: GitHubUser
+    name: String!
+    
+    starsCount: Int!
+    forksCount: Int!
+    openIssuesCount: Int!
+    
+    # If the issues page is available for this repository
+    hasIssues: Boolean!
+    archived: Boolean!
+    
+    # If this is a fork
+    fork: Boolean!
+}
+
+type GitHubUser {
+    username: String!
+    email: String!
+    unixCreatedAt: Int
+    followersCount: Int!
 }

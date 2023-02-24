@@ -1,0 +1,14 @@
+[
+  {
+    "dep_name": "libc",
+    "email": "",
+    "owner_gh_username": "rust-lang",
+    "unixCreatedAt": "2013-09-10T21:48:20Z"
+  },
+  {
+    "dep_name": "syn",
+    "email": "dtolnay@gmail.com",
+    "owner_gh_username": "dtolnay",
+    "unixCreatedAt": "2012-07-09T03:55:40Z"
+  }
+]

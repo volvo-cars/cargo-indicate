@@ -1,0 +1,18 @@
+[
+  {
+    "archived": false,
+    "dep_name": "libc",
+    "fork": false,
+    "hasIssues": true,
+    "name": "libc",
+    "url": "https://github.com/rust-lang/libc"
+  },
+  {
+    "archived": false,
+    "dep_name": "syn",
+    "fork": false,
+    "hasIssues": true,
+    "name": "syn",
+    "url": "https://github.com/dtolnay/syn"
+  }
+]

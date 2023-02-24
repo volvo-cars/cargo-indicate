@@ -1,6 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
+use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
         field_property, resolve_property_with, BasicAdapter, ContextIterator,
@@ -9,7 +10,10 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::vertex::Vertex;
+use crate::{
+    repo::github::{GitHubClient, GitHubRepositoryId},
+    vertex::Vertex,
+};
 
 pub struct IndicateAdapter<'a> {
     metadata: &'a Metadata,
@@ -17,6 +21,7 @@ pub struct IndicateAdapter<'a> {
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
+    gh_client: GitHubClient,
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -49,6 +54,7 @@ impl<'a> IndicateAdapter<'a> {
             metadata,
             packages,
             direct_dependencies,
+            gh_client: GitHubClient::new(),
         }
     }
 
@@ -56,10 +62,8 @@ impl<'a> IndicateAdapter<'a> {
         &self,
         package_id: &PackageId,
     ) -> VertexIterator<'static, Vertex> {
-        let dependency_ids = self
-            .direct_dependencies
-            .get(&package_id)
-            .unwrap_or_else(|| {
+        let dependency_ids =
+            self.direct_dependencies.get(package_id).unwrap_or_else(|| {
                 panic!(
                     "Could not extract dependency IDs for package {}",
                     &package_id
@@ -77,15 +81,77 @@ impl<'a> IndicateAdapter<'a> {
 
         Box::new(dependencies)
     }
+
+    /// Returns a form of repository, i.e. a variant that implements the
+    /// `schema.trustfall.graphql` `repository` interface
+    fn get_repository_from_url(&mut self, url: &str) -> Vertex {
+        // TODO: Better identification of repository URLs...
+        if url.contains("github.com") {
+            match GitUrl::parse(url) {
+                Ok(gurl) => {
+                    if matches!(gurl.host, Some(x) if x == "github.com") {
+                        // This is in fact a GitHub url, we attempt to retrieve it
+                        let id = GitHubRepositoryId::new(
+                            gurl.owner.unwrap_or_else(|| {
+                                panic!("repository {url} had no owner",)
+                            }),
+                            gurl.name,
+                        );
+
+                        if let Some(fr) = self.gh_client.get_repository(&id) {
+                            Vertex::GitHubRepository(fr)
+                        } else {
+                            // We were unable to retrieve the repository
+                            Vertex::Repository(String::from(url))
+                        }
+                    } else {
+                        // The host is not github.com
+                        Vertex::Repository(String::from(url))
+                    }
+                }
+                Err(_) => Vertex::Repository(String::from(url)),
+            }
+        } else {
+            Vertex::Repository(String::from(url))
+        }
+    }
+}
+
+/// Resolve the neighbor of a vertex, when it is known that the Vertex can be
+/// downcast using an `as_<type>`. The passed closure will be used to resolve
+/// the desired neighbors.
+///
+/// There is room for performance improvements here, as it must currently
+/// collect an iterator to ensure lifetimes.
+fn resolve_vertex_neighbors<'a, V, F>(
+    contexts: ContextIterator<'a, V>,
+    mut resolve: F,
+) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
+where
+    V: Clone + Debug + 'a,
+    F: FnMut(&V) -> VertexIterator<'a, V>,
+{
+    Box::new(
+        contexts
+            .map(|ctx| {
+                let current_vertex = &ctx.active_vertex();
+                let neighbors_iter: VertexIterator<'a, V> = match current_vertex
+                {
+                    Some(v) => resolve(v),
+                    None => Box::new(std::iter::empty()),
+                };
+
+                (ctx, neighbors_iter)
+            })
+            .collect::<Vec<(DataContext<V>, VertexIterator<'a, V>)>>()
+            .into_iter(),
+    )
 }
 
 /// The functions here are essentially the fields on the RootQuery
 impl IndicateAdapter<'_> {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
-        let root = self
-            .metadata
-            .root_package()
-            .expect("No root package found!");
+        let root = self.metadata.root_package().expect("no root package found");
         let v = Vertex::Package(Rc::new(root.clone()));
         Box::new(std::iter::once(v))
     }
@@ -102,7 +168,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         match edge_name {
             // These edge names should match 1:1 for `schema.trustfall.graphql`
             "RootPackage" => self.root_package(),
-            _ => unreachable!(),
+            e => {
+                unreachable!("edge {e} has no resolution as a starting vertex")
+            }
         }
     }
 
@@ -112,6 +180,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         type_name: &str,
         property_name: &str,
     ) -> ContextOutcomeIterator<'a, Self::Vertex, FieldValue> {
+        // This match statement must contain _all_ possible types provided
+        // by `schema.trustfall.graphql`
         match (type_name, property_name) {
             ("Package", "id") => resolve_property_with(contexts, |v| {
                 if let Some(s) = v.as_package() {
@@ -131,7 +201,67 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     unreachable!("Not a package!")
                 }
             }),
-            _ => unreachable!(),
+            ("Webpage" | "Repository" | "GitHubRepository", "url") => {
+                resolve_property_with(contexts, |v| match v.as_webpage() {
+                    None => FieldValue::Null,
+                    Some(url) => FieldValue::String(url.to_owned()),
+                })
+            }
+            ("GitHubRepository", "name") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, name),
+            ),
+            ("GitHubRepository", "starsCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, stargazers_count),
+            ),
+            ("GitHubRepository", "forksCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, forks_count),
+            ),
+            ("GitHubRepository", "openIssuesCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, open_issues_count),
+            ),
+            ("GitHubRepository", "hasIssues") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, has_issues, {
+                    (*has_issues).into()
+                }),
+            ),
+            ("GitHubRepository", "archived") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, archived, {
+                    (*archived).into()
+                }),
+            ),
+            ("GitHubRepository", "fork") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, fork, {
+                    (*fork).into()
+                }),
+            ),
+            ("GitHubUser", "username") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, login),
+            ),
+            ("GitHubUser", "unixCreatedAt") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, created_at, {
+                    created_at.into() // Convert to Unix timestamp
+                }),
+            ),
+            ("GitHubUser", "followersCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, followers),
+            ),
+            ("GitHubUser", "email") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_user, email),
+            ),
+            (t, p) => {
+                unreachable!("unreachable property combination: {t}, {p}")
+            }
         }
     }
 
@@ -150,31 +280,50 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                // First get all dependencies, and then resolve their package
-                // by finding that dependency by its ID in the metadata
-                let res = contexts
-                    .map(|ctx| {
-                        let current_vertex = &ctx.active_vertex();
-                        let neighbors_iter: VertexIterator<'a, Self::Vertex> =
-                            match current_vertex {
-                                None => Box::new(std::iter::empty()),
-                                Some(vertex) => {
-                                    // This is in fact a Package, otherwise it would be `None`
-                                    let package = vertex.as_package().unwrap();
-                                    self.dependencies(&package.id)
-                                }
-                            };
-                        (ctx, neighbors_iter)
-                    })
-                    .collect::<Vec<(
-                        DataContext<Self::Vertex>,
-                        VertexIterator<'a, Self::Vertex>,
-                    )>>()
-                    .into_iter();
-
-                Box::new(res)
+                resolve_vertex_neighbors(contexts, |vertex| {
+                    // This is in fact a Package, otherwise it would be `None`
+                    // First get all dependencies, and then resolve their package
+                    // by finding that dependency by its ID in the metadata
+                    let package = vertex.as_package().unwrap();
+                    self.dependencies(&package.id)
+                })
             }
-            _ => unreachable!(),
+            ("Package", "repository") => {
+                resolve_vertex_neighbors(contexts, |v| {
+                    // Must be package
+                    let package = v.as_package().unwrap();
+                    match &package.repository {
+                        Some(url) => Box::new(std::iter::once(
+                            self.get_repository_from_url(url),
+                        )),
+                        None => Box::new(std::iter::empty()),
+                    }
+                })
+            }
+            ("GitHubRepository", "owner") => {
+                resolve_vertex_neighbors(contexts, |vertex| {
+                    // Must be GitHubRepository according to guarantees from Trustfall
+                    let gh_repo = vertex.as_git_hub_repository().unwrap();
+                    match &gh_repo.owner {
+                        Some(simple_user) => {
+                            let user = self
+                                .gh_client
+                                .get_public_user(&simple_user.login);
+
+                            match user {
+                                Some(u) => Box::new(std::iter::once(
+                                    Vertex::GitHubUser(Arc::clone(&u)),
+                                )),
+                                None => Box::new(std::iter::empty()),
+                            }
+                        }
+                        None => Box::new(std::iter::empty()),
+                    }
+                })
+            }
+            (t, e) => {
+                unreachable!("unreachable neighbor combination: {t}, {e}")
+            }
         }
     }
 
@@ -184,6 +333,36 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         type_name: &str,
         coerce_to_type: &str,
     ) -> ContextOutcomeIterator<'a, Self::Vertex, bool> {
-        todo!()
+        Box::new(
+            contexts
+                .map(|ctx| {
+                    let current_vertex = &ctx.active_vertex();
+                    let current_vertex = match current_vertex {
+                        Some(v) => v,
+                        None => return (ctx, false),
+                    };
+
+                    let can_coerce = match (
+                        type_name as &str,
+                        coerce_to_type
+                    ) {
+                        (_, "Repository") => {
+                            current_vertex.as_repository().is_some()
+                        }
+                        (_, "GitHubRepository") => {
+                            current_vertex.as_git_hub_repository().is_some()
+                        }
+                        (t1, t2) => {
+                            unreachable!(
+                                "the coercion from {t1} to {t2} is unhandled but was attempted",
+                            )
+                        }
+                    };
+
+                    (ctx, can_coerce)
+                })
+                .collect::<Vec<(DataContext<Self::Vertex>, bool)>>()
+                .into_iter(),
+        )
     }
 }

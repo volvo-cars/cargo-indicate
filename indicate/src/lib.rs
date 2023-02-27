@@ -14,11 +14,19 @@
 //! ```
 #![deny(unsafe_code)]
 use std::{
-    cell::RefCell, collections::BTreeMap, fs, path::Path, rc::Rc, sync::Arc,
+    cell::RefCell,
+    collections::BTreeMap,
+    error::Error,
+    ffi::OsStr,
+    fs,
+    path::{Path, PathBuf},
+    rc::Rc,
+    sync::Arc,
 };
 
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
+use errors::{MetadataParseError, QueryParseError};
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tokio::runtime::Runtime;
@@ -28,6 +36,7 @@ use trustfall::{
 };
 
 mod adapter;
+pub mod errors;
 mod repo;
 mod vertex;
 
@@ -54,9 +63,35 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
 
 #[derive(Debug, Clone, Deserialize)]
-struct Query<'a> {
-    pub query: &'a str,
+pub struct Query {
+    pub query: String,
     pub args: ObjectMap,
+}
+
+impl Query {
+    /// Extracts a query from a file
+    pub fn from_path(path: &Path) -> Result<Query, Box<dyn Error>> {
+        let raw_query = fs::read_to_string(path)?;
+        match path.extension().and_then(OsStr::to_str) {
+            Some("json") => {
+                let q: Query = serde_json::from_str::<Query>(&raw_query)?;
+                Ok(q)
+            }
+            Some("ron") => {
+                let q = ron::from_str::<Query>(&raw_query)?;
+                Ok(q)
+            }
+            Some(ext) => {
+                Err(Box::new(QueryParseError::UnsupportedFileExtension {
+                    ext: String::from(ext),
+                    path: path.to_string_lossy().to_string(),
+                }))
+            }
+            None => Err(Box::new(QueryParseError::UnknownFileExtension(
+                path.to_string_lossy().to_string(),
+            ))),
+        }
+    }
 }
 
 /// Transform a result from [`execute_query`] to one where the fields can easily be
@@ -72,37 +107,40 @@ pub fn transparent_results(
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
 pub fn execute_query(
-    query_path: &Path,
-    metadata_path: &Path,
+    query: &Query,
+    metadata: &Metadata,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
-    let raw_query = fs::read_to_string(query_path)
-        .expect("Could not read query at {path}!");
-
-    let full_query = ron::from_str::<Query>(&raw_query)
-        .expect("Could not deserialize query!");
-
-    let metadata = extract_metadata_from_path(metadata_path);
-    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(&metadata)));
+    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(metadata)));
     let res = match trustfall_execute_query(
         &SCHEMA,
         adapter,
-        full_query.query,
-        full_query.args,
+        query.query.as_str(),
+        query.args.clone(),
     ) {
-        Err(e) => panic!("Could not execute query due to error: {:#?}", e),
         Ok(res) => res.collect(),
+        Err(e) => panic!("Could not execute query due to error: {:#?}", e),
     };
     res
 }
 
-/// Extracts metadata from a `Cargo.toml` file by its direct path
-pub fn extract_metadata_from_path(path: &Path) -> Metadata {
-    MetadataCommand::new()
-        .manifest_path(path)
-        .exec()
-        .unwrap_or_else(|_| {
-            panic!("Could not extract metadata from path {:?}", path)
-        })
+/// Extracts metadata from a `Cargo.toml` file by its direct path, or the path
+/// of its directory
+pub fn extract_metadata_from_path(
+    path: &Path,
+) -> Result<Metadata, Box<dyn Error>> {
+    if path.is_file() {
+        let m = MetadataCommand::new().manifest_path(path).exec()?;
+        Ok(m)
+    } else if path.is_dir() {
+        let mut assumed_path = PathBuf::from(path);
+        assumed_path.push("Cargo.toml");
+        let m = MetadataCommand::new().manifest_path(assumed_path).exec()?;
+        Ok(m)
+    } else {
+        Err(Box::new(MetadataParseError::MetadataNotFound(
+            path.to_string_lossy().to_string(),
+        )))
+    }
 }
 
 #[cfg(test)]
@@ -111,7 +149,9 @@ mod test {
     use std::{fs, path::Path};
     use test_case::test_case;
 
-    use crate::{execute_query, transparent_results};
+    use crate::{
+        execute_query, extract_metadata_from_path, transparent_results, Query,
+    };
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
     #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
@@ -133,8 +173,10 @@ mod test {
         let expected_result_name = Path::new(&raw_expected_result_path);
 
         // We use `TransparentValue for neater JSON serialization
-        let res =
-            transparent_results(execute_query(query_path, cargo_toml_path));
+        let res = transparent_results(execute_query(
+            &Query::from_path(query_path).unwrap(),
+            &extract_metadata_from_path(cargo_toml_path).unwrap(),
+        ));
         let res_json_string = serde_json::to_string_pretty(&res)
             .expect("Could not convert result to string");
 

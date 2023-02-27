@@ -1,8 +1,7 @@
-use std::{path::Path, str::FromStr};
+use std::path::Path;
 
 use cvss::Severity;
 use rustsec::{
-    advisory::Affected,
     database::Query,
     package::Name,
     platforms::{Arch, OS},
@@ -52,19 +51,13 @@ impl AdvisoryClient {
     /// [`Vertex`](crate::vertex::Vertex).
     pub fn all_advisories_for_package(
         &self,
-        name: &str,
+        name: Name,
         withdrawn: bool,
         arch: Option<Arch>,
         os: Option<OS>,
         severity: Option<Severity>,
     ) -> Vec<&Advisory> {
-        let mut query = Query::new()
-            .package_name(Name::from_str(name).unwrap_or_else(|_| {
-                panic!(
-                    "could not parse {name} as package name for advisory query"
-                )
-            }))
-            .withdrawn(withdrawn);
+        let mut query = Query::new().package_name(name).withdrawn(withdrawn);
 
         if let Some(arch) = arch {
             query = query.target_arch(arch);

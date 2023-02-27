@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
-pub enum QueryParseError {
+pub enum FileParseError {
     #[error(
         "file extension `{ext:?}` is not supported for file path `{path:?}`"
     )]
@@ -9,10 +9,9 @@ pub enum QueryParseError {
 
     #[error("could not determine file extension of file path `{0}`")]
     UnknownFileExtension(String),
-}
 
-#[derive(Error, Debug, Clone)]
-pub enum MetadataParseError {
-    #[error("could not extract file path from path `{0}`")]
+    #[error(
+        "could not extract file path from path `{0}`: File does not exist"
+    )]
     NotFound(String),
 }

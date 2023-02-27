@@ -26,7 +26,7 @@ use std::{
 
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
-use errors::{MetadataParseError, QueryParseError};
+use errors::FileParseError;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
 use tokio::runtime::Runtime;
@@ -71,25 +71,32 @@ pub struct Query {
 impl Query {
     /// Extracts a query from a file
     pub fn from_path(path: &Path) -> Result<Query, Box<dyn Error>> {
-        let raw_query = fs::read_to_string(path)?;
-        match path.extension().and_then(OsStr::to_str) {
-            Some("json") => {
-                let q: Query = serde_json::from_str::<Query>(&raw_query)?;
-                Ok(q)
-            }
-            Some("ron") => {
-                let q = ron::from_str::<Query>(&raw_query)?;
-                Ok(q)
-            }
-            Some(ext) => {
-                Err(Box::new(QueryParseError::UnsupportedFileExtension {
-                    ext: String::from(ext),
-                    path: path.to_string_lossy().to_string(),
-                }))
-            }
-            None => Err(Box::new(QueryParseError::UnknownFileExtension(
+        if !path.exists() {
+            Err(Box::new(FileParseError::NotFound(
                 path.to_string_lossy().to_string(),
-            ))),
+            )))
+        } else {
+            let raw_query = fs::read_to_string(path)?;
+            match path.extension().and_then(OsStr::to_str) {
+                // TODO: Add support for other file types
+                // Some("json") => {
+                //     let q: Query = serde_json::from_str::<Query>(&raw_query)?;
+                //     Ok(q)
+                // }
+                Some("ron") => {
+                    let q = ron::from_str::<Query>(&raw_query)?;
+                    Ok(q)
+                }
+                Some(ext) => {
+                    Err(Box::new(FileParseError::UnsupportedFileExtension {
+                        ext: String::from(ext),
+                        path: path.to_string_lossy().to_string(),
+                    }))
+                }
+                None => Err(Box::new(FileParseError::UnknownFileExtension(
+                    path.to_string_lossy().to_string(),
+                ))),
+            }
         }
     }
 }
@@ -137,7 +144,7 @@ pub fn extract_metadata_from_path(
         let m = MetadataCommand::new().manifest_path(assumed_path).exec()?;
         Ok(m)
     } else {
-        Err(Box::new(MetadataParseError::NotFound(
+        Err(Box::new(FileParseError::NotFound(
             path.to_string_lossy().to_string(),
         )))
     }
@@ -153,6 +160,14 @@ mod test {
     use crate::{
         execute_query, extract_metadata_from_path, transparent_results, Query,
     };
+
+    /// File that may never exist, to ensure some test work
+    const NONEXISTENT_FILE: &'static str = "test_data/notafile";
+
+    #[test]
+    fn non_existant_file() {
+        assert!(!Path::new(NONEXISTENT_FILE).exists());
+    }
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
     #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
@@ -200,10 +215,20 @@ mod test {
 
     #[test_case("test_data/fake_crates/direct_dependencies" ; "extract from directory")]
     #[test_case("test_data/fake_crates/direct_dependencies/Cargo.toml" ; "extract from direct path")]
-    #[test_case("test_data/queries" => panics "does not exist" ; "extract from directory without Cargo.toml")]
+    #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
         let m = extract_metadata_from_path(Path::new(path_str));
         match m {
+            Ok(_) => return,
+            Err(b) => panic!("{}", b),
+        }
+    }
+
+    #[test_case("test_data/queries/no_deps_all_fields.in.ron" ; "extract ron file")]
+    #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extracting nonexistent file")]
+    fn extract_query(path_str: &str) {
+        let q = Query::from_path(Path::new(path_str));
+        match q {
             Ok(_) => return,
             Err(b) => panic!("{}", b),
         }

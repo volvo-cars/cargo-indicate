@@ -14,5 +14,5 @@ pub enum QueryParseError {
 #[derive(Error, Debug, Clone)]
 pub enum MetadataParseError {
     #[error("could not extract file path from path `{0}`")]
-    MetadataNotFound(String),
+    NotFound(String),
 }

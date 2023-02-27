@@ -137,7 +137,7 @@ pub fn extract_metadata_from_path(
         let m = MetadataCommand::new().manifest_path(assumed_path).exec()?;
         Ok(m)
     } else {
-        Err(Box::new(MetadataParseError::MetadataNotFound(
+        Err(Box::new(MetadataParseError::NotFound(
             path.to_string_lossy().to_string(),
         )))
     }
@@ -146,6 +146,7 @@ pub fn extract_metadata_from_path(
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
+    use core::panic;
     use std::{fs, path::Path};
     use test_case::test_case;
 
@@ -195,5 +196,16 @@ mod test {
             res_json_string,
             expected_result_string
         );
+    }
+
+    #[test_case("test_data/fake_crates/direct_dependencies" ; "extract from directory")]
+    #[test_case("test_data/fake_crates/direct_dependencies/Cargo.toml" ; "extract from direct path")]
+    #[test_case("test_data/queries" => panics "does not exist" ; "extract from directory without Cargo.toml")]
+    fn extract_metadata(path_str: &str) {
+        let m = extract_metadata_from_path(Path::new(path_str));
+        match m {
+            Ok(_) => return,
+            Err(b) => panic!("{}", b),
+        }
     }
 }

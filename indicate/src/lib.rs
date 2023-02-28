@@ -60,17 +60,17 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 ///     "value": true,
 /// }
 /// ```
-type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
+type QueryArgs = BTreeMap<Arc<str>, FieldValue>;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Query {
+pub struct FullQuery {
     pub query: String,
-    pub args: ObjectMap,
+    pub args: QueryArgs,
 }
 
-impl Query {
+impl FullQuery {
     /// Extracts a query from a file
-    pub fn from_path(path: &Path) -> Result<Query, Box<dyn Error>> {
+    pub fn from_path(path: &Path) -> Result<FullQuery, Box<dyn Error>> {
         if !path.exists() {
             Err(Box::new(FileParseError::NotFound(
                 path.to_string_lossy().to_string(),
@@ -84,7 +84,7 @@ impl Query {
                 //     Ok(q)
                 // }
                 Some("ron") => {
-                    let q = ron::from_str::<Query>(&raw_query)?;
+                    let q = ron::from_str::<FullQuery>(&raw_query)?;
                     Ok(q)
                 }
                 Some(ext) => {
@@ -97,6 +97,34 @@ impl Query {
                     path.to_string_lossy().to_string(),
                 ))),
             }
+        }
+    }
+}
+
+pub struct FullQueryBuilder {
+    query: String,
+    args: Option<QueryArgs>,
+}
+
+impl FullQueryBuilder {
+    pub fn new(query: String) -> Self {
+        Self { query, args: None }
+    }
+
+    pub fn query(mut self, query: String) -> Self {
+        self.query = query;
+        self
+    }
+
+    pub fn args(mut self, args: QueryArgs) -> Self {
+        self.args = Some(args);
+        self
+    }
+
+    pub fn build(self) -> FullQuery {
+        FullQuery {
+            query: self.query,
+            args: self.args.unwrap_or(BTreeMap::new()),
         }
     }
 }
@@ -114,7 +142,7 @@ pub fn transparent_results(
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
 pub fn execute_query(
-    query: &Query,
+    query: &FullQuery,
     metadata: &Metadata,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let adapter = Rc::new(RefCell::new(IndicateAdapter::new(metadata)));
@@ -158,7 +186,8 @@ mod test {
     use test_case::test_case;
 
     use crate::{
-        execute_query, extract_metadata_from_path, transparent_results, Query,
+        execute_query, extract_metadata_from_path, transparent_results,
+        FullQuery,
     };
 
     /// File that may never exist, to ensure some test work
@@ -190,7 +219,7 @@ mod test {
 
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query(
-            &Query::from_path(query_path).unwrap(),
+            &FullQuery::from_path(query_path).unwrap(),
             &extract_metadata_from_path(cargo_toml_path).unwrap(),
         ));
         let res_json_string = serde_json::to_string_pretty(&res)
@@ -227,7 +256,7 @@ mod test {
     #[test_case("test_data/queries/no_deps_all_fields.in.ron" ; "extract ron file")]
     #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extracting nonexistent file")]
     fn extract_query(path_str: &str) {
-        let q = Query::from_path(Path::new(path_str));
+        let q = FullQuery::from_path(Path::new(path_str));
         match q {
             Ok(_) => return,
             Err(b) => panic!("{}", b),

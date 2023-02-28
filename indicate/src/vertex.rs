@@ -26,7 +26,6 @@ pub enum Vertex {
     GitHubRepository(Arc<FullRepository>),
     GitHubUser(Arc<PublicUser>),
     Advisory(Rc<Advisory>),
-    AdvisoryMetadata(Rc<advisory::Metadata>),
     AffectedFunctionVersions(Rc<HashMap<FunctionPath, Vec<VersionReq>>>),
     CvssBase(Rc<cvss::v3::base::Base>),
 }

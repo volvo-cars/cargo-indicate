@@ -19,6 +19,7 @@ git-url-parse = "0.4.4"
 rustsec = "0.26.4"
 cvss = "2.0.0"
 thiserror = "1.0.38"
+chrono = "0.4.23"
 
 [dev-dependencies]
 test-case = "3.0.0"

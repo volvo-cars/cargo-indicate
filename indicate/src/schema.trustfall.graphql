@@ -95,16 +95,11 @@ type GitHubUser {
     followersCount: Int!
 }
 
-# `rustsec::advisory::Advisory`
+# Partly flattened `rustsec::advisory::Advisory`
 type Advisory {
-    metadata: AdvisoryMetadata!
-    affected: [Affected!]!
-    versions: [String!]!
-}
+    # These fields are flattened out of `rustsec::advisory::Metadata`
 
-# `rustsec::advisory::Metadata`
-type AdvisoryMetadata {
-    id: ID!
+    id: String!
     title: String!
     description: String!
     unixDateReported: Int!
@@ -113,6 +108,10 @@ type AdvisoryMetadata {
     # If it was reported in error, this will indicate when it was withdrawn
     unixDateWithdrawn: Int
     cvss: CvssBase
+    
+    # These fields are from the actual advisory
+    affected: [Affected!]!
+    versions: [String!]!
 }
 
 # `rustsec::advisory::Affected`

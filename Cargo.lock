@@ -1023,6 +1023,7 @@ name = "indicate"
 version = "0.1.0"
 dependencies = [
  "cargo_metadata",
+ "chrono",
  "cvss",
  "git-url-parse",
  "octorust",
@@ -2643,7 +2644,7 @@ dependencies = [
 [[package]]
 name = "trustfall"
 version = "0.2.2"
-source = "git+https://github.com/ginger51011/trustfall#b59dbcdab8000616de6668bc3cc40d26dfe9951c"
+source = "git+https://github.com/ginger51011/trustfall#07fad0bd2e4fadf1731b116cdbcaf4b3a6d061e6"
 dependencies = [
  "anyhow",
  "trustfall_core",
@@ -2653,7 +2654,7 @@ dependencies = [
 [[package]]
 name = "trustfall_core"
 version = "0.2.1"
-source = "git+https://github.com/ginger51011/trustfall#b59dbcdab8000616de6668bc3cc40d26dfe9951c"
+source = "git+https://github.com/ginger51011/trustfall#07fad0bd2e4fadf1731b116cdbcaf4b3a6d061e6"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -2671,7 +2672,7 @@ dependencies = [
 [[package]]
 name = "trustfall_derive"
 version = "0.2.1"
-source = "git+https://github.com/ginger51011/trustfall#b59dbcdab8000616de6668bc3cc40d26dfe9951c"
+source = "git+https://github.com/ginger51011/trustfall#07fad0bd2e4fadf1731b116cdbcaf4b3a6d061e6"
 dependencies = [
  "proc-macro2",
  "quote",

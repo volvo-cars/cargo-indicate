@@ -1,11 +1,13 @@
 use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
+use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
-        field_property, resolve_property_with, BasicAdapter, ContextIterator,
-        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
+        accessor_property, field_property, resolve_property_with, BasicAdapter,
+        ContextIterator, ContextOutcomeIterator, DataContext, EdgeParameters,
+        VertexIterator,
     },
     FieldValue,
 };
@@ -22,6 +24,15 @@ pub struct IndicateAdapter<'a> {
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
     gh_client: GitHubClient,
+}
+
+/// The functions here are essentially the fields on the RootQuery
+impl IndicateAdapter<'_> {
+    fn root_package(&self) -> VertexIterator<'static, Vertex> {
+        let root = self.metadata.root_package().expect("no root package found");
+        let v = Vertex::Package(Rc::new(root.clone()));
+        Box::new(std::iter::once(v))
+    }
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -148,15 +159,6 @@ where
     )
 }
 
-/// The functions here are essentially the fields on the RootQuery
-impl IndicateAdapter<'_> {
-    fn root_package(&self) -> VertexIterator<'static, Vertex> {
-        let root = self.metadata.root_package().expect("no root package found");
-        let v = Vertex::Package(Rc::new(root.clone()));
-        Box::new(std::iter::once(v))
-    }
-}
-
 impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
     type Vertex = Vertex;
 
@@ -252,6 +254,38 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
             ("GitHubUser", "email") => resolve_property_with(
                 contexts,
                 field_property!(as_git_hub_user, email),
+            ),
+            ("Advisory", "id") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, id, { id.to_string().into() }),
+            ),
+            ("Advisory", "title") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, title),
+            ),
+            ("Advisory", "description") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, description),
+            ),
+            ("Advisory", "unixDateReported") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, date, {
+                    // TODO: This assumes the advisory being posted 00:00 UTC,
+                    // which might or might not be a good idea
+                    let dt: NaiveDateTime = NaiveDate::from_ymd_opt(
+                        date.year() as i32,
+                        date.month(),
+                        date.day(),
+                    )
+                    .expect("could not parse advisory unix date")
+                    .and_hms_opt(0, 0, 0)
+                    .expect("could not create advisory timestamp");
+                    dt.timestamp().into()
+                }),
+            ),
+            ("Advisory", "severity") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, severity),
             ),
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")

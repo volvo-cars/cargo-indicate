@@ -6,7 +6,7 @@ use std::{collections::HashMap, rc::Rc, sync::Arc};
 use cargo_metadata::Package;
 use octorust::types::{FullRepository, PublicUser};
 use rustsec::{
-    advisory::{self, affected::FunctionPath},
+    advisory::{self, affected::FunctionPath, Affected, Versions},
     Advisory, VersionReq,
 };
 use trustfall::provider::TrustfallEnumVertex;
@@ -26,6 +26,8 @@ pub enum Vertex {
     GitHubRepository(Arc<FullRepository>),
     GitHubUser(Arc<PublicUser>),
     Advisory(Rc<Advisory>),
+    Affected(Rc<Affected>),
+    AffectedVersions(Rc<Versions>),
     AffectedFunctionVersions(Rc<HashMap<FunctionPath, Vec<VersionReq>>>),
     CvssBase(Rc<cvss::v3::base::Base>),
 }

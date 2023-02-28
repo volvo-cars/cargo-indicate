@@ -114,17 +114,17 @@ type Advisory {
     versions: AffectedVersions!
 }
 
-# `rustsec::advisory::Versions`
-type AdvisoryVersions {
-    patched: [String!]!
-    unaffected: [String!]!
-}
-
 # `rustsec::advisory::Affected`
 type Affected {
     arch: [String!]!
     os: [String!]!
     functions: [AffectedFunctionVersions!]!
+}
+
+# `rustsec::advisory::Versions`
+type AdvisoryVersions {
+    patched: [String!]!
+    unaffected: [String!]!
 }
 
 # `Map<FunctionPath, Vec<VersionReq>>` from `rustsec::advisory::Affected`

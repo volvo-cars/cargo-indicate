@@ -5,14 +5,15 @@ use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
-        accessor_property, field_property, resolve_property_with, BasicAdapter,
-        ContextIterator, ContextOutcomeIterator, DataContext, EdgeParameters,
-        VertexIterator,
+        accessor_property, field_property, resolve_neighbors_with,
+        resolve_property_with, BasicAdapter, ContextIterator,
+        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
     },
     FieldValue,
 };
 
 use crate::{
+    advisory,
     repo::github::{GitHubClient, GitHubRepositoryId},
     vertex::Vertex,
 };
@@ -134,7 +135,7 @@ impl<'a> IndicateAdapter<'a> {
 ///
 /// There is room for performance improvements here, as it must currently
 /// collect an iterator to ensure lifetimes.
-fn resolve_vertex_neighbors<'a, V, F>(
+fn resolve_neighbors_with_collected<'a, V, F>(
     contexts: ContextIterator<'a, V>,
     mut resolve: F,
 ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
@@ -335,7 +336,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                resolve_vertex_neighbors(contexts, |vertex| {
+                resolve_neighbors_with_collected(contexts, |vertex| {
                     // This is in fact a Package, otherwise it would be `None`
                     // First get all dependencies, and then resolve their package
                     // by finding that dependency by its ID in the metadata
@@ -344,7 +345,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 })
             }
             ("Package", "repository") => {
-                resolve_vertex_neighbors(contexts, |v| {
+                resolve_neighbors_with_collected(contexts, |v| {
                     // Must be package
                     let package = v.as_package().unwrap();
                     match &package.repository {
@@ -356,7 +357,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                 })
             }
             ("GitHubRepository", "owner") => {
-                resolve_vertex_neighbors(contexts, |vertex| {
+                resolve_neighbors_with_collected(contexts, |vertex| {
                     // Must be GitHubRepository according to guarantees from Trustfall
                     let gh_repo = vertex.as_git_hub_repository().unwrap();
                     match &gh_repo.owner {
@@ -374,6 +375,26 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                         }
                         None => Box::new(std::iter::empty()),
                     }
+                })
+            }
+            ("Advisory", "affected") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    // Caller guarantees this is `Vertex::Advisory`
+                    let advisory = vertex.as_advisory().unwrap();
+                    match &advisory.affected {
+                        Some(a) => Box::new(std::iter::once(Vertex::Affected(
+                            Rc::new(a.clone()), // This `Rc` is ugly, but alternative might be uglier
+                        ))),
+                        None => Box::new(std::iter::empty::<Self::Vertex>()),
+                    }
+                })
+            }
+            ("Advisory", "versions") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let advisory = vertex.as_advisory().unwrap();
+                    Box::new(std::iter::once(Vertex::AffectedVersions(
+                        Rc::new(advisory.versions.clone()),
+                    )))
                 })
             }
             (t, e) => {

@@ -11,7 +11,7 @@ pub enum FileParseError {
     UnknownFileExtension(String),
 
     #[error(
-        "could not extract file path from path `{0}`: File does not exist"
+        "could not extract file path from path `{0}`, file does not exist"
     )]
     NotFound(String),
 }

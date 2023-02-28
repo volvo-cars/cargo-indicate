@@ -17,8 +17,6 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     error::Error,
-    ffi::OsStr,
-    fs,
     path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
@@ -28,16 +26,15 @@ use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
 use errors::FileParseError;
 use once_cell::sync::Lazy;
-use serde::Deserialize;
+use query::FullQuery;
 use tokio::runtime::Runtime;
-use trustfall::{
-    execute_query as trustfall_execute_query, FieldValue, Schema,
-    TransparentValue,
-};
+use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 mod adapter;
 pub mod errors;
+pub mod query;
 mod repo;
+pub mod util;
 mod vertex;
 
 const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
@@ -52,92 +49,6 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .build()
         .expect("could not create tokio runtime")
 });
-
-/// Type representing a thread-safe JSON object, like
-/// ```json
-/// {
-///     "name": "hello",
-///     "value": true,
-/// }
-/// ```
-type QueryArgs = BTreeMap<Arc<str>, FieldValue>;
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct FullQuery {
-    pub query: String,
-    pub args: QueryArgs,
-}
-
-impl FullQuery {
-    /// Extracts a query from a file
-    pub fn from_path(path: &Path) -> Result<FullQuery, Box<dyn Error>> {
-        if !path.exists() {
-            Err(Box::new(FileParseError::NotFound(
-                path.to_string_lossy().to_string(),
-            )))
-        } else {
-            let raw_query = fs::read_to_string(path)?;
-            match path.extension().and_then(OsStr::to_str) {
-                // TODO: Add support for other file types
-                // Some("json") => {
-                //     let q: Query = serde_json::from_str::<Query>(&raw_query)?;
-                //     Ok(q)
-                // }
-                Some("ron") => {
-                    let q = ron::from_str::<FullQuery>(&raw_query)?;
-                    Ok(q)
-                }
-                Some(ext) => {
-                    Err(Box::new(FileParseError::UnsupportedFileExtension {
-                        ext: String::from(ext),
-                        path: path.to_string_lossy().to_string(),
-                    }))
-                }
-                None => Err(Box::new(FileParseError::UnknownFileExtension(
-                    path.to_string_lossy().to_string(),
-                ))),
-            }
-        }
-    }
-}
-
-pub struct FullQueryBuilder {
-    query: String,
-    args: Option<QueryArgs>,
-}
-
-impl FullQueryBuilder {
-    pub fn new(query: String) -> Self {
-        Self { query, args: None }
-    }
-
-    pub fn query(mut self, query: String) -> Self {
-        self.query = query;
-        self
-    }
-
-    pub fn args(mut self, args: QueryArgs) -> Self {
-        self.args = Some(args);
-        self
-    }
-
-    pub fn build(self) -> FullQuery {
-        FullQuery {
-            query: self.query,
-            args: self.args.unwrap_or(BTreeMap::new()),
-        }
-    }
-}
-
-/// Transform a result from [`execute_query`] to one where the fields can easily be
-/// serialized to JSON using [`TransparentValue`].
-pub fn transparent_results(
-    res: Vec<BTreeMap<Arc<str>, FieldValue>>,
-) -> Vec<BTreeMap<Arc<str>, TransparentValue>> {
-    res.into_iter()
-        .map(|entry| entry.into_iter().map(|(k, v)| (k, v.into())).collect())
-        .collect()
-}
 
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
@@ -186,8 +97,8 @@ mod test {
     use test_case::test_case;
 
     use crate::{
-        execute_query, extract_metadata_from_path, transparent_results,
-        FullQuery,
+        execute_query, extract_metadata_from_path, query::FullQuery,
+        util::transparent_results,
     };
 
     /// File that may never exist, to ensure some test work

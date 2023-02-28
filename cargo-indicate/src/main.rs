@@ -30,10 +30,21 @@ struct IndicateCli {
     /// Define another output than stdout for query results
     #[arg(short, long)]
     output: Option<PathBuf>,
+
+    /// Outputs the schema that is used to write queries,
+    /// in a GraphQL format
+    #[arg(long)]
+    show_schema: bool,
 }
 
 fn main() {
     let cli = IndicateCli::parse();
+
+    if cli.show_schema {
+        println!("{}", indicate::RAW_SCHEMA);
+        return;
+    }
+
     let fq: FullQuery;
     if let Some(query_path) = cli.query_path {
         fq = FullQuery::from_path(&query_path).unwrap_or_else(|e| {

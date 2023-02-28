@@ -37,7 +37,7 @@ mod repo;
 pub mod util;
 mod vertex;
 
-const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
+pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
 static SCHEMA: Lazy<Schema> =
     Lazy::new(|| Schema::parse(RAW_SCHEMA).expect("Could not parse schema!"));

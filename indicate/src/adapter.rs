@@ -204,6 +204,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     unreachable!("Not a package!")
                 }
             }),
+            ("Package", "license") => resolve_property_with(contexts, |v| {
+                match &v.as_package().unwrap().license {
+                    Some(l) => l.into(),
+                    None => FieldValue::Null,
+                }
+            }),
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
                     Some(url) => FieldValue::String(url.to_owned()),

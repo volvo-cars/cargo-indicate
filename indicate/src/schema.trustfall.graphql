@@ -54,6 +54,7 @@ type Package {
     id: ID!,
     name: String!,
     version: String!,
+    license: String
     repository: Webpage
     dependencies: [Package!]!
     

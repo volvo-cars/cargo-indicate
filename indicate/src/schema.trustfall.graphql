@@ -111,7 +111,13 @@ type Advisory {
     
     # These fields are from the actual advisory
     affected: [Affected!]!
-    versions: [String!]!
+    versions: AffectedVersions!
+}
+
+# `rustsec::advisory::Versions`
+type AdvisoryVersions {
+    patched: [String!]!
+    unaffected: [String!]!
 }
 
 # `rustsec::advisory::Affected`

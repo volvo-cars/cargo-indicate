@@ -283,9 +283,36 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
                     dt.timestamp().into()
                 }),
             ),
-            ("Advisory", "severity") => resolve_property_with(
+            ("Advisory", "severity") => todo!("enums not yet implemented"),
+            ("Advisory", "unixDateWithdrawn") => resolve_property_with(
                 contexts,
-                accessor_property!(as_advisory, severity),
+                field_property!(as_advisory, metadata, {
+                    // TODO: This assumes the advisory being withdrawn 00:00 UTC,
+                    // which might or might not be a good idea
+                    match &metadata.withdrawn {
+                        Some(date) => {
+                            let dt: NaiveDateTime = NaiveDate::from_ymd_opt(
+                                date.year() as i32,
+                                date.month(),
+                                date.day(),
+                            )
+                            .expect("could not parse advisory unix date")
+                            .and_hms_opt(0, 0, 0)
+                            .expect("could not create advisory timestamp");
+                            dt.timestamp().into()
+                        }
+                        None => FieldValue::Null,
+                    }
+                }),
+            ),
+            ("Advisory", "cvss") => resolve_property_with(
+                contexts,
+                field_property!(as_advisory, metadata, {
+                    match &metadata.cvss {
+                        Some(_base) => todo!("enums not yet implemented"),
+                        None => FieldValue::Null,
+                    }
+                }),
             ),
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")

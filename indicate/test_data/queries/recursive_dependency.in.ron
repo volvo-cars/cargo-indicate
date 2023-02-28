@@ -1,6 +1,6 @@
 // This query will retrieve all dependencies of the dependencies listed
 // in the `Cargo.toml` file under [dependencies]
-Query(
+FullQuery(
     query: r#"
 {
     RootPackage {

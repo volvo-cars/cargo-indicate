@@ -1,4 +1,4 @@
-Query(
+FullQuery(
     query: r#"
 {
     RootPackage {

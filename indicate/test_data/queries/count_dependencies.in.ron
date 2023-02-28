@@ -1,6 +1,6 @@
 // Counts the number of dependencies for each direct dependency,
 // and lists them. This means some dependencies may be counted twice
-Query(
+FullQuery(
     query: r#"
 {
     RootPackage {

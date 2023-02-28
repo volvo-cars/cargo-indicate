@@ -14,25 +14,31 @@
 //! ```
 #![deny(unsafe_code)]
 use std::{
-    cell::RefCell, collections::BTreeMap, fs, path::Path, rc::Rc, sync::Arc,
+    cell::RefCell,
+    collections::BTreeMap,
+    error::Error,
+    path::{Path, PathBuf},
+    rc::Rc,
+    sync::Arc,
 };
 
 use adapter::IndicateAdapter;
 use cargo_metadata::{Metadata, MetadataCommand};
+use errors::FileParseError;
 use once_cell::sync::Lazy;
-use serde::Deserialize;
+use query::FullQuery;
 use tokio::runtime::Runtime;
-use trustfall::{
-    execute_query as trustfall_execute_query, FieldValue, Schema,
-    TransparentValue,
-};
+use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 mod adapter;
 mod advisory;
+pub mod errors;
+pub mod query;
 mod repo;
+pub mod util;
 mod vertex;
 
-const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
+pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
 /// Schema used for queries
 #[doc = include_str!("schema.trustfall.graphql")]
@@ -47,74 +53,64 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .expect("could not create tokio runtime")
 });
 
-/// Type representing a thread-safe JSON object, like
-/// ```json
-/// {
-///     "name": "hello",
-///     "value": true,
-/// }
-/// ```
-type ObjectMap = BTreeMap<Arc<str>, FieldValue>;
-
-#[derive(Debug, Clone, Deserialize)]
-struct Query<'a> {
-    pub query: &'a str,
-    pub args: ObjectMap,
-}
-
-/// Transform a result from [`execute_query`] to one where the fields can easily be
-/// serialized to JSON using [`TransparentValue`].
-pub fn transparent_results(
-    res: Vec<BTreeMap<Arc<str>, FieldValue>>,
-) -> Vec<BTreeMap<Arc<str>, TransparentValue>> {
-    res.into_iter()
-        .map(|entry| entry.into_iter().map(|(k, v)| (k, v.into())).collect())
-        .collect()
-}
-
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.
 pub fn execute_query(
-    query_path: &Path,
-    metadata_path: &Path,
+    query: &FullQuery,
+    metadata: &Metadata,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
-    let raw_query = fs::read_to_string(query_path)
-        .expect("Could not read query at {path}!");
-
-    let full_query = ron::from_str::<Query>(&raw_query)
-        .expect("Could not deserialize query!");
-
-    let metadata = extract_metadata_from_path(metadata_path);
-    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(&metadata)));
+    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(metadata)));
     let res = match trustfall_execute_query(
         &SCHEMA,
         adapter,
-        full_query.query,
-        full_query.args,
+        query.query.as_str(),
+        query.args.clone(),
     ) {
-        Err(e) => panic!("Could not execute query due to error: {:#?}", e),
         Ok(res) => res.collect(),
+        Err(e) => panic!("Could not execute query due to error: {:#?}", e),
     };
     res
 }
 
-/// Extracts metadata from a `Cargo.toml` file by its direct path
-pub fn extract_metadata_from_path(path: &Path) -> Metadata {
-    MetadataCommand::new()
-        .manifest_path(path)
-        .exec()
-        .unwrap_or_else(|_| {
-            panic!("Could not extract metadata from path {:?}", path)
-        })
+/// Extracts metadata from a `Cargo.toml` file by its direct path, or the path
+/// of its directory
+pub fn extract_metadata_from_path(
+    path: &Path,
+) -> Result<Metadata, Box<dyn Error>> {
+    if path.is_file() {
+        let m = MetadataCommand::new().manifest_path(path).exec()?;
+        Ok(m)
+    } else if path.is_dir() {
+        let mut assumed_path = PathBuf::from(path);
+        assumed_path.push("Cargo.toml");
+        let m = MetadataCommand::new().manifest_path(assumed_path).exec()?;
+        Ok(m)
+    } else {
+        Err(Box::new(FileParseError::NotFound(
+            path.to_string_lossy().to_string(),
+        )))
+    }
 }
 
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
+    use core::panic;
     use std::{fs, path::Path};
     use test_case::test_case;
 
-    use crate::{execute_query, transparent_results};
+    use crate::{
+        execute_query, extract_metadata_from_path, query::FullQuery,
+        util::transparent_results,
+    };
+
+    /// File that may never exist, to ensure some test work
+    const NONEXISTENT_FILE: &'static str = "test_data/notafile";
+
+    #[test]
+    fn non_existant_file() {
+        assert!(!Path::new(NONEXISTENT_FILE).exists());
+    }
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
     #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
@@ -136,8 +132,10 @@ mod test {
         let expected_result_name = Path::new(&raw_expected_result_path);
 
         // We use `TransparentValue for neater JSON serialization
-        let res =
-            transparent_results(execute_query(query_path, cargo_toml_path));
+        let res = transparent_results(execute_query(
+            &FullQuery::from_path(query_path).unwrap(),
+            &extract_metadata_from_path(cargo_toml_path).unwrap(),
+        ));
         let res_json_string = serde_json::to_string_pretty(&res)
             .expect("Could not convert result to string");
 
@@ -156,5 +154,26 @@ mod test {
             res_json_string,
             expected_result_string
         );
+    }
+
+    #[test_case("test_data/fake_crates/direct_dependencies" ; "extract from directory")]
+    #[test_case("test_data/fake_crates/direct_dependencies/Cargo.toml" ; "extract from direct path")]
+    #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
+    fn extract_metadata(path_str: &str) {
+        let m = extract_metadata_from_path(Path::new(path_str));
+        match m {
+            Ok(_) => return,
+            Err(b) => panic!("{}", b),
+        }
+    }
+
+    #[test_case("test_data/queries/no_deps_all_fields.in.ron" ; "extract ron file")]
+    #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extracting nonexistent file")]
+    fn extract_query(path_str: &str) {
+        let q = FullQuery::from_path(Path::new(path_str));
+        match q {
+            Ok(_) => return,
+            Err(b) => panic!("{}", b),
+        }
     }
 }

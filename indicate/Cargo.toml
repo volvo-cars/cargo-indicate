@@ -21,3 +21,4 @@ thiserror = "1.0.38"
 
 [dev-dependencies]
 test-case = "3.0.0"
+global_counter = { version = "0.2.2", default-features = false }

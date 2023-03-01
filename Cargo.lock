@@ -721,6 +721,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
+name = "global_counter"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a77c0a6d353621e0ba32c0eb64a5ed3832d900135712779e38bd2ea31d6509f"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
 name = "h2"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -940,6 +949,7 @@ version = "0.1.0"
 dependencies = [
  "cargo_metadata",
  "git-url-parse",
+ "global_counter",
  "octorust",
  "once_cell",
  "reqwest",

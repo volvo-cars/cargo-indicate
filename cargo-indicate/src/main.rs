@@ -35,6 +35,11 @@ struct IndicateCli {
     /// in a GraphQL format
     #[arg(long)]
     show_schema: bool,
+
+    /// The max number of query results to evaluate,
+    /// use to limit for example third party API calls
+    #[arg(short, long)]
+    max: Option<usize>,
 }
 
 fn main() {
@@ -70,7 +75,7 @@ fn main() {
             panic!("could not extract metadata due to error: {e}");
         });
 
-    let res = execute_query(&fq, &metadata);
+    let res = execute_query(&fq, &metadata, cli.max);
     let transparent_res = transparent_results(res);
     let res_string = serde_json::to_string_pretty(&transparent_res)
         .expect("could not serialize result");

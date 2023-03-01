@@ -1,0 +1,4 @@
+{
+  "query": "{RootPackage {dependencies { name @output dependencies @fold @transform(op: \"count\") @output(name: \"number\") {dependencies @recurse(depth: 30) {name @output(name: \"dep_name\")}}}}}",
+  "args": {}
+}

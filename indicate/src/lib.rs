@@ -64,10 +64,7 @@ pub fn execute_query(
         query.query.as_str(),
         query.args.clone(),
     ) {
-        Ok(res) => match max_results {
-            Some(limit) => res.take(limit).collect(),
-            None => res.collect(),
-        },
+        Ok(res) => res.take(max_results.unwrap_or(usize::MAX)).collect(),
         Err(e) => panic!("Could not execute query due to error: {:#?}", e),
     };
     res

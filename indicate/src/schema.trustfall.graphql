@@ -108,7 +108,7 @@ type Advisory {
     
     # If it was reported in error, this will indicate when it was withdrawn
     unixDateWithdrawn: Int
-    cvss: CvssBase
+    #cvss: CvssBase # TODO: Add when Trustfall supports enums
     
     # These fields are from the actual advisory
     affected: [Affected!]!
@@ -134,18 +134,6 @@ type AffectedFunctionVersions {
     versions: [String!]!
 }
 
-# `cvss::v3::base::Base`
-type CvssBase {
-    minorVersion: Int!
-    attackVector: attackVector
-    attackComplexity: AttackComplexity
-    privilegesRequired: PrivilegesRequired
-    userInteraction: UserInteraction
-    scope: Scope
-    confidentiality: Confidentiality
-    integrity: Integrity
-    availability: Availability
-}
 
 # `rustsec::advisory::Severity`
 enum Severity {
@@ -156,56 +144,69 @@ enum Severity {
     CRITICAL,
 }
 
-# `cvss::v3::base::AttackVector`
-enum AttackVector {
-    PHYSICAL
-    LOCAL
-    ADJACENT
-    NETWORK
-}
+# `cvss::v3::base::Base`
+# type CvssBase {
+#     minorVersion: Int!
+#     attackVector: attackVector
+#     attackComplexity: AttackComplexity
+#     privilegesRequired: PrivilegesRequired
+#     userInteraction: UserInteraction
+#     scope: Scope
+#     confidentiality: Confidentiality
+#     integrity: Integrity
+#     availability: Availability
+# }
 
-# `cvss::v3::base::AttackComplexity`
-enum AttackComplexity {
-    HIGH
-    LOW
-}
+# # `cvss::v3::base::AttackVector`
+# enum AttackVector {
+#     PHYSICAL
+#     LOCAL
+#     ADJACENT
+#     NETWORK
+# }
 
-# `cvss::v3::base::PrivilegesRequired`
-enum PrivilegesRequired {
-    HIGH
-    LOW
-    NONE
-}
+# # `cvss::v3::base::AttackComplexity`
+# enum AttackComplexity {
+#     HIGH
+#     LOW
+# }
 
-# `cvss::v3::base::UserInteraction`
-enum UserInteraction {
-    REQUIRED
-    NONE
-}
+# # `cvss::v3::base::PrivilegesRequired`
+# enum PrivilegesRequired {
+#     HIGH
+#     LOW
+#     NONE
+# }
 
-# `cvss::v3::base::Scope`
-enum Scope {
-    UNCHANGED
-    CHANGED
-}
+# # `cvss::v3::base::UserInteraction`
+# enum UserInteraction {
+#     REQUIRED
+#     NONE
+# }
 
-# `cvss::v3::base::Confidentiality`
-enum Confidentiality {
-    NONE
-    LOW
-    HIGH
-}
+# # `cvss::v3::base::Scope`
+# enum Scope {
+#     UNCHANGED
+#     CHANGED
+# }
 
-# `cvss::v3::base::Integrity`
-enum Integrity {
-    NONE
-    LOW
-    HIGH
-}
+# # `cvss::v3::base::Confidentiality`
+# enum Confidentiality {
+#     NONE
+#     LOW
+#     HIGH
+# }
 
-# `cvss::v3::base::Availability`
-enum Availability {
-    NONE
-    LOW
-    HIGH
-}
+# # `cvss::v3::base::Integrity`
+# enum Integrity {
+#     NONE
+#     LOW
+#     HIGH
+# }
+
+# # `cvss::v3::base::Availability`
+# enum Availability {
+#     NONE
+#     LOW
+#     HIGH
+# }

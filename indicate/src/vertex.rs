@@ -29,7 +29,7 @@ pub enum Vertex {
     Affected(Rc<Affected>),
     AffectedVersions(Rc<Versions>),
     AffectedFunctionVersions(Rc<HashMap<FunctionPath, Vec<VersionReq>>>),
-    CvssBase(Rc<cvss::v3::base::Base>),
+    // CvssBase(Rc<cvss::v3::base::Base>), // TODO: Add when Trustfall supports enums?
 }
 
 impl Vertex {

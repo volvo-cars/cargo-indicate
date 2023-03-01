@@ -133,6 +133,9 @@ impl<'a> IndicateAdapter<'a> {
 /// downcast using an `as_<type>`. The passed closure will be used to resolve
 /// the desired neighbors.
 ///
+/// Essentially the same as [`resolve_neighbors_with`], but collects the
+/// iterator to guarantee lifetimes.
+///
 /// There is room for performance improvements here, as it must currently
 /// collect an iterator to ensure lifetimes.
 fn resolve_neighbors_with_collected<'a, V, F>(

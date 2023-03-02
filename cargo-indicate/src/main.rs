@@ -11,7 +11,7 @@ use indicate::{
 #[command(author, version, about, long_about = None)]
 struct IndicateCli {
     /// An indicate query in a supported file format
-    #[arg(short = 'Q', long, group = "query_input")]
+    #[arg(short = 'Q', long, group = "query_input", value_name = "FILE")]
     query_path: Option<PathBuf>,
 
     /// An indicate query in plain text, without arguments
@@ -28,18 +28,18 @@ struct IndicateCli {
     package: PathBuf,
 
     /// Define another output than stdout for query results
-    #[arg(short, long)]
+    #[arg(short, long, value_name = "FILE")]
     output: Option<PathBuf>,
+
+    /// The max number of query results to evaluate,
+    /// use to limit for example third party API calls
+    #[arg(short = 'm', long, value_name = "INTEGER")]
+    max_results: Option<usize>,
 
     /// Outputs the schema that is used to write queries,
     /// in a GraphQL format
     #[arg(long)]
     show_schema: bool,
-
-    /// The max number of query results to evaluate,
-    /// use to limit for example third party API calls
-    #[arg(short, long)]
-    max: Option<usize>,
 }
 
 fn main() {
@@ -75,7 +75,7 @@ fn main() {
             panic!("could not extract metadata due to error: {e}");
         });
 
-    let res = execute_query(&fq, metadata, cli.max);
+    let res = execute_query(&fq, metadata, cli.max_results);
     let transparent_res = transparent_results(res);
     let res_string = serde_json::to_string_pretty(&transparent_res)
         .expect("could not serialize result");

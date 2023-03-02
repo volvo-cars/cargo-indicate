@@ -10,12 +10,12 @@ Arguments:
   [PACKAGE]  Path to a Cargo.toml file, or a directory containing one [default: ./]
 
 Options:
-  -Q, --query-path <QUERY_PATH>  An indicate query in a supported file format
+  -Q, --query-path <FILE>  An indicate query in a supported file format
   -q, --query <QUERY>            An indicate query in plain text, without arguments
   -a, --args <ARGS>              Indicate arguments including arguments in plain text, without query in a JSON format
-  -o, --output <OUTPUT>          Define another output than stdout for query results
+  -o, --output <FILE>          Define another output than stdout for query results
       --show-schema              Outputs the schema that is used to write queries, in a GraphQL format
-  -m, --max <MAX>                The max number of query results to evaluate, use to limit for example third party API calls
+  -m, --max-results <INTEGER>                The max number of query results to evaluate, use to limit for example third party API calls
   -h, --help                     Print help
   -V, --version                  Print version
 

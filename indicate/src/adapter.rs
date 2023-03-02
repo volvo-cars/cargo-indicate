@@ -1,12 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
         field_property, resolve_neighbors_with, resolve_property_with,
-        BasicAdapter, ContextIterator, ContextOutcomeIterator, DataContext,
-        EdgeParameters, VertexIterator,
+        BasicAdapter, ContextIterator, ContextOutcomeIterator, EdgeParameters,
+        VertexIterator,
     },
     FieldValue,
 };

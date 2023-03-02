@@ -380,9 +380,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
         type_name: &str,
         coerce_to_type: &str,
     ) -> ContextOutcomeIterator<'a, Self::Vertex, bool> {
+        // Ensure lifetimes by cloning
+        let type_name = type_name.to_owned();
+        let coerce_to_type = coerce_to_type.to_owned();
         Box::new(
             contexts
-                .map(|ctx| {
+                .map(move |ctx| {
                     let current_vertex = &ctx.active_vertex();
                     let current_vertex = match current_vertex {
                         Some(v) => v,
@@ -390,8 +393,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     };
 
                     let can_coerce = match (
-                        type_name as &str,
-                        coerce_to_type
+                        type_name.as_str(),
+                        coerce_to_type.as_str()
                     ) {
                         (_, "Repository") => {
                             current_vertex.as_repository().is_some()
@@ -408,8 +411,6 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                     (ctx, can_coerce)
                 })
-                .collect::<Vec<(DataContext<Self::Vertex>, bool)>>()
-                .into_iter(),
         )
     }
 }

@@ -15,6 +15,7 @@ Options:
   -a, --args <ARGS>              Indicate arguments including arguments in plain text, without query in a JSON format
   -o, --output <OUTPUT>          Define another output than stdout for query results
       --show-schema              Outputs the schema that is used to write queries, in a GraphQL format
+  -m, --max <MAX>                The max number of query results to evaluate, use to limit for example third party API calls
   -h, --help                     Print help
   -V, --version                  Print version
 

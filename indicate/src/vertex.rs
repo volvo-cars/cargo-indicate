@@ -10,6 +10,7 @@ use trustfall::provider::TrustfallEnumVertex;
 /// A node in the GraphQL schema as defined in the schema.
 ///
 /// Each node wraps a reference to some type of actual data.
+#[allow(dead_code)]
 #[derive(Debug, Clone, TrustfallEnumVertex)]
 pub enum Vertex {
     Package(Rc<Package>),

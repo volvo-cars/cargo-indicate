@@ -107,6 +107,7 @@ impl GitHubClient {
             Some(r) => Some(Arc::clone(r)),
             None => {
                 let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
+                println!("Get {:?}", id);
 
                 #[cfg(test)]
                 {

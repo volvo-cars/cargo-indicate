@@ -1,11 +1,12 @@
-use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
+use std::{cell::RefCell, collections::HashMap, fmt::Debug, rc::Rc, sync::Arc};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use git_url_parse::GitUrl;
 use trustfall::{
     provider::{
-        field_property, resolve_property_with, BasicAdapter, ContextIterator,
-        ContextOutcomeIterator, DataContext, EdgeParameters, VertexIterator,
+        field_property, resolve_neighbors_with, resolve_property_with,
+        BasicAdapter, ContextIterator, ContextOutcomeIterator, DataContext,
+        EdgeParameters, VertexIterator,
     },
     FieldValue,
 };
@@ -15,18 +16,21 @@ use crate::{
     vertex::Vertex,
 };
 
-pub struct IndicateAdapter<'a> {
-    metadata: &'a Metadata,
-    packages: HashMap<PackageId, Rc<Package>>,
+type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
+type PackageMap = HashMap<PackageId, Rc<Package>>;
+
+pub struct IndicateAdapter {
+    metadata: Rc<Metadata>,
+    packages: Rc<PackageMap>,
 
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
-    direct_dependencies: HashMap<PackageId, Rc<Vec<PackageId>>>,
-    gh_client: GitHubClient,
+    direct_dependencies: Rc<DirectDependencyMap>,
+    gh_client: Rc<RefCell<GitHubClient>>,
 }
 
 /// Helper methods to resolve fields using the metadata
-impl<'a> IndicateAdapter<'a> {
-    pub fn new(metadata: &'a Metadata) -> Self {
+impl IndicateAdapter {
+    pub fn new(metadata: Metadata) -> Self {
         let mut packages = HashMap::with_capacity(metadata.packages.len());
 
         for p in &metadata.packages {
@@ -51,32 +55,57 @@ impl<'a> IndicateAdapter<'a> {
         }
 
         Self {
-            metadata,
-            packages,
-            direct_dependencies,
-            gh_client: GitHubClient::new(),
+            metadata: Rc::new(metadata),
+            packages: Rc::new(packages),
+            direct_dependencies: Rc::new(direct_dependencies),
+            gh_client: Rc::new(RefCell::new(GitHubClient::new())),
         }
     }
 
-    fn dependencies(
-        &self,
+    /// Retrieves a new counted reference to this adapters [`Metadata`]
+    #[must_use]
+    fn metadata(&self) -> Rc<Metadata> {
+        Rc::clone(&self.metadata)
+    }
+
+    /// Retrieves a new counted reference to this adapters [`PackageMap`]
+    #[must_use]
+    fn packages(&self) -> Rc<PackageMap> {
+        Rc::clone(&self.packages)
+    }
+
+    /// Retrieves a new counted reference to this adapters [`PackageMap`]
+    #[must_use]
+    fn direct_dependencies(&self) -> Rc<DirectDependencyMap> {
+        Rc::clone(&self.direct_dependencies)
+    }
+
+    /// Retrieves a new counted reference to this adapters [`GitHubClient`]
+    #[must_use]
+    fn gh_client(&self) -> Rc<RefCell<GitHubClient>> {
+        Rc::clone(&self.gh_client)
+    }
+
+    fn get_dependencies(
+        packages: Rc<PackageMap>,
+        direct_dependencies: Rc<DirectDependencyMap>,
         package_id: &PackageId,
     ) -> VertexIterator<'static, Vertex> {
-        let dependency_ids =
-            self.direct_dependencies.get(package_id).unwrap_or_else(|| {
-                panic!(
-                    "Could not extract dependency IDs for package {}",
-                    &package_id
-                )
-            });
+        let dd = Rc::clone(&direct_dependencies);
+        let dependency_ids = dd.get(package_id).unwrap_or_else(|| {
+            panic!(
+                "Could not extract dependency IDs for package {}",
+                &package_id
+            )
+        });
 
         let dependencies = dependency_ids
             .iter()
-            .map(|id| {
-                let p = self.packages.get(id).unwrap();
+            .map(move |id| {
+                let p = packages.get(id).unwrap();
                 Vertex::Package(Rc::clone(p))
             })
-            .collect::<Vec<Vertex>>()
+            .collect::<Vec<_>>()
             .into_iter();
 
         Box::new(dependencies)
@@ -84,7 +113,10 @@ impl<'a> IndicateAdapter<'a> {
 
     /// Returns a form of repository, i.e. a variant that implements the
     /// `schema.trustfall.graphql` `repository` interface
-    fn get_repository_from_url(&mut self, url: &str) -> Vertex {
+    fn get_repository_from_url(
+        url: &str,
+        gh_client: Rc<RefCell<GitHubClient>>,
+    ) -> Vertex {
         // TODO: Better identification of repository URLs...
         if url.contains("github.com") {
             match GitUrl::parse(url) {
@@ -98,7 +130,9 @@ impl<'a> IndicateAdapter<'a> {
                             gurl.name,
                         );
 
-                        if let Some(fr) = self.gh_client.get_repository(&id) {
+                        if let Some(fr) =
+                            gh_client.borrow_mut().get_repository(&id)
+                        {
                             Vertex::GitHubRepository(fr)
                         } else {
                             // We were unable to retrieve the repository
@@ -123,33 +157,33 @@ impl<'a> IndicateAdapter<'a> {
 ///
 /// There is room for performance improvements here, as it must currently
 /// collect an iterator to ensure lifetimes.
-fn resolve_vertex_neighbors<'a, V, F>(
-    contexts: ContextIterator<'a, V>,
-    mut resolve: F,
-) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
-where
-    V: Clone + Debug + 'a,
-    F: FnMut(&V) -> VertexIterator<'a, V>,
-{
-    Box::new(
-        contexts
-            .map(|ctx| {
-                let current_vertex = &ctx.active_vertex();
-                let neighbors_iter: VertexIterator<'a, V> = match current_vertex
-                {
-                    Some(v) => resolve(v),
-                    None => Box::new(std::iter::empty()),
-                };
+// fn resolve_neighbors_with_collect<'a, V, F>(
+//     contexts: ContextIterator<'a, V>,
+//     mut resolve: F,
+// ) -> ContextOutcomeIterator<'a, V, VertexIterator<'a, V>>
+// where
+//     V: Clone + Debug + 'a,
+//     F: FnMut(&V) -> VertexIterator<'a, V>,
+// {
+//     Box::new(
+//         contexts
+//             .map(|ctx| {
+//                 let current_vertex = &ctx.active_vertex();
+//                 let neighbors_iter: VertexIterator<'a, V> = match current_vertex
+//                 {
+//                     Some(v) => resolve(v),
+//                     None => Box::new(std::iter::empty()),
+//                 };
 
-                (ctx, neighbors_iter)
-            })
-            .collect::<Vec<(DataContext<V>, VertexIterator<'a, V>)>>()
-            .into_iter(),
-    )
-}
+//                 (ctx, neighbors_iter)
+//             })
+//             .collect::<Vec<(DataContext<V>, VertexIterator<'a, V>)>>()
+//             .into_iter(),
+//     )
+// }
 
 /// The functions here are essentially the fields on the RootQuery
-impl IndicateAdapter<'_> {
+impl IndicateAdapter {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
         let root = self.metadata.root_package().expect("no root package found");
         let v = Vertex::Package(Rc::new(root.clone()));
@@ -157,7 +191,7 @@ impl IndicateAdapter<'_> {
     }
 }
 
-impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
+impl<'a> BasicAdapter<'a> for IndicateAdapter {
     type Vertex = Vertex;
 
     fn resolve_starting_vertices(
@@ -280,34 +314,47 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter<'a> {
         // that are not scalar values (`FieldValue`)
         match (type_name, edge_name) {
             ("Package", "dependencies") => {
-                resolve_vertex_neighbors(contexts, |vertex| {
+                // Must be done here to ensure they live long enough (and are
+                // not lazily evaluated)
+                let packages = self.packages();
+                let direct_dependencies = self.direct_dependencies();
+                resolve_neighbors_with(contexts, move |vertex| {
                     // This is in fact a Package, otherwise it would be `None`
                     // First get all dependencies, and then resolve their package
                     // by finding that dependency by its ID in the metadata
                     let package = vertex.as_package().unwrap();
-                    self.dependencies(&package.id)
+                    Self::get_dependencies(
+                        Rc::clone(&packages),
+                        Rc::clone(&direct_dependencies),
+                        &package.id,
+                    )
                 })
             }
             ("Package", "repository") => {
-                resolve_vertex_neighbors(contexts, |v| {
+                let gh_client = self.gh_client();
+                resolve_neighbors_with(contexts, move |v| {
                     // Must be package
                     let package = v.as_package().unwrap();
                     match &package.repository {
                         Some(url) => Box::new(std::iter::once(
-                            self.get_repository_from_url(url),
+                            Self::get_repository_from_url(
+                                url,
+                                Rc::clone(&gh_client),
+                            ),
                         )),
                         None => Box::new(std::iter::empty()),
                     }
                 })
             }
             ("GitHubRepository", "owner") => {
-                resolve_vertex_neighbors(contexts, |vertex| {
+                let gh_client = self.gh_client();
+                resolve_neighbors_with(contexts, move |vertex| {
                     // Must be GitHubRepository according to guarantees from Trustfall
                     let gh_repo = vertex.as_git_hub_repository().unwrap();
                     match &gh_repo.owner {
                         Some(simple_user) => {
-                            let user = self
-                                .gh_client
+                            let user = gh_client
+                                .borrow_mut()
                                 .get_public_user(&simple_user.login);
 
                             match user {

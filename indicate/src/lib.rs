@@ -100,7 +100,10 @@ pub fn extract_metadata_from_path(
 mod test {
     // use lazy_static::lazy_static;
     use core::panic;
-    use std::{fs, path::Path};
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
     use test_case::test_case;
 
     use crate::{
@@ -116,13 +119,13 @@ mod test {
     fn get_paths<'a, 'b>(
         fake_crate_name: &'a str,
         query_name: &'b str,
-    ) -> (&'a Path, &'b Path) {
+    ) -> (PathBuf, PathBuf) {
         let raw_cargo_toml_path =
             format!("test_data/fake_crates/{fake_crate_name}/Cargo.toml");
-        let cargo_toml_path = Path::new(&raw_cargo_toml_path);
+        let cargo_toml_path = PathBuf::from(&raw_cargo_toml_path);
 
         let raw_query_path = format!("test_data/queries/{query_name}.in.ron");
-        let query_path = Path::new(&raw_query_path);
+        let query_path = PathBuf::from(&raw_query_path);
 
         (cargo_toml_path, query_path)
     }
@@ -144,8 +147,8 @@ mod test {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
         execute_query(
-            &FullQuery::from_path(query_path).unwrap(),
-            extract_metadata_from_path(cargo_toml_path).unwrap(),
+            &FullQuery::from_path(query_path.as_path()).unwrap(),
+            extract_metadata_from_path(cargo_toml_path.as_path()).unwrap(),
             None,
         );
     }
@@ -164,8 +167,8 @@ mod test {
 
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query(
-            &FullQuery::from_path(query_path).unwrap(),
-            extract_metadata_from_path(cargo_toml_path).unwrap(),
+            &FullQuery::from_path(query_path.as_path()).unwrap(),
+            extract_metadata_from_path(cargo_toml_path.as_path()).unwrap(),
             None,
         ));
         let res_json_string = serde_json::to_string_pretty(&res)

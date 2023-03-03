@@ -1,0 +1,25 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            advisoryHistory(includeWithdrawn: $include_withdrawn) {
+                id @output
+                title @output
+                description @output
+                unixDateReported @output
+                severity @output
+                affectedarch @output
+                affectedOs @output
+                patchedVersions @output
+                unaffectedVersions @output
+                unixDateWithdrawn @output
+            }
+        }
+    }
+}
+    "#,
+    args: {
+        "include_withdrawn": true,
+    }
+)

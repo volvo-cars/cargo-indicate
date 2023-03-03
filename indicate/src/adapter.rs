@@ -371,7 +371,15 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         .into()
                 }),
             ),
-            ("Advisory", "severity") => todo!("enums not yet implemented"),
+            ("Advisory", "severity") => resolve_property_with(
+                contexts,
+                accessor_property!(as_advisory, severity, {
+                    match severity {
+                        Some(s) => FieldValue::Enum(s.to_string()),
+                        None => FieldValue::Null,
+                    }
+                }),
+            ),
             // ("Advisory", "cvss") => resolve_property_with(
             //     contexts,
             //     field_property!(as_advisory, metadata, {

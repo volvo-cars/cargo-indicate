@@ -3,17 +3,18 @@ FullQuery(
 {
     RootPackage {
         dependencies {
+            name @output
             advisoryHistory(includeWithdrawn: true) {
                 id @output
                 title @output
                 description @output
                 unixDateReported @output
-                severity @output
-                affectedArch @output
-                affectedOs @output
+                severity @output @optional
+                affectedArch @output @optional
+                affectedOs @output @optional
                 patchedVersions @output
                 unaffectedVersions @output
-                unixDateWithdrawn @output
+                unixDateWithdrawn @output @optional
             }
         }
     }

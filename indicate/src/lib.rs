@@ -111,9 +111,39 @@ mod test {
     /// File that may never exist, to ensure some test work
     const NONEXISTENT_FILE: &'static str = "test_data/notafile";
 
+    fn get_paths<'a, 'b>(
+        fake_crate_name: &'a str,
+        query_name: &'b str,
+    ) -> (&'a Path, &'b Path) {
+        let raw_cargo_toml_path =
+            format!("test_data/fake_crates/{fake_crate_name}/Cargo.toml");
+        let cargo_toml_path = Path::new(&raw_cargo_toml_path);
+
+        let raw_query_path = format!("test_data/queries/{query_name}.in.ron");
+        let query_path = Path::new(&raw_query_path);
+
+        (cargo_toml_path, query_path)
+    }
+
     #[test]
     fn non_existant_file() {
         assert!(!Path::new(NONEXISTENT_FILE).exists());
+    }
+
+    #[test_case("direct_dependencies", "advisory_db_simple" ; "simple advisory db does not panic")]
+    #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
+    #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
+    /// Test that the queries complete (or panic), but do not check their results
+    ///
+    /// Used for results that may change over time.
+    fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
+        let (cargo_toml_path, query_path) =
+            get_paths(fake_crate_name, query_name);
+        execute_query(
+            &FullQuery::from_path(query_path).unwrap(),
+            extract_metadata_from_path(cargo_toml_path).unwrap(),
+            None,
+        );
     }
 
     #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
@@ -121,16 +151,9 @@ mod test {
     #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
     #[test_case("direct_dependencies", "recursive_dependency" ; "retrieve recursive dependency information")]
     #[test_case("direct_dependencies", "count_dependencies" ; "count the number of dependencies used by each dependency")]
-    #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
-    #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
-    fn query_tests(fake_crate: &str, query_name: &str) {
-        let raw_cargo_toml_path =
-            format!("test_data/fake_crates/{fake_crate}/Cargo.toml");
-        let cargo_toml_path = Path::new(&raw_cargo_toml_path);
-
-        let raw_query_path = format!("test_data/queries/{query_name}.in.ron");
-        let query_path = Path::new(&raw_query_path);
-
+    fn query_test(fake_crate_name: &str, query_name: &str) {
+        let (cargo_toml_path, query_path) =
+            get_paths(fake_crate_name, query_name);
         let raw_expected_result_path =
             format!("test_data/queries/{query_name}.expected.json");
         let expected_result_name = Path::new(&raw_expected_result_path);

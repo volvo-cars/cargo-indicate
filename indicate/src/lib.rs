@@ -38,6 +38,7 @@ mod repo;
 pub mod util;
 mod vertex;
 
+pub use rustsec::advisory::Severity;
 /// Valid platforms that can be provided to queries
 pub use rustsec::platforms;
 

@@ -20,6 +20,6 @@ FullQuery(
 }
     "#,
     args: {
-        "include_withdrawn": true,
+        "include_withdrawn": Boolean(true),
     }
 )

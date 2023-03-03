@@ -375,7 +375,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 contexts,
                 accessor_property!(as_advisory, severity, {
                     match severity {
-                        Some(s) => FieldValue::Enum(s.to_string()),
+                        Some(s) => FieldValue::String(s.to_string()),
                         None => FieldValue::Null,
                     }
                 }),
@@ -468,10 +468,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let include_withdrawn = match include_withdrawn {
-                            Some(FieldValue::Boolean(b)) => b,
-                            _ => panic!("includeWithdrawn parameter required but not provided"),
-                        };
+                    let include_withdrawn = include_withdrawn
+                        .to_owned()
+                        .expect("includeWithdrawn parameter required but not provided")
+                        .as_bool().expect("includeWithdrawn must be a boolean");
 
                     // Handle using Strings in the Schema as Rust enums
                     let arch = arch
@@ -501,7 +501,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         .and_then(|fv| {
                             fv.as_str().and_then(|s| s.to_string().into())
                         })
-                        .map(|s| 
+                        .map(|s|
                             cvss::Severity::from_str(s.as_str())
                             .unwrap_or_else(|e| panic!("{} is not a valid CVSS severity level ({e})", s)));
 

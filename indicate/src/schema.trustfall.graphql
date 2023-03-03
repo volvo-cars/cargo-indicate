@@ -59,7 +59,9 @@ type Package {
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
-    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, severity: Severity): [Advisory!]!
+    # For severity, see `rustsec::advisory::Severity`
+    # (both re-exported by `indicate`)
+    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, severity: String): [Advisory!]!
 }
 
 interface Webpage {
@@ -104,7 +106,7 @@ type Advisory {
     title: String!
     description: String!
     unixDateReported: Int!
-    severity: Severity
+    severity: String
     
     # These are provided by `rustsec::advisory::Affected`
     # They may be empty, so a `None` means that we do not know
@@ -129,13 +131,13 @@ type AffectedFunctionVersions {
 
 
 # `rustsec::advisory::Severity`
-enum Severity {
-    NONE,
-    LOW,
-    MEDIUM,
-    HIGH,
-    CRITICAL,
-}
+# enum Severity {
+#     NONE,
+#     LOW,
+#     MEDIUM,
+#     HIGH,
+#     CRITICAL,
+# }
 
 # `cvss::v3::base::Base`
 # type CvssBase {

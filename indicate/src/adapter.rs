@@ -1,4 +1,6 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Arc,
+};
 
 use cargo_metadata::{Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
@@ -13,6 +15,7 @@ use trustfall::{
 };
 
 use crate::{
+    advisory::AdvisoryClient,
     repo::github::{GitHubClient, GitHubRepositoryId},
     vertex::Vertex,
 };
@@ -27,6 +30,7 @@ pub struct IndicateAdapter {
     /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: Rc<DirectDependencyMap>,
     gh_client: Rc<RefCell<GitHubClient>>,
+    advisory_client: Rc<AdvisoryClient>,
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -69,6 +73,11 @@ impl IndicateAdapter {
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(GitHubClient::new())),
+            advisory_client: Rc::new(AdvisoryClient::new().unwrap_or_else(
+                |e| {
+                    panic!("could not create advisory client due to error: {e}")
+                },
+            )),
         }
     }
 
@@ -291,7 +300,6 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     dt.timestamp().into()
                 }),
             ),
-            ("Advisory", "severity") => todo!("enums not yet implemented"),
             ("Advisory", "unixDateWithdrawn") => resolve_property_with(
                 contexts,
                 field_property!(as_advisory, metadata, {
@@ -313,15 +321,66 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 }),
             ),
-            ("Advisory", "cvss") => resolve_property_with(
+            ("Advisory", "affectedArch") => resolve_property_with(
                 contexts,
-                field_property!(as_advisory, metadata, {
-                    match &metadata.cvss {
-                        Some(_base) => todo!("enums not yet implemented"),
+                field_property!(as_advisory, affected, {
+                    match affected {
+                        Some(aff) => aff
+                            .arch
+                            .iter()
+                            .map(|a| a.to_string())
+                            .collect::<Vec<String>>()
+                            .into(),
                         None => FieldValue::Null,
                     }
                 }),
             ),
+            ("Advisory", "affectedOs") => resolve_property_with(
+                contexts,
+                field_property!(as_advisory, affected, {
+                    match affected {
+                        Some(aff) => aff
+                            .os
+                            .iter()
+                            .map(|a| a.to_string())
+                            .collect::<Vec<String>>()
+                            .into(),
+                        None => FieldValue::Null,
+                    }
+                }),
+            ),
+            ("Advisory", "patchedVersions") => resolve_property_with(
+                contexts,
+                field_property!(as_advisory, versions, {
+                    versions
+                        .patched()
+                        .iter()
+                        .map(|vr| vr.to_string())
+                        .collect::<Vec<String>>()
+                        .into()
+                }),
+            ),
+            ("Advisory", "unaffectedVersions") => resolve_property_with(
+                contexts,
+                field_property!(as_advisory, versions, {
+                    versions
+                        .unaffected()
+                        .iter()
+                        .map(|vr| vr.to_string())
+                        .collect::<Vec<String>>()
+                        .into()
+                }),
+            ),
+            ("Advisory", "severity") => todo!("enums not yet implemented"),
+            // ("Advisory", "cvss") => resolve_property_with(
+            //     contexts,
+            //     field_property!(as_advisory, metadata, {
+            //         match &metadata.cvss {
+            //             Some(_base) => todo!("enums not yet implemented"),
+            //             None => FieldValue::Null,
+            //         }
+            //     }),
+            // ),
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }
@@ -333,7 +392,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
         contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         edge_name: &str,
-        _parameters: &EdgeParameters,
+        parameters: &EdgeParameters,
     ) -> ContextOutcomeIterator<
         'a,
         Self::Vertex,
@@ -375,6 +434,63 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
+            ("Package", "advisoryHistory") => {
+                let advisory_client = Rc::clone(&self.advisory_client);
+                resolve_neighbors_with(contexts, move |vertex| {
+                    let package = vertex.as_package().unwrap();
+                    let include_withdrawn = parameters
+                        .get("includeWithdrawn")
+                        .expect(
+                        "includeWithdrawn parameter required but not provided",
+                    );
+
+                    // Handle using Strings in [`SCHEMA`](crate::SCHEMA)
+                    let arch = parameters
+                        .get("arch")
+                        .and_then(|fv| fv.as_str())
+                        .and_then(|s| {
+                            Some(
+                                rustsec::platforms::Arch::from_str(s)
+                                    .unwrap_or_else(|_| {
+                                        panic!("unknown arch parameter: {s}")
+                                    }),
+                            )
+                        });
+                    let os = parameters
+                        .get("os")
+                        .and_then(|fv| fv.as_str())
+                        .and_then(|s| {
+                            Some(
+                                rustsec::platforms::OS::from_str(s)
+                                    .unwrap_or_else(|_| {
+                                        panic!("unknown OS parameter: {s}")
+                                    }),
+                            )
+                        });
+                    let severity = parameters
+                        .get("severity")
+                        .and_then(|fv| fv.as_str())
+                        .and_then(|s| Some(
+                            cvss::Severity::from_str(s)
+                            .unwrap_or_else(|e| panic!("{} is not a valid CVSS severity level ({e})", s))));
+
+                    let res = advisory_client
+                        .all_advisories_for_package(
+                            rustsec::package::Name::from_str(&package.name)
+                                .unwrap_or_else(|e| {
+                                    panic!("package name {} not valid due to error: {e}", package.name)
+                                }),
+                            include_withdrawn,
+                            arch,
+                            os,
+                            severity,
+                        )
+                        .iter()
+                        .map(|a| Vertex::Advisory(Rc::new(*a.clone())));
+
+                    Box::new(res)
+                })
+            }
             ("GitHubRepository", "owner") => {
                 let gh_client = self.gh_client();
                 resolve_neighbors_with(contexts, move |vertex| {
@@ -395,26 +511,6 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         }
                         None => Box::new(std::iter::empty()),
                     }
-                })
-            }
-            ("Advisory", "affected") => {
-                resolve_neighbors_with(contexts, |vertex| {
-                    // Caller guarantees this is `Vertex::Advisory`
-                    let advisory = vertex.as_advisory().unwrap();
-                    match &advisory.affected {
-                        Some(a) => Box::new(std::iter::once(Vertex::Affected(
-                            Rc::new(a.clone()), // This `Rc` is ugly, but alternative might be uglier
-                        ))),
-                        None => Box::new(std::iter::empty::<Self::Vertex>()),
-                    }
-                })
-            }
-            ("Advisory", "versions") => {
-                resolve_neighbors_with(contexts, |vertex| {
-                    let advisory = vertex.as_advisory().unwrap();
-                    Box::new(std::iter::once(Vertex::AffectedVersions(
-                        Rc::new(advisory.versions.clone()),
-                    )))
                 })
             }
             (t, e) => {

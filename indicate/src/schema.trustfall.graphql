@@ -106,26 +106,19 @@ type Advisory {
     unixDateReported: Int!
     severity: Severity
     
+    # These are provided by `rustsec::advisory::Affected`
+    # They may be empty, so a `None` means that we do not know
+    affectedArch: [String!]
+    affectedOs: [String!]
+    affectedFunctions: [AffectedFunctionVersions!]
+    
+    # These are provided by `rustsec::advisory::Versions`
+    patchedVersions: [String!]!
+    unaffectedVersions: [String!]!
+    
     # If it was reported in error, this will indicate when it was withdrawn
     unixDateWithdrawn: Int
     #cvss: CvssBase # TODO: Add when Trustfall supports enums
-    
-    # These fields are from the actual advisory
-    affected: [Affected!]!
-    versions: AffectedVersions!
-}
-
-# `rustsec::advisory::Affected`
-type Affected {
-    arch: [String!]!
-    os: [String!]!
-    functions: [AffectedFunctionVersions!]!
-}
-
-# `rustsec::advisory::Versions`
-type AdvisoryVersions {
-    patched: [String!]!
-    unaffected: [String!]!
 }
 
 # `Map<FunctionPath, Vec<VersionReq>>` from `rustsec::advisory::Affected`

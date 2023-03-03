@@ -390,15 +390,21 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             //     }),
             // ),
             ("AffectedFunctionVersions", "functionPath") => {
-                resolve_property_with(
-                    contexts,
-                    field_property!(as_affected_function_versions, 0),
-                )
+                resolve_property_with(contexts, |vertex| {
+                    let afv = vertex.as_affected_function_versions().unwrap();
+                    afv.0.to_string().into()
+                })
             }
-            ("AffectedFunctionVersions", "versions") => resolve_property_with(
-                contexts,
-                field_property!(as_affected_function_versions, 1),
-            ),
+            ("AffectedFunctionVersions", "versions") => {
+                resolve_property_with(contexts, |vertex| {
+                    let afv = vertex.as_affected_function_versions().unwrap();
+                    afv.1
+                        .iter()
+                        .map(|v| v.to_string())
+                        .collect::<Vec<String>>()
+                        .into()
+                })
+            }
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }

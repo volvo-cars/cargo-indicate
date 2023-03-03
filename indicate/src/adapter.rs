@@ -460,43 +460,50 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             }
             ("Package", "advisoryHistory") => {
                 let advisory_client = Rc::clone(&self.advisory_client);
+                let include_withdrawn =
+                    parameters.get("includeWithdrawn").map(|p| p.to_owned());
+                let arch = parameters.get("arch").map(|p| p.to_owned());
+                let os = parameters.get("os").map(|p| p.to_owned());
+                let severity = parameters.get("severity").map(|p| p.to_owned());
+
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let include_withdrawn = parameters
-                        .get("includeWithdrawn")
-                        .expect(
-                        "includeWithdrawn parameter required but not provided",
-                    ).as_bool();
+                    let include_withdrawn = match include_withdrawn {
+                            Some(FieldValue::Boolean(b)) => b,
+                            _ => panic!("includeWithdrawn parameter required but not provided"),
+                        };
 
                     // Handle using Strings in the Schema as Rust enums
-                    let arch = parameters
-                        .get("arch")
-                        .and_then(|fv| fv.as_str())
-                        .and_then(|s| {
-                            Some(
-                                rustsec::platforms::Arch::from_str(s)
-                                    .unwrap_or_else(|_| {
-                                        panic!("unknown arch parameter: {s}")
-                                    }),
-                            )
+                    let arch = arch
+                        .to_owned()
+                        .and_then(|fv| {
+                            fv.as_str().and_then(|s| s.to_string().into())
+                        })
+                        .map(|s| {
+                            rustsec::platforms::Arch::from_str(s.as_str())
+                                .unwrap_or_else(|_| {
+                                    panic!("unknown arch parameter: {s}")
+                                })
                         });
-                    let os = parameters
-                        .get("os")
-                        .and_then(|fv| fv.as_str())
-                        .and_then(|s| {
-                            Some(
-                                rustsec::platforms::OS::from_str(s)
-                                    .unwrap_or_else(|_| {
-                                        panic!("unknown OS parameter: {s}")
-                                    }),
-                            )
+                    let os = os
+                        .to_owned()
+                        .and_then(|fv| {
+                            fv.as_str().and_then(|s| s.to_string().into())
+                        })
+                        .map(|s| {
+                            rustsec::platforms::OS::from_str(s.as_str())
+                                .unwrap_or_else(|_| {
+                                    panic!("unknown os parameter: {s}")
+                                })
                         });
-                    let severity = parameters
-                        .get("severity")
-                        .and_then(|fv| fv.as_str())
-                        .and_then(|s| Some(
-                            cvss::Severity::from_str(s)
-                            .unwrap_or_else(|e| panic!("{} is not a valid CVSS severity level ({e})", s))));
+                    let severity = severity
+                        .to_owned()
+                        .and_then(|fv| {
+                            fv.as_str().and_then(|s| s.to_string().into())
+                        })
+                        .map(|s| 
+                            cvss::Severity::from_str(s.as_str())
+                            .unwrap_or_else(|e| panic!("{} is not a valid CVSS severity level ({e})", s)));
 
                     let res = advisory_client
                         .all_advisories_for_package(
@@ -510,7 +517,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                             severity,
                         )
                         .iter()
-                        .map(|a| Vertex::Advisory(Rc::new(*a.clone())));
+                        .map(|a| Vertex::Advisory(Rc::new((*a).clone())))
+                        .collect::<Vec<_>>() // Collect OK: We just convert back to vec
+                        .into_iter();
 
                     Box::new(res)
                 })
@@ -540,8 +549,13 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("Advisory", "affectedFunctions") => {
                 resolve_neighbors_with(contexts, |vertex| {
                     let advisory = vertex.as_advisory().unwrap();
-                    match advisory.affected {
-                        Some(aff) => Box::new(aff.functions.into_iter().into()),
+                    match &advisory.affected {
+                        Some(aff) => Box::new(
+                            aff.functions
+                                .clone()
+                                .into_iter()
+                                .map(Vertex::AffectedFunctionVersions),
+                        ),
                         None => Box::new(std::iter::empty()),
                     }
                 })

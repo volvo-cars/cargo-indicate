@@ -24,7 +24,7 @@ pub enum Vertex {
     GitHubRepository(Arc<FullRepository>),
     GitHubUser(Arc<PublicUser>),
     Advisory(Rc<Advisory>),
-    AffectedFunctionVersions(Rc<(FunctionPath, Vec<VersionReq>)>),
+    AffectedFunctionVersions((FunctionPath, Vec<VersionReq>)),
     // CvssBase(Rc<cvss::v3::base::Base>), // TODO: Add when Trustfall supports enums?
 }
 

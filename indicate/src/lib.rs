@@ -38,6 +38,9 @@ mod repo;
 pub mod util;
 mod vertex;
 
+/// Valid platforms that can be provided to queries
+pub use rustsec::platforms;
+
 pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
 /// Schema used for queries

@@ -111,6 +111,8 @@ mod test {
     /// File that may never exist, to ensure some test work
     const NONEXISTENT_FILE: &'static str = "test_data/notafile";
 
+    /// Retrieve paths for the crate and query names provided, relative to
+    /// `indicate` crate root
     fn get_paths<'a, 'b>(
         fake_crate_name: &'a str,
         query_name: &'b str,
@@ -131,6 +133,8 @@ mod test {
     }
 
     #[test_case("direct_dependencies", "advisory_db_simple" ; "simple advisory db does not panic")]
+    #[test_case("direct_dependencies", "advisory_db_affected_funcs" ; "advisory db with affected functions does not panic")]
+    #[test_case("direct_dependencies", "advisory_db_no_include_withdrawn" => panics ; "advisory db without includeWithin panics")]
     #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
     #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
     /// Test that the queries complete (or panic), but do not check their results

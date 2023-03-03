@@ -389,6 +389,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             //         }
             //     }),
             // ),
+            ("AffectedFunctionVersions", "functionPath") => {
+                resolve_property_with(
+                    contexts,
+                    field_property!(as_affected_function_versions, 0),
+                )
+            }
+            ("AffectedFunctionVersions", "versions") => resolve_property_with(
+                contexts,
+                field_property!(as_affected_function_versions, 1),
+            ),
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }

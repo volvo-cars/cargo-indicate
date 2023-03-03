@@ -123,7 +123,7 @@ type Advisory {
 
 # `Map<FunctionPath, Vec<VersionReq>>` from `rustsec::advisory::Affected`
 type AffectedFunctionVersions {
-    function_path: String!
+    functionPath: String!
     versions: [String!]!
 }
 

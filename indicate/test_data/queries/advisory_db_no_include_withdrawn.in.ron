@@ -1,0 +1,14 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            advisoryHistory {
+                id @output
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

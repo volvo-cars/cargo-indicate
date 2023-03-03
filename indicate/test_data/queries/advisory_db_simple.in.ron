@@ -3,13 +3,13 @@ FullQuery(
 {
     RootPackage {
         dependencies {
-            advisoryHistory(includeWithdrawn: $include_withdrawn) {
+            advisoryHistory(includeWithdrawn: true) {
                 id @output
                 title @output
                 description @output
                 unixDateReported @output
                 severity @output
-                affectedarch @output
+                affectedArch @output
                 affectedOs @output
                 patchedVersions @output
                 unaffectedVersions @output
@@ -19,7 +19,5 @@ FullQuery(
     }
 }
     "#,
-    args: {
-        "include_withdrawn": Boolean(true),
-    }
+    args: {}
 )

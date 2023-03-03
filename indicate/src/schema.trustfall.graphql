@@ -60,7 +60,6 @@ type Package {
     
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
-    # (both re-exported by `indicate`)
     advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, severity: String): [Advisory!]!
 }
 

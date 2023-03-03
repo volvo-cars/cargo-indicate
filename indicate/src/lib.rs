@@ -45,7 +45,9 @@ pub use rustsec::platforms;
 pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
 /// Schema used for queries
+/// ```graphql
 #[doc = include_str!("schema.trustfall.graphql")]
+/// ```
 static SCHEMA: Lazy<Schema> =
     Lazy::new(|| Schema::parse(RAW_SCHEMA).expect("Could not parse schema!"));
 
@@ -136,14 +138,14 @@ mod test {
         assert!(!Path::new(NONEXISTENT_FILE).exists());
     }
 
+    /// Test that the queries complete (or panic), but do not check their results
+    ///
+    /// Used for results that may change over time.
     #[test_case("direct_dependencies", "advisory_db_simple" ; "simple advisory db does not panic")]
     #[test_case("direct_dependencies", "advisory_db_affected_funcs" ; "advisory db with affected functions does not panic")]
     #[test_case("direct_dependencies", "advisory_db_no_include_withdrawn" => panics ; "advisory db without includeWithin panics")]
     #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
     #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
-    /// Test that the queries complete (or panic), but do not check their results
-    ///
-    /// Used for results that may change over time.
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

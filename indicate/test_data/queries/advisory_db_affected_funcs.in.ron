@@ -4,7 +4,7 @@ FullQuery(
 {
     RootPackage {
         dependencies {
-            advisoryHistory(includeWithdrawn: $include_withdrawn) {
+            advisoryHistory(includeWithdrawn: true) {
                 affectedFunctions {
                     functionPath @output
                     versions @output
@@ -14,7 +14,5 @@ FullQuery(
     }
 }
     "#,
-    args: {
-        "include_withdrawn": Boolean(true),
-    }
+    args: {}
 )

@@ -57,7 +57,8 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 /// provided by `indicate`.
 pub fn execute_query(
     query: &FullQuery,
-    metadata: &Metadata,
+    metadata: Metadata,
+    max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let adapter = Rc::new(RefCell::new(IndicateAdapter::new(metadata)));
     let res = match trustfall_execute_query(
@@ -66,7 +67,7 @@ pub fn execute_query(
         query.query.as_str(),
         query.args.clone(),
     ) {
-        Ok(res) => res.collect(),
+        Ok(res) => res.take(max_results.unwrap_or(usize::MAX)).collect(),
         Err(e) => panic!("Could not execute query due to error: {:#?}", e),
     };
     res
@@ -101,7 +102,7 @@ mod test {
 
     use crate::{
         execute_query, extract_metadata_from_path, query::FullQuery,
-        util::transparent_results,
+        repo::github::GH_API_CALL_COUNTER, util::transparent_results,
     };
 
     /// File that may never exist, to ensure some test work
@@ -134,7 +135,8 @@ mod test {
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query(
             &FullQuery::from_path(query_path).unwrap(),
-            &extract_metadata_from_path(cargo_toml_path).unwrap(),
+            extract_metadata_from_path(cargo_toml_path).unwrap(),
+            None,
         ));
         let res_json_string = serde_json::to_string_pretty(&res)
             .expect("Could not convert result to string");
@@ -175,5 +177,20 @@ mod test {
             Ok(_) => return,
             Err(b) => panic!("{}", b),
         }
+    }
+
+    #[test]
+    #[ignore = "run in isolation"]
+    fn max_results_limits_api_calls() {
+        let q = FullQuery::from_path(Path::new(
+            "test_data/queries/github_simple.in.ron",
+        ))
+        .unwrap();
+        let metadata = extract_metadata_from_path(Path::new(
+            "test_data/fake_crates/direct_dependencies",
+        ))
+        .unwrap();
+        let res = execute_query(&q, metadata, Some(1));
+        assert_eq!(res.len(), GH_API_CALL_COUNTER.get())
     }
 }

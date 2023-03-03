@@ -8,7 +8,7 @@ FullQuery(
             name @output(name: "root_name")
             version @output(name: "root_version")
             dependencies {
-                dependencies @recurse(depth: 5000) {
+                dependencies @recurse(depth: 500) {
                     name @output
                     version @output
                 }

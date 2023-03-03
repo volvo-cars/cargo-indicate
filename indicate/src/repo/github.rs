@@ -4,6 +4,8 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+#[cfg(test)]
+use global_counter::primitive::exact::CounterUsize;
 use octorust::{
     auth::Credentials,
     http_cache::HttpCache,
@@ -13,6 +15,9 @@ use octorust::{
 use once_cell::sync::Lazy;
 
 use crate::RUNTIME;
+
+#[cfg(test)]
+pub(crate) static GH_API_CALL_COUNTER: CounterUsize = CounterUsize::new(0);
 
 /// A unique identifier of a GitHub repository consisting of the owner and the
 /// repository, i.e. on the form github.com/<owner>/<repository>
@@ -103,6 +108,13 @@ impl GitHubClient {
             None => {
                 let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
 
+                // println!("Get {:?}", id);
+
+                #[cfg(test)]
+                {
+                    GH_API_CALL_COUNTER.inc();
+                }
+
                 // We just block until this resolves for now
                 match RUNTIME.block_on(future) {
                     Ok(r) => {
@@ -133,6 +145,11 @@ impl GitHubClient {
             Some(r) => Some(Arc::clone(r)),
             None => {
                 let future = GITHUB_USERS_CLIENT.get_by_username(username);
+
+                #[cfg(test)]
+                {
+                    GH_API_CALL_COUNTER.inc();
+                }
 
                 // We just block until this resolves for now
                 match RUNTIME.block_on(future) {

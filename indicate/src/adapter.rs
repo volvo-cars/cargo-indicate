@@ -442,9 +442,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         .get("includeWithdrawn")
                         .expect(
                         "includeWithdrawn parameter required but not provided",
-                    );
+                    ).as_bool();
 
-                    // Handle using Strings in [`SCHEMA`](crate::SCHEMA)
+                    // Handle using Strings in the Schema as Rust enums
                     let arch = parameters
                         .get("arch")
                         .and_then(|fv| fv.as_str())
@@ -509,6 +509,15 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                 None => Box::new(std::iter::empty()),
                             }
                         }
+                        None => Box::new(std::iter::empty()),
+                    }
+                })
+            }
+            ("Advisory", "affectedFunctions") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let advisory = vertex.as_advisory().unwrap();
+                    match advisory.affected {
+                        Some(aff) => Box::new(aff.functions.into_iter().into()),
                         None => Box::new(std::iter::empty()),
                     }
                 })

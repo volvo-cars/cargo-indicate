@@ -52,12 +52,12 @@ impl AdvisoryClient {
     pub fn all_advisories_for_package(
         &self,
         name: Name,
-        withdrawn: bool,
+        include_withdrawn: bool,
         arch: Option<Arch>,
         os: Option<OS>,
         severity: Option<Severity>,
     ) -> Vec<&Advisory> {
-        let mut query = Query::new().package_name(name).withdrawn(withdrawn);
+        let mut query = Query::new().package_name(name);
 
         if let Some(arch) = arch {
             query = query.target_arch(arch);
@@ -71,6 +71,14 @@ impl AdvisoryClient {
             query = query.severity(severity);
         }
 
-        self.db.query(&query)
+        let mut res = self.db.query(&query);
+
+        // Append withdrawn
+        if include_withdrawn {
+            query = query.withdrawn(include_withdrawn);
+            res.append(&mut self.db.query(&query));
+        }
+
+        res
     }
 }

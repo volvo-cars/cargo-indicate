@@ -16,6 +16,7 @@ use crate::errors::FileParseError;
 /// ```
 type QueryArgs = BTreeMap<Arc<str>, FieldValue>;
 
+/// A full Trustfall query, with both query and arguments to be used
 #[derive(Debug, Clone, Deserialize)]
 pub struct FullQuery {
     pub query: String,

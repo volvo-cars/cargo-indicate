@@ -1,0 +1,24 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output
+            advisoryHistory(includeWithdrawn: true, arch: "x86_64", os: "linux", minSeverity: "low") {
+                id @output
+                title @output
+                description @output
+                unixDateReported @output
+                severity @output @optional
+                affectedArch @output @optional
+                affectedOs @output @optional
+                patchedVersions @output
+                unaffectedVersions @output
+                unixDateWithdrawn @output @optional
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

@@ -55,7 +55,7 @@ impl AdvisoryClient {
         include_withdrawn: bool,
         arch: Option<Arch>,
         os: Option<OS>,
-        severity: Option<Severity>,
+        min_severity: Option<Severity>,
     ) -> Vec<&Advisory> {
         let mut query = Query::new().package_name(name);
 
@@ -67,8 +67,8 @@ impl AdvisoryClient {
             query = query.target_os(os);
         }
 
-        if let Some(severity) = severity {
-            query = query.severity(severity);
+        if let Some(min_severity) = min_severity {
+            query = query.severity(min_severity);
         }
 
         let mut res = self.db.query(&query);

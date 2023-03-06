@@ -144,6 +144,7 @@ mod test {
     #[test_case("known_advisory_deps", "advisory_db_simple" ; "simple advisory db does not panic")]
     #[test_case("known_advisory_deps", "advisory_db_affected_funcs" ; "advisory db with affected functions does not panic")]
     #[test_case("known_advisory_deps", "advisory_db_no_include_withdrawn" => panics ; "advisory db without includeWithin panics")]
+    #[test_case("known_advisory_deps", "advisory_db_with_parameters" ; "advisory db with all parameters")]
     #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
     #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {

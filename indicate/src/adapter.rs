@@ -464,7 +464,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("includeWithdrawn").map(|p| p.to_owned());
                 let arch = parameters.get("arch").map(|p| p.to_owned());
                 let os = parameters.get("os").map(|p| p.to_owned());
-                let severity = parameters.get("severity").map(|p| p.to_owned());
+                let min_severity =
+                    parameters.get("minSeverity").map(|p| p.to_owned());
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
@@ -496,7 +497,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                     panic!("unknown os parameter: {s}")
                                 })
                         });
-                    let severity = severity
+                    let min_severity = min_severity
                         .to_owned()
                         .and_then(|fv| {
                             fv.as_str().and_then(|s| s.to_string().into())
@@ -514,7 +515,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                             include_withdrawn,
                             arch,
                             os,
-                            severity,
+                            min_severity,
                         )
                         .iter()
                         .map(|a| Vertex::Advisory(Rc::new((*a).clone())))

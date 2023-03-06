@@ -60,7 +60,7 @@ type Package {
     
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
-    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, severity: String): [Advisory!]!
+    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
 }
 
 interface Webpage {

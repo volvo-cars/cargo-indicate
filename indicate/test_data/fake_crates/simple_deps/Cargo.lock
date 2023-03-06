@@ -3,14 +3,6 @@
 version = 3
 
 [[package]]
-name = "direct_dependencies"
-version = "0.1.0"
-dependencies = [
- "libc",
- "syn",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.139"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -32,6 +24,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8856d8364d252a14d474036ea1358d63c9e6965c8e5c1885c18f73d70bff9c7b"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "simple_deps"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "syn",
 ]
 
 [[package]]

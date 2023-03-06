@@ -19,7 +19,7 @@ package. For example
 
 ```console
 $ cargo-indicate -Q ../indicate/test_data/queries/count_dependencies.in.ron
-> ../indicate/test_data/fake_crates/direct_dependencies
+> ../indicate/test_data/fake_crates/simple_deps
 [
   {
     "dep_name": [],

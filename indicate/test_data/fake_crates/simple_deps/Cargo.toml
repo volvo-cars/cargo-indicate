@@ -1,6 +1,6 @@
 [package]
 authors = ["Charlie Chaplin"]
-name = "direct_dependencies"
+name = "simple_deps"
 version = "0.1.0"
 edition = "2021"
 

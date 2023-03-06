@@ -4,7 +4,7 @@
       "libc",
       "syn"
     ],
-    "root_package_name": "direct_dependencies",
+    "root_package_name": "simple_deps",
     "root_package_version": "0.1.0"
   }
 ]

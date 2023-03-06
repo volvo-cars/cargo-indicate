@@ -144,9 +144,9 @@ mod test {
     #[test_case("known_advisory_deps", "advisory_db_simple" ; "simple advisory db does not panic")]
     #[test_case("known_advisory_deps", "advisory_db_affected_funcs" ; "advisory db with affected functions does not panic")]
     #[test_case("known_advisory_deps", "advisory_db_no_include_withdrawn" => panics ; "advisory db without includeWithin panics")]
-    #[test_case("known_advisory_deps", "advisory_db_with_parameters" ; "advisory db with all parameters")]
-    #[test_case("direct_dependencies", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
-    #[test_case("direct_dependencies", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
+    #[test_case("known_advisory_deps", "advisory_db_with_parameters" ; "advisory db with parameters does not panic")]
+    #[test_case("simple_deps", "github_simple" => ignore["don't use GitHub API rate limits in tests"]; "simple GitHub repository query")]
+    #[test_case("simple_deps", "github_owner" => ignore["don't use GitHub API rate limits in tests"]; "retrieve the owner of a GitHub repository")]
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
@@ -157,11 +157,11 @@ mod test {
         );
     }
 
-    #[test_case("direct_dependencies", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
-    #[test_case("direct_dependencies", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
-    #[test_case("direct_dependencies", "dependency_package_info" ; "information about root package direct dependencies")]
-    #[test_case("direct_dependencies", "recursive_dependency" ; "retrieve recursive dependency information")]
-    #[test_case("direct_dependencies", "count_dependencies" ; "count the number of dependencies used by each dependency")]
+    #[test_case("simple_deps", "direct_dependencies" ; "direct dependencies as listed in Cargo.toml")]
+    #[test_case("simple_deps", "no_deps_all_fields" ; "retrieving all fields of root package, but not dependencies")]
+    #[test_case("simple_deps", "dependency_package_info" ; "information about root package direct dependencies")]
+    #[test_case("simple_deps", "recursive_dependency" ; "retrieve recursive dependency information")]
+    #[test_case("simple_deps", "count_dependencies" ; "count the number of dependencies used by each dependency")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
@@ -195,8 +195,8 @@ mod test {
         );
     }
 
-    #[test_case("test_data/fake_crates/direct_dependencies" ; "extract from directory")]
-    #[test_case("test_data/fake_crates/direct_dependencies/Cargo.toml" ; "extract from direct path")]
+    #[test_case("test_data/fake_crates/simple_deps" ; "extract from directory")]
+    #[test_case("test_data/fake_crates/simple_deps/Cargo.toml" ; "extract from direct path")]
     #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
         let m = extract_metadata_from_path(Path::new(path_str));

@@ -68,16 +68,29 @@ impl IndicateAdapter {
             direct_dependencies.insert(id, Rc::new(deps));
         }
 
+        // If we are in a test environment, we try to use
+        // a cached version of `advisory-db`
+        // TODO: Make this a CLI flag, possibly using a IndicateCfg passed
+        let advisory_client;
+        if cfg!(test) {
+            advisory_client = match AdvisoryClient::from_default_path() {
+                Ok(client) => client,
+                Err(_) => AdvisoryClient::new().unwrap_or_else(|e| {
+                    panic!("could not create advisory client due to error: {e}")
+                }),
+            };
+        } else {
+            advisory_client = AdvisoryClient::new().unwrap_or_else(|e| {
+                panic!("could not create advisory client due to error: {e}")
+            });
+        }
+
         Self {
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(GitHubClient::new())),
-            advisory_client: Rc::new(AdvisoryClient::new().unwrap_or_else(
-                |e| {
-                    panic!("could not create advisory client due to error: {e}")
-                },
-            )),
+            advisory_client: Rc::new(advisory_client),
         }
     }
 

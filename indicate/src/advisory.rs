@@ -45,6 +45,13 @@ impl AdvisoryClient {
         Ok(Self { db })
     }
 
+    /// Create a client from the default local path in `CARGO_HOME` directory
+    /// (`~./cargo/advisory-db`)
+    pub fn from_default_path() -> Result<Self, rustsec::Error> {
+        let default = format!("{}/advisory-db", env!("CARGO_HOME"));
+        Self::from_path(&Path::new(default.as_str()))
+    }
+
     /// Retrieves all advisories for a package
     ///
     /// See also the `advisoryHistory` edge for the `Package`

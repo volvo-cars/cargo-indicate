@@ -40,6 +40,14 @@ struct IndicateCli {
     /// in a GraphQL format
     #[arg(long)]
     show_schema: bool,
+
+    /// Which features to use when resolving metadata for this package
+    #[arg(short, long)]
+    features: Option<Vec<String>>,
+
+    /// Do not include default features when resolving metadata for this package
+    #[arg(short = 'n', long, default_value_t = false)]
+    no_default_features: bool,
 }
 
 fn main() {
@@ -70,10 +78,14 @@ fn main() {
         unreachable!("no query provided");
     }
 
-    let metadata =
-        extract_metadata_from_path(&cli.package).unwrap_or_else(|e| {
-            panic!("could not extract metadata due to error: {e}");
-        });
+    let metadata = extract_metadata_from_path(
+        &cli.package,
+        !cli.no_default_features,
+        cli.features,
+    )
+    .unwrap_or_else(|e| {
+        panic!("could not extract metadata due to error: {e}");
+    });
 
     let res = execute_query(&fq, metadata, cli.max_results);
     let transparent_res = transparent_results(res);

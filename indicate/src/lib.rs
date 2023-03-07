@@ -23,7 +23,7 @@ use std::{
 };
 
 use adapter::IndicateAdapter;
-use cargo_metadata::{Metadata, MetadataCommand};
+use cargo_metadata::{CargoOpt, Metadata, MetadataCommand};
 use errors::FileParseError;
 use once_cell::sync::Lazy;
 use query::FullQuery;
@@ -81,22 +81,37 @@ pub fn execute_query(
 
 /// Extracts metadata from a `Cargo.toml` file by its direct path, or the path
 /// of its directory
+///
+/// Optionally provide a list of features to be used when creating the metadata,
+/// and if default features are to be included or not.
 pub fn extract_metadata_from_path(
     path: &Path,
+    default_features: bool,
+    features: Option<Vec<String>>,
 ) -> Result<Metadata, Box<dyn Error>> {
+    let mut m = MetadataCommand::new();
     if path.is_file() {
-        let m = MetadataCommand::new().manifest_path(path).exec()?;
-        Ok(m)
+        m.manifest_path(path);
     } else if path.is_dir() {
         let mut assumed_path = PathBuf::from(path);
         assumed_path.push("Cargo.toml");
-        let m = MetadataCommand::new().manifest_path(assumed_path).exec()?;
-        Ok(m)
+        m.manifest_path(assumed_path);
     } else {
-        Err(Box::new(FileParseError::NotFound(
+        return Err(Box::new(FileParseError::NotFound(
             path.to_string_lossy().to_string(),
-        )))
+        )));
+    };
+
+    if default_features {
+        m.features(CargoOpt::NoDefaultFeatures);
     }
+
+    if let Some(f) = features {
+        m.features(CargoOpt::SomeFeatures(f));
+    }
+
+    let res = m.exec()?;
+    Ok(res)
 }
 
 #[cfg(test)]
@@ -152,7 +167,8 @@ mod test {
             get_paths(fake_crate_name, query_name);
         execute_query(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            extract_metadata_from_path(cargo_toml_path.as_path()).unwrap(),
+            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
+                .unwrap(),
             None,
         );
     }
@@ -172,7 +188,8 @@ mod test {
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            extract_metadata_from_path(cargo_toml_path.as_path()).unwrap(),
+            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
+                .unwrap(),
             None,
         ));
         let res_json_string = serde_json::to_string_pretty(&res)
@@ -199,7 +216,7 @@ mod test {
     #[test_case("test_data/fake_crates/simple_deps/Cargo.toml" ; "extract from direct path")]
     #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
-        let m = extract_metadata_from_path(Path::new(path_str));
+        let m = extract_metadata_from_path(Path::new(path_str), true, None);
         match m {
             Ok(_) => return,
             Err(b) => panic!("{}", b),
@@ -223,9 +240,11 @@ mod test {
             "test_data/queries/github_simple.in.ron",
         ))
         .unwrap();
-        let metadata = extract_metadata_from_path(Path::new(
-            "test_data/fake_crates/direct_dependencies",
-        ))
+        let metadata = extract_metadata_from_path(
+            Path::new("test_data/fake_crates/direct_dependencies"),
+            true,
+            None,
+        )
         .unwrap();
         let res = execute_query(&q, metadata, Some(1));
         assert_eq!(res.len(), GH_API_CALL_COUNTER.get())

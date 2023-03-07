@@ -1,0 +1,11 @@
+[
+  {
+    "dep_name": "libc"
+  },
+  {
+    "dep_name": "rand"
+  },
+  {
+    "dep_name": "syn"
+  }
+]

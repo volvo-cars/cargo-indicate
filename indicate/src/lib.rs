@@ -119,10 +119,13 @@ mod test {
     // use lazy_static::lazy_static;
     use core::panic;
     use std::{
+        collections::BTreeMap,
         fs,
         path::{Path, PathBuf},
+        sync::Arc,
     };
     use test_case::test_case;
+    use trustfall::TransparentValue;
 
     use crate::{
         execute_query, extract_metadata_from_path, query::FullQuery,
@@ -153,6 +156,31 @@ mod test {
         assert!(!Path::new(NONEXISTENT_FILE).exists());
     }
 
+    /// Assert that a query results matches the results provided in a file
+    fn assert_query_res(
+        res: Vec<BTreeMap<Arc<str>, TransparentValue>>,
+        expected_result_path: &Path,
+    ) {
+        let res_json_string = serde_json::to_string_pretty(&res)
+            .expect("Could not convert result to string");
+
+        let expected_result_string = fs::read_to_string(expected_result_path)
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Could not read expected file '{}'",
+                    expected_result_path.to_string_lossy()
+                );
+            });
+
+        assert_eq!(
+            res_json_string.trim(),
+            expected_result_string.trim(),
+            "\nfailing query result:\n{}\n but expected:\n{}\n",
+            res_json_string,
+            expected_result_string
+        );
+    }
+
     /// Test that the queries complete (or panic), but do not check their results
     ///
     /// Used for results that may change over time.
@@ -181,9 +209,9 @@ mod test {
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
-        let raw_expected_result_path =
+        let raw_expected_result_name =
             format!("test_data/queries/{query_name}.expected.json");
-        let expected_result_name = Path::new(&raw_expected_result_path);
+        let expected_result_path = Path::new(&raw_expected_result_name);
 
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query(
@@ -192,24 +220,58 @@ mod test {
                 .unwrap(),
             None,
         ));
-        let res_json_string = serde_json::to_string_pretty(&res)
-            .expect("Could not convert result to string");
 
-        let expected_result_string = fs::read_to_string(expected_result_name)
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Could not read expected file '{}'",
-                    expected_result_name.to_string_lossy()
-                );
-            });
+        assert_query_res(res, expected_result_path);
+    }
 
-        assert_eq!(
-            res_json_string.trim(),
-            expected_result_string.trim(),
-            "\nfailing query result:\n{}\n but expected:\n{}\n",
-            res_json_string,
-            expected_result_string
-        );
+    /// Test dependencies based on the features used
+    ///
+    /// Relies on a naming scheme where the expected ends with
+    /// `-<default_features>-<feat1>-<feat2>.expected.json` (features are sorted
+    /// alphabetically, and not included if empty)
+    #[test_case(true, vec![] ; "default features enabled")]
+    #[test_case(false, vec![] ; "no features no dependencies")]
+    #[test_case(false, vec!["a", "b"] ; "default features manually enabled")]
+    #[test_case(false, vec!["c"] ; "no default features single dep")]
+    #[test_case(false, vec!["d"] ; "no default features single dep via other dep")]
+    #[test_case(true, vec!["a", "b"] ; "default features enabled together with manual")]
+    #[test_case(false, vec!["a", "b", "c", "d"] ; "no default features all deps")]
+    fn feature_query_test(default_features: bool, features: Vec<&'static str>) {
+        let query_name = "list_direct_dependencies";
+        let (cargo_toml_path, query_path) =
+            get_paths("feature_deps", query_name);
+
+        let mut sorted_features = features.to_owned();
+        sorted_features.sort();
+
+        let metadata = extract_metadata_from_path(
+            cargo_toml_path.as_path(),
+            default_features,
+            Some(features.iter().map(|s| s.to_string()).collect::<Vec<_>>()),
+        )
+        .expect("should be able to parse metadata");
+
+        let mut raw_expected_result_name =
+            format!("test_data/queries/{query_name}-{default_features}");
+
+        if !sorted_features.is_empty() {
+            raw_expected_result_name = format!(
+                "{raw_expected_result_name}-{}",
+                sorted_features.join("-")
+            );
+        }
+
+        raw_expected_result_name.push_str(".expected.json");
+
+        let expected_result_path = Path::new(&raw_expected_result_name);
+
+        let res = transparent_results(execute_query(
+            &FullQuery::from_path(&query_path).unwrap(),
+            metadata,
+            None,
+        ));
+
+        assert_query_res(res, expected_result_path);
     }
 
     #[test_case("test_data/fake_crates/simple_deps" ; "extract from directory")]

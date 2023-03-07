@@ -1,0 +1,8 @@
+[
+  {
+    "dep_name": "libc"
+  },
+  {
+    "dep_name": "syn"
+  }
+]

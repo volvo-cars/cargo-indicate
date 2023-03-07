@@ -1,0 +1,21 @@
+[package]
+authors = ["Charlie Chaplin"]
+name = "feature_deps"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+
+[dependencies]
+syn = { version = "1.0.109", optional = true }
+libc = { version = "^0.2", optional = true }
+rand = { version = "0.8.4", optional = true }
+
+[features]
+default = ["a", "b"]
+a = ["dep:syn", "dep:libc"]
+b = []
+c = ["dep:rand"]
+d = ["c"]
+

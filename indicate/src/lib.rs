@@ -102,7 +102,7 @@ pub fn extract_metadata_from_path(
         )));
     };
 
-    if default_features {
+    if !default_features {
         m.features(CargoOpt::NoDefaultFeatures);
     }
 

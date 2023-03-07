@@ -216,7 +216,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             }),
             ("Package", "license") => resolve_property_with(contexts, |v| {
                 match &v.as_package().unwrap().license {
-                    Some(l) => l.into(),
+                    Some(l) => l.as_str().into(),
                     None => FieldValue::Null,
                 }
             }),
@@ -261,7 +261,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("GitHubUser", "unixCreatedAt") => resolve_property_with(
                 contexts,
                 field_property!(as_git_hub_user, created_at, {
-                    created_at.into() // Convert to Unix timestamp
+                    created_at.map(|d| d.timestamp()).into() // Convert to Unix timestamp
                 }),
             ),
             ("GitHubUser", "followersCount") => resolve_property_with(

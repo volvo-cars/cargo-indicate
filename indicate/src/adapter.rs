@@ -20,8 +20,41 @@ use crate::{
     vertex::Vertex,
 };
 
+pub mod adapter_builder;
+
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
+
+/// Parse metadata to create maps over the packages and dependency
+/// relations in it
+pub fn parse_metadata(
+    metadata: &Metadata,
+) -> (PackageMap, DirectDependencyMap) {
+    let mut packages = HashMap::with_capacity(metadata.packages.len());
+
+    for p in &metadata.packages {
+        let id = p.id.to_owned();
+        let package = p.to_owned();
+        packages.insert(id, Rc::new(package));
+    }
+
+    let mut direct_dependencies =
+        HashMap::with_capacity(metadata.packages.len());
+
+    for node in metadata
+        .resolve
+        .as_ref()
+        .expect("No nodes found!")
+        .nodes
+        .iter()
+    {
+        let id = node.id.to_owned();
+        let deps = node.dependencies.to_owned();
+        direct_dependencies.insert(id, Rc::new(deps));
+    }
+
+    (packages, direct_dependencies)
+}
 
 pub struct IndicateAdapter {
     metadata: Rc<Metadata>,
@@ -44,29 +77,13 @@ impl IndicateAdapter {
 
 /// Helper methods to resolve fields using the metadata
 impl IndicateAdapter {
+    /// Creates a new [`IndicateAdapter`], using a provided metadata as a starting point
+    ///
+    /// If control over what GitHub client is used, if a cached `advisory-db`
+    /// is to be used etc., consider using
+    /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder)
     pub fn new(metadata: Metadata) -> Self {
-        let mut packages = HashMap::with_capacity(metadata.packages.len());
-
-        for p in &metadata.packages {
-            let id = p.id.clone();
-            let package = p.clone();
-            packages.insert(id, Rc::new(package));
-        }
-
-        let mut direct_dependencies =
-            HashMap::with_capacity(metadata.packages.len());
-
-        for node in metadata
-            .resolve
-            .as_ref()
-            .expect("No nodes found!")
-            .nodes
-            .iter()
-        {
-            let id = node.id.clone();
-            let deps = node.dependencies.clone();
-            direct_dependencies.insert(id, Rc::new(deps));
-        }
+        let (packages, direct_dependencies) = parse_metadata(&metadata);
 
         // If we are in a test environment, we try to use
         // a cached version of `advisory-db`

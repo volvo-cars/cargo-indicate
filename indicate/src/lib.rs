@@ -38,6 +38,7 @@ mod repo;
 pub mod util;
 mod vertex;
 
+pub use adapter::adapter_builder;
 pub use rustsec::advisory::Severity;
 /// Valid platforms that can be provided to queries
 pub use rustsec::platforms;
@@ -66,10 +67,21 @@ pub fn execute_query(
     metadata: Metadata,
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
-    let adapter = Rc::new(RefCell::new(IndicateAdapter::new(metadata)));
+    let adapter = IndicateAdapter::new(metadata);
+    execute_query_with_adapter(query, adapter, max_results)
+}
+
+/// Executes a Trustfall query with a dedicated [`IndicateAdapter`]
+///
+/// Use when the default configuration does not provide enough control
+pub fn execute_query_with_adapter(
+    query: &FullQuery,
+    adapter: IndicateAdapter,
+    max_results: Option<usize>,
+) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let res = match trustfall_execute_query(
         &SCHEMA,
-        adapter,
+        Rc::new(RefCell::new(adapter)),
         query.query.as_str(),
         query.args.clone(),
     ) {

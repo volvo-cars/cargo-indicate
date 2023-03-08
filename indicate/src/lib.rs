@@ -22,7 +22,6 @@ use std::{
     sync::Arc,
 };
 
-use adapter::IndicateAdapter;
 use cargo_metadata::{CargoOpt, Metadata, MetadataCommand};
 use errors::FileParseError;
 use once_cell::sync::Lazy;
@@ -38,10 +37,12 @@ mod repo;
 pub mod util;
 mod vertex;
 
-pub use adapter::adapter_builder;
 pub use rustsec::advisory::Severity;
 /// Valid platforms that can be provided to queries
 pub use rustsec::platforms;
+
+pub use crate::adapter::adapter_builder::IndicateAdapterBuilder;
+pub use crate::adapter::IndicateAdapter;
 
 pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 
@@ -141,10 +142,10 @@ mod test {
     use trustfall::TransparentValue;
 
     use crate::{
-        adapter::IndicateAdapter, adapter_builder::IndicateAdapterBuilder,
-        advisory::AdvisoryClient, execute_query, execute_query_with_adapter,
-        extract_metadata_from_path, query::FullQuery,
-        repo::github::GH_API_CALL_COUNTER, util::transparent_results,
+        adapter::IndicateAdapter, advisory::AdvisoryClient, execute_query,
+        execute_query_with_adapter, extract_metadata_from_path,
+        query::FullQuery, repo::github::GH_API_CALL_COUNTER,
+        util::transparent_results, IndicateAdapterBuilder,
     };
 
     /// File that may never exist, to ensure some test work

@@ -8,6 +8,8 @@ use octorust::types::{FullRepository, PublicUser};
 use rustsec::{advisory::affected::FunctionPath, Advisory, VersionReq};
 use trustfall::provider::TrustfallEnumVertex;
 
+use crate::geiger::{Geiger, GeigerCount};
+
 /// A node in the GraphQL schema as defined in the schema.
 ///
 /// Each node wraps a reference to some type of actual data.
@@ -25,6 +27,8 @@ pub enum Vertex {
     GitHubUser(Arc<PublicUser>),
     Advisory(Rc<Advisory>),
     AffectedFunctionVersions((FunctionPath, Vec<VersionReq>)),
+    Geiger(Rc<Geiger>),
+    GeigerCount(Rc<GeigerCount>),
     // CvssBase(Rc<cvss::v3::base::Base>), // TODO: Add when Trustfall supports enums?
 }
 

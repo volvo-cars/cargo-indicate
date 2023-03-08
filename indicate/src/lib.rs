@@ -32,6 +32,7 @@ use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 pub mod adapter;
 pub mod advisory;
 pub mod errors;
+pub mod geiger;
 pub mod query;
 mod repo;
 pub mod util;

@@ -80,6 +80,7 @@ type Geiger {
 type GeigerCount {
     safe: Number!
     unsafe: Number!
+    total: Number!
     percentageUnsafe: Number!
 }
 

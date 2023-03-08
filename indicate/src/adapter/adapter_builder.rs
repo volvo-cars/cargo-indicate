@@ -9,7 +9,7 @@ use super::{parse_metadata, IndicateAdapter};
 /// Builder for [`IndicateAdapter`]
 pub struct IndicateAdapterBuilder {
     metadata: Metadata,
-    gh_client: Option<GitHubClient>,
+    github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
 }
 
@@ -17,7 +17,7 @@ impl IndicateAdapterBuilder {
     pub fn new(metadata: Metadata) -> IndicateAdapterBuilder {
         Self {
             metadata,
-            gh_client: None,
+            github_client: None,
             advisory_client: None,
         }
     }
@@ -29,7 +29,7 @@ impl IndicateAdapterBuilder {
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(
-                self.gh_client.unwrap_or_else(GitHubClient::new),
+                self.github_client.unwrap_or_else(GitHubClient::new),
             )),
             advisory_client: Rc::new(
                 self.advisory_client
@@ -48,8 +48,8 @@ impl IndicateAdapterBuilder {
         self
     }
 
-    pub fn gh_client(mut self, gh_client: GitHubClient) -> Self {
-        self.gh_client = Some(gh_client);
+    pub fn github_client(mut self, github_client: GitHubClient) -> Self {
+        self.github_client = Some(github_client);
         self
     }
 

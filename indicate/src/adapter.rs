@@ -85,22 +85,9 @@ impl IndicateAdapter {
     pub fn new(metadata: Metadata) -> Self {
         let (packages, direct_dependencies) = parse_metadata(&metadata);
 
-        // If we are in a test environment, we try to use
-        // a cached version of `advisory-db`
-        // TODO: Make this a CLI flag, possibly using a IndicateCfg passed
-        let advisory_client;
-        if cfg!(test) {
-            advisory_client = match AdvisoryClient::from_default_path() {
-                Ok(client) => client,
-                Err(_) => AdvisoryClient::new().unwrap_or_else(|e| {
-                    panic!("could not create advisory client due to error: {e}")
-                }),
-            };
-        } else {
-            advisory_client = AdvisoryClient::new().unwrap_or_else(|e| {
-                panic!("could not create advisory client due to error: {e}")
-            });
-        }
+        let advisory_client = AdvisoryClient::new().unwrap_or_else(|e| {
+            panic!("could not create advisory client due to error: {e}")
+        });
 
         Self {
             metadata: Rc::new(metadata),

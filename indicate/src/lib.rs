@@ -129,6 +129,7 @@ pub fn extract_metadata_from_path(
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
+    use cargo_metadata::Metadata;
     use core::panic;
     use std::{
         collections::BTreeMap,
@@ -140,7 +141,9 @@ mod test {
     use trustfall::TransparentValue;
 
     use crate::{
-        execute_query, extract_metadata_from_path, query::FullQuery,
+        adapter::IndicateAdapter, adapter_builder::IndicateAdapterBuilder,
+        advisory::AdvisoryClient, execute_query, execute_query_with_adapter,
+        extract_metadata_from_path, query::FullQuery,
         repo::github::GH_API_CALL_COUNTER, util::transparent_results,
     };
 
@@ -161,6 +164,16 @@ mod test {
         let query_path = PathBuf::from(&raw_query_path);
 
         (cargo_toml_path, query_path)
+    }
+
+    /// Crates an [`IndicateAdapter`] that is usable in tests
+    fn test_adapter(metadata: Metadata) -> IndicateAdapter {
+        IndicateAdapterBuilder::new(metadata)
+            .advisory_client(
+                AdvisoryClient::from_default_path()
+                    .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
+            )
+            .build()
     }
 
     #[test]
@@ -205,10 +218,12 @@ mod test {
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
-        execute_query(
-            &FullQuery::from_path(query_path.as_path()).unwrap(),
+        let metadata =
             extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
-                .unwrap(),
+                .unwrap();
+        execute_query_with_adapter(
+            &FullQuery::from_path(query_path.as_path()).unwrap(),
+            test_adapter(metadata),
             None,
         );
     }
@@ -224,12 +239,14 @@ mod test {
         let raw_expected_result_name =
             format!("test_data/queries/{query_name}.expected.json");
         let expected_result_path = Path::new(&raw_expected_result_name);
+        let metadata =
+            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
+                .unwrap();
 
         // We use `TransparentValue for neater JSON serialization
-        let res = transparent_results(execute_query(
+        let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
-                .unwrap(),
+            test_adapter(metadata),
             None,
         ));
 
@@ -277,9 +294,9 @@ mod test {
 
         let expected_result_path = Path::new(&raw_expected_result_name);
 
-        let res = transparent_results(execute_query(
+        let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(&query_path).unwrap(),
-            metadata,
+            test_adapter(metadata),
             None,
         ));
 

@@ -51,7 +51,8 @@ Using the local directory (containing no advisories) would succeed, but always
 return an empty list
 
 ```console
-$ cargo-indicate --advisory-db-dir .
+$ cargo-indicate
+> --advisory-db-dir .
 > -Q ../indicate/test_data/queries/advisory_db_simple.in.ron
 > ../indicate/test_data/fake_crates/known_advisory_deps
 []

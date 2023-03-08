@@ -18,7 +18,8 @@ The `indicate` library comes with some test queries and can be used with any
 package. For example
 
 ```console
-$ cargo-indicate -Q ../indicate/test_data/queries/count_dependencies.in.ron
+$ cargo-indicate 
+> -Q ../indicate/test_data/queries/count_dependencies.in.ron
 > ../indicate/test_data/fake_crates/simple_deps
 [
   {
@@ -39,4 +40,19 @@ $ cargo-indicate -Q ../indicate/test_data/queries/count_dependencies.in.ron
     "number": 6
   }
 ]
+```
+
+## Selecting sources
+
+Some arguments change the source of data for some signals. For example,
+both `--cached-advisory-db` and `--advisory-db-dir` attempts to use a local dir.
+
+Using the local directory (containing no advisories) would succeed, but always
+return an empty list
+
+```console
+$ cargo-indicate --advisory-db-dir .
+> -Q ../indicate/test_data/queries/advisory_db_simple.in.ron
+> ../indicate/test_data/fake_crates/known_advisory_deps
+[]
 ```

@@ -70,7 +70,7 @@ struct IndicateCli {
         group = "adapter_adapters",
         conflicts_with = "advisory_db_dir"
     )]
-    use_cached_advisory_db: bool,
+    cached_advisory_db: bool,
 }
 
 fn main() {
@@ -126,7 +126,7 @@ fn main() {
                     )
                 });
             b = b.advisory_client(ac);
-        } else if cli.use_cached_advisory_db {
+        } else if cli.cached_advisory_db {
             let ac = AdvisoryClient::from_default_path().unwrap_or_else(|_| {
                 AdvisoryClient::new().unwrap_or_else(|e| {
                     panic!("could not fetch advisory-db due to error: {e} (cache also failed)")

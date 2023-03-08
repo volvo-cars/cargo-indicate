@@ -61,6 +61,25 @@ type Package {
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
     advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
+
+    totalGeiger: Geiger!
+    functionGeiger: Geiger!
+    exprGeiger: Geiger!
+    implGeiger: Geiger!
+    traitGeiger: Geiger!
+    method: Geiger!
+    forbidsUnsafe: Boolean!
+}
+
+# `used` refers to code used by the `RootPackage`
+type Geiger {
+    used: GeigerCount!
+    unused: GeigerCount!
+}
+
+type GeigerCount {
+    safe: Number!
+    unsafe: Number!
 }
 
 interface Webpage {

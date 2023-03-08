@@ -15,7 +15,7 @@ use indicate::{
         .required(true)
 ))]
 #[command(group(
-    ArgGroup::new("adapter_adapters") // Arguments that requier a special IndicateAdapter
+    ArgGroup::new("adapter_adapters") // Arguments that creates a special IndicateAdapter
         .required(false)
 ))]
 struct IndicateCli {
@@ -113,7 +113,7 @@ fn main() {
 
     // How we execute the query depends on if the user defined any special
     // requirements for the adapter
-    let res = if cmd.get_groups().any(|s| s.get_id() == "adapter_adapers") {
+    let res = if cmd.get_groups().any(|s| s.get_id() == "adapter_adapters") {
         let mut b = IndicateAdapterBuilder::new(metadata);
 
         // These two are mutually exclusive, but that is checked by clap already

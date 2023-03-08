@@ -7,7 +7,7 @@ use crate::{advisory::AdvisoryClient, repo::github::GitHubClient};
 use super::{parse_metadata, IndicateAdapter};
 
 /// Builder for [`IndicateAdapter`]
-struct IndicateAdapterBuilder {
+pub struct IndicateAdapterBuilder {
     metadata: Metadata,
     gh_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,

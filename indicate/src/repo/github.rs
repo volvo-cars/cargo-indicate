@@ -22,7 +22,7 @@ pub(crate) static GH_API_CALL_COUNTER: CounterUsize = CounterUsize::new(0);
 /// A unique identifier of a GitHub repository consisting of the owner and the
 /// repository, i.e. on the form github.com/<owner>/<repository>
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct GitHubRepositoryId {
+pub struct GitHubRepositoryId {
     owner: String,
     repo: String,
 }
@@ -81,7 +81,7 @@ static GITHUB_USERS_CLIENT: Lazy<octorust::users::Users> =
 /// Wrapper for interacting with the GitHub API. Caches previous requests, and
 /// will not remake queries it has already made. Uses the global static clients
 /// of its module.
-pub(crate) struct GitHubClient {
+pub struct GitHubClient {
     repo_cache: HashMap<GitHubRepositoryId, Arc<FullRepository>>,
     user_cache: HashMap<Arc<str>, Arc<PublicUser>>,
 }

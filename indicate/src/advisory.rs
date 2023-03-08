@@ -10,7 +10,7 @@ use rustsec::{
 
 /// Wrapper around an advisory database used to perform queries
 #[derive(Debug)]
-pub(crate) struct AdvisoryClient {
+pub struct AdvisoryClient {
     db: Database,
 }
 

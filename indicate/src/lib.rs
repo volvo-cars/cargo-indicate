@@ -31,7 +31,7 @@ use tokio::runtime::Runtime;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 mod adapter;
-mod advisory;
+pub mod advisory;
 pub mod errors;
 pub mod query;
 mod repo;

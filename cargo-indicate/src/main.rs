@@ -1,26 +1,35 @@
 use std::{fs, path::PathBuf};
 
-use clap::Parser;
+use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
-    execute_query, extract_metadata_from_path, query::FullQuery,
-    query::FullQueryBuilder, util::transparent_results,
+    adapter_builder::IndicateAdapterBuilder, advisory::AdvisoryClient,
+    execute_query, execute_query_with_adapter, extract_metadata_from_path,
+    query::FullQuery, query::FullQueryBuilder, util::transparent_results,
 };
 
 /// Program to query Rust dependencies
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
+#[command(group(
+    ArgGroup::new("query_inputs")
+        .required(true)
+))]
+#[command(group(
+    ArgGroup::new("adapter_adapters") // Arguments that requier a special IndicateAdapter
+        .required(false)
+))]
 struct IndicateCli {
     /// An indicate query in a supported file format
-    #[arg(short = 'Q', long, group = "query_input", value_name = "FILE")]
+    #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE")]
     query_path: Option<PathBuf>,
 
     /// An indicate query in plain text, without arguments
-    #[arg(short, long, group = "query_input")]
+    #[arg(short, long, group = "query_inputs", conflicts_with = "query_path")]
     query: Option<String>,
 
     /// Indicate arguments including arguments in plain text, without query in a
     /// JSON format
-    #[arg(short, long, requires = "query_input")]
+    #[arg(short, long, requires = "query_inputs")]
     args: Option<String>,
 
     /// Path to a Cargo.toml file, or a directory containing one
@@ -48,10 +57,25 @@ struct IndicateCli {
     /// Do not include default features when resolving metadata for this package
     #[arg(short = 'n', long, default_value_t = false)]
     no_default_features: bool,
+
+    /// Use a local `advisory-db` database instead of fetching the default
+    /// from GitHub
+    #[arg(long, group = "adapter_adapters")]
+    advisory_db_dir: Option<PathBuf>,
+
+    /// Attempt to use a cached version of `advisory-db` from the default
+    /// location; Will fetch a new one if not present
+    #[arg(
+        long,
+        group = "adapter_adapters",
+        conflicts_with = "advisory_db_dir"
+    )]
+    use_cached_advisory_db: bool,
 }
 
 fn main() {
     let cli = IndicateCli::parse();
+    let cmd = IndicateCli::command();
 
     if cli.show_schema {
         println!("{}", indicate::RAW_SCHEMA);
@@ -87,7 +111,35 @@ fn main() {
         panic!("could not extract metadata due to error: {e}");
     });
 
-    let res = execute_query(&fq, metadata, cli.max_results);
+    // How we execute the query depends on if the user defined any special
+    // requirements for the adapter
+    let res = if cmd.get_groups().any(|s| s.get_id() == "adapter_adapers") {
+        let mut b = IndicateAdapterBuilder::new(metadata);
+
+        // These two are mutually exclusive, but that is checked by clap already
+        if let Some(p) = cli.advisory_db_dir {
+            let ac =
+                AdvisoryClient::from_path(p.as_path()).unwrap_or_else(|e| {
+                    panic!(
+                        "could not parse advisory-db in {} due to error: {e}",
+                        p.to_string_lossy()
+                    )
+                });
+            b = b.advisory_client(ac);
+        } else if cli.use_cached_advisory_db {
+            let ac = AdvisoryClient::from_default_path().unwrap_or_else(|_| {
+                AdvisoryClient::new().unwrap_or_else(|e| {
+                    panic!("could not fetch advisory-db due to error: {e} (cache also failed)")
+                })
+            });
+            b = b.advisory_client(ac);
+        }
+
+        execute_query_with_adapter(&fq, b.build(), cli.max_results)
+    } else {
+        execute_query(&fq, metadata, cli.max_results)
+    };
+
     let transparent_res = transparent_results(res);
     let res_string = serde_json::to_string_pretty(&transparent_res)
         .expect("could not serialize result");

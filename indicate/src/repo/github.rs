@@ -173,3 +173,9 @@ impl GitHubClient {
         }
     }
 }
+
+impl Default for GitHubClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}

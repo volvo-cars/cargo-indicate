@@ -29,7 +29,7 @@ impl IndicateAdapterBuilder {
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(
-                self.gh_client.unwrap_or_else(|| GitHubClient::new()),
+                self.gh_client.unwrap_or_else(GitHubClient::new),
             )),
             advisory_client: Rc::new(
                 self.advisory_client

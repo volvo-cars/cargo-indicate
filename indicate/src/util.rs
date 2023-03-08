@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use trustfall::{FieldValue, TransparentValue};
 
-/// Transform a result from [`execute_query`] to one where the fields can easily
+/// Transform a result from [`execute_query`](trustfall::execute_query) to one where the fields can easily
 /// be serialized to JSON using [`TransparentValue`].
 pub fn transparent_results(
     res: Vec<BTreeMap<Arc<str>, FieldValue>>,

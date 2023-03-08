@@ -58,3 +58,9 @@ impl IndicateAdapterBuilder {
         self
     }
 }
+
+impl From<IndicateAdapterBuilder> for IndicateAdapter {
+    fn from(value: IndicateAdapterBuilder) -> Self {
+        value.build()
+    }
+}

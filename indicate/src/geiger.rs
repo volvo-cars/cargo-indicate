@@ -172,6 +172,12 @@ impl GeigerCount {
     pub fn total(&self) -> u32 {
         self.safe + self.unsafe_
     }
+
+    /// Calculate the percentage of the count that is unsafe to two digits
+    /// precisions
+    pub fn percentage_unsafe(&self) -> f64 {
+        two_digit_percentage(self.unsafe_, self.total())
+    }
 }
 
 impl Add<GeigerCount> for GeigerCount {

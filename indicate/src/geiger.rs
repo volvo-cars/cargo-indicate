@@ -1,10 +1,20 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Geiger {
     used: GeigerCount,
     unused: GeigerCount,
 }
 
-#[derive(Debug, Clone)]
+impl Geiger {
+    pub fn used(&self) -> GeigerCount {
+        self.used
+    }
+
+    pub fn unused(&self) -> GeigerCount {
+        self.unused
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct GeigerCount {
     safe_count: u32,
     unsafe_count: u32,
@@ -56,7 +66,7 @@ mod test {
 
     #[test]
     fn geiger_is_copy() {
-        fn is_copy<T: Sized>() {}
+        fn is_copy<T: Copy>() {}
         is_copy::<Geiger>();
         is_copy::<GeigerCount>();
     }

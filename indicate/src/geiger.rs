@@ -160,6 +160,20 @@ impl GeigerTargets {
     }
 }
 
+impl Add<GeigerTargets> for GeigerTargets {
+    type Output = GeigerTargets;
+
+    fn add(self, rhs: GeigerTargets) -> Self::Output {
+        GeigerTargets {
+            functions: self.functions + rhs.functions,
+            exprs: self.exprs + rhs.exprs,
+            item_impls: self.item_impls + rhs.item_impls,
+            item_traits: self.item_traits + rhs.item_traits,
+            methods: self.methods + rhs.methods,
+        }
+    }
+}
+
 /// The safety stats for a package analyzed by `cargo-geiger`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct GeigerCount {

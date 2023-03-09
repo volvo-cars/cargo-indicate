@@ -143,6 +143,16 @@ pub struct GeigerTargets {
 }
 
 impl GeigerTargets {
+    /// Aggregates all [`GeigerCounts`] for all targets, returning one with total
+    /// safe and total unsafe for all targets
+    pub fn total(&self) -> GeigerCount {
+        self.functions
+            + self.exprs
+            + self.item_impls
+            + self.item_traits
+            + self.methods
+    }
+
     pub fn total_safe(&self) -> u32 {
         self.functions.safe
             + self.exprs.safe
@@ -157,16 +167,6 @@ impl GeigerTargets {
             + self.item_impls.unsafe_
             + self.item_traits.unsafe_
             + self.methods.unsafe_
-    }
-
-    /// Aggregates all GeigerCounts for all targets, returning one with total
-    /// safe and total unsafe for all targets
-    pub fn total(&self) -> GeigerCount {
-        self.functions
-            + self.exprs
-            + self.item_impls
-            + self.item_traits
-            + self.methods
     }
 }
 

@@ -38,7 +38,7 @@
 //! }
 //! ```
 
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Add};
 
 use serde::Deserialize;
 
@@ -83,6 +83,17 @@ pub struct GeigerUnsafety {
 }
 
 impl GeigerUnsafety {
+    /// Retrieves the total geiger count for all targets
+    pub fn total(&self) -> GeigerTargets {
+        GeigerTargets {
+            functions: self.used.functions + self.unused.functions,
+            exprs: self.used.exprs + self.unused.exprs,
+            item_impls: self.used.item_impls + self.unused.item_impls,
+            item_traits: self.used.item_traits + self.unused.item_traits,
+            methods: self.used.methods + self.unused.methods,
+        }
+    }
+
     pub fn used_safe(&self) -> u32 {
         self.used.total_safe()
     }
@@ -163,6 +174,16 @@ impl GeigerCount {
     }
 }
 
+impl Add<GeigerCount> for GeigerCount {
+    type Output = GeigerCount;
+
+    fn add(self, rhs: GeigerCount) -> Self::Output {
+        GeigerCount {
+            safe: self.safe + rhs.safe,
+            unsafe_: self.unsafe_ + rhs.unsafe_,
+        }
+    }
+}
 #[cfg(test)]
 mod test {
     use std::{fs, path::Path};

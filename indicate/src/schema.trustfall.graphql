@@ -68,6 +68,8 @@ type Package {
 type GeigerUnsafety {
     used: GeigerTargets!
     unused: GeigerTargets!
+
+    # used + unused
     total: GeigerTargets!
     forbids_unsafe: Boolean!
 }
@@ -78,12 +80,16 @@ type GeigerTargets {
     item_impls: GeigerCount!
     item_traits: GeigerCount!
     methods: GeigerCount!
+
+    # (functions.safe + exprs.safe + ...) and (functions.unsafe + ...)
     total: GeigerCount!
 }
 
 type GeigerCount {
     safe: Int!
     unsafe: Int!
+    
+    # safe + unsafe
     total: Int!
     percentageUnsafe: Float!
 }

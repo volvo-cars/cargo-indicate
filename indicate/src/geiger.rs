@@ -47,7 +47,7 @@ use serde::Deserialize;
 ///
 /// This function will handle `0 / 0` to be equal to `0.0` (all code is safe,
 /// there is no code).
-fn two_digit_percentage(part: u32, total: u32) -> f64 {
+pub(crate) fn two_digit_percentage(part: u32, total: u32) -> f64 {
     let res = f64::from(part) / f64::from(total);
     if res.is_finite() {
         // We only really care about at most two decimal points
@@ -77,26 +77,18 @@ pub struct GeigerPackageOutput {
 /// nothing is used by the analyzed package.
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct GeigerUnsafety {
-    used: GeigerTargets,
-    unused: GeigerTargets,
-    forbids_unsafe: bool,
+    pub used: GeigerTargets,
+    pub unused: GeigerTargets,
+    pub forbids_unsafe: bool,
 }
 
 impl GeigerUnsafety {
-    pub fn used(&self) -> GeigerTargets {
-        self.used
-    }
-
     pub fn used_safe(&self) -> u32 {
         self.used.total_safe()
     }
 
     pub fn used_unsafe(&self) -> u32 {
         self.used.total_unsafe()
-    }
-
-    pub fn unused(&self) -> GeigerTargets {
-        self.unused
     }
 
     pub fn unused_safe(&self) -> u32 {
@@ -107,19 +99,32 @@ impl GeigerUnsafety {
         self.unused.total_unsafe()
     }
 
-    pub fn forbids_unsafe(&self) -> bool {
-        self.forbids_unsafe
+    pub fn total_safe(&self) -> u32 {
+        self.used_safe() + self.unused_safe()
+    }
+
+    pub fn total_unsafe(&self) -> u32 {
+        self.used_unsafe() + self.unused_unsafe()
+    }
+
+    /// Calculates the percentage of the package to be unsafe, to two decimal
+    /// points
+    pub fn percentage_unsafe(&self) -> f64 {
+        two_digit_percentage(
+            self.total_unsafe(),
+            self.total_safe() + self.total_unsafe(),
+        )
     }
 }
 
 /// All different targets in Rust code that `cargo-geiger` counts
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct GeigerTargets {
-    functions: GeigerCount,
-    exprs: GeigerCount,
-    item_impls: GeigerCount,
-    item_traits: GeigerCount,
-    methods: GeigerCount,
+    pub functions: GeigerCount,
+    pub exprs: GeigerCount,
+    pub item_impls: GeigerCount,
+    pub item_traits: GeigerCount,
+    pub methods: GeigerCount,
 }
 
 impl GeigerTargets {
@@ -138,34 +143,23 @@ impl GeigerTargets {
             + self.item_traits.unsafe_
             + self.methods.unsafe_
     }
+
+    pub fn total(&self) -> u32 {
+        self.total_safe() + self.total_unsafe()
+    }
 }
 
 /// The safety stats for a package analyzed by `cargo-geiger`
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct GeigerCount {
-    safe: u32,
-    unsafe_: u32,
+    pub safe: u32,
+    pub unsafe_: u32,
 }
 
 impl GeigerCount {
-    pub fn safe(&self) -> u32 {
-        self.safe
-    }
-
-    pub fn unsafe_(&self) -> u32 {
-        self.unsafe_
-    }
-
     /// The total amount of counts made by Geiger
     pub fn total(&self) -> u32 {
         self.safe + self.unsafe_
-        // GeigerTargets {
-        //     functions: self.safe.functions + self.unsafe_.functions,
-        //     exprs: self.safe.exprs + self.unsafe_.exprs,
-        //     item_impls: self.safe.item_impls + self.unsafe_.item_impls,
-        //     item_traits: self.safe.item_traits + self.unsafe_.item_traits,
-        //     methods: self.safe.methods + self.unsafe_.methods,
-        // }
     }
 }
 

@@ -38,6 +38,8 @@
 //! }
 //! ```
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
 
 /// Calculates a percentage, rounded to two
@@ -57,18 +59,52 @@ fn two_digit_percentage(part: u32, total: u32) -> f64 {
 
 /// The full output of `cargo-geiger`
 #[derive(Debug, Clone, Deserialize)]
-pub struct GeigerOutput(Vec<GeigerPackageOutput>);
+pub struct GeigerOutput {
+    packages: Vec<GeigerPackageOutput>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GeigerPackageOutput {
+    unsafety: GeigerUnsafety,
+    id: HashMap<String, String>,
+}
 
 /// The output of `cargo-geiger` for one package/dependency
+///
+/// Corresponds to the object named "unsafety" in a `cargo-geiger` output.
+/// `used` and `unused` refers to if the code is used by the package used
+/// to provide the Geiger data. A package may have a high unsafe usage, but
+/// nothing is used by the analyzed package.
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct GeigerPackageOutput {
-    usage: GeigerUsage,
+pub struct GeigerUnsafety {
+    used: GeigerTargets,
+    unused: GeigerTargets,
     forbids_unsafe: bool,
 }
 
-impl GeigerPackageOutput {
-    pub fn unsafety(&self) -> GeigerUsage {
-        self.usage
+impl GeigerUnsafety {
+    pub fn used(&self) -> GeigerTargets {
+        self.used
+    }
+
+    pub fn used_safe(&self) -> u32 {
+        self.used.total_safe()
+    }
+
+    pub fn used_unsafe(&self) -> u32 {
+        self.used.total_unsafe()
+    }
+
+    pub fn unused(&self) -> GeigerTargets {
+        self.unused
+    }
+
+    pub fn unused_safe(&self) -> u32 {
+        self.unused.total_safe()
+    }
+
+    pub fn unused_unsafe(&self) -> u32 {
+        self.unused.total_unsafe()
     }
 
     pub fn forbids_unsafe(&self) -> bool {
@@ -76,74 +112,84 @@ impl GeigerPackageOutput {
     }
 }
 
-/// The output of `cargo-geiger` for the usage of unsafe code found
-///
-/// `used` and `unused` refers to if the code is used by the package used
-/// to provide the Geiger data. A package may have a high unsafe usage, but
-/// nothing is used by the analyzed package.
+/// All different targets in Rust code that `cargo-geiger` counts
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct GeigerUsage {
-    used: GeigerUnsafety,
-    unused: GeigerUnsafety,
+pub struct GeigerTargets {
+    functions: GeigerCount,
+    exprs: GeigerCount,
+    item_impls: GeigerCount,
+    item_traits: GeigerCount,
+    methods: GeigerCount,
 }
 
-impl GeigerUsage {
-    pub fn used(&self) -> GeigerUnsafety {
-        self.used
+impl GeigerTargets {
+    pub fn total_safe(&self) -> u32 {
+        self.functions.safe
+            + self.exprs.safe
+            + self.item_impls.safe
+            + self.item_traits.safe
+            + self.methods.safe
     }
 
-    pub fn unused(&self) -> GeigerUnsafety {
-        self.unused
+    pub fn total_unsafe(&self) -> u32 {
+        self.functions.unsafe_
+            + self.exprs.unsafe_
+            + self.item_impls.unsafe_
+            + self.item_traits.unsafe_
+            + self.methods.unsafe_
     }
 }
 
 /// The safety stats for a package analyzed by `cargo-geiger`
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct GeigerUnsafety {
-    safe: GeigerTargets,
-    unsafe_: GeigerTargets,
+pub struct GeigerCount {
+    safe: u32,
+    unsafe_: u32,
 }
 
-impl GeigerUnsafety {
-    fn safe(&self) -> GeigerTargets {
+impl GeigerCount {
+    pub fn safe(&self) -> u32 {
         self.safe
     }
 
-    fn unsafe_(&self) -> GeigerTargets {
+    pub fn unsafe_(&self) -> u32 {
         self.unsafe_
     }
 
     /// The total amount of counts made by Geiger
-    fn total(&self) -> GeigerTargets {
-        GeigerTargets {
-            functions: self.safe.functions + self.unsafe_.functions,
-            exprs: self.safe.exprs + self.unsafe_.exprs,
-            item_impls: self.safe.item_impls + self.unsafe_.item_impls,
-            item_traits: self.safe.item_traits + self.unsafe_.item_traits,
-            methods: self.safe.methods + self.unsafe_.methods,
-        }
+    pub fn total(&self) -> u32 {
+        self.safe + self.unsafe_
+        // GeigerTargets {
+        //     functions: self.safe.functions + self.unsafe_.functions,
+        //     exprs: self.safe.exprs + self.unsafe_.exprs,
+        //     item_impls: self.safe.item_impls + self.unsafe_.item_impls,
+        //     item_traits: self.safe.item_traits + self.unsafe_.item_traits,
+        //     methods: self.safe.methods + self.unsafe_.methods,
+        // }
     }
-}
-
-/// All different targets in Rust code that `cargo-geiger` counts
-#[derive(Debug, Clone, Copy, Deserialize)]
-pub struct GeigerTargets {
-    functions: u32,
-    exprs: u32,
-    item_impls: u32,
-    item_traits: u32,
-    methods: u32,
 }
 
 #[cfg(test)]
 mod test {
+    use std::{fs, path::Path};
+
     use test_case::test_case;
+
+    use super::GeigerOutput;
 
     #[test_case(0, 0 => 0.0)]
     #[test_case(3, 1 => 25.0)]
     #[test_case(9, 1 => 10.0)]
     #[test_case(2, 1 => 33.33)]
     fn two_digit_percentage(safe_count: u32, unsafe_count: u32) -> f64 {
-        two_digit_percentage(unsafe_count, safe_count + unsafe_count)
+        super::two_digit_percentage(unsafe_count, safe_count + unsafe_count)
+    }
+
+    #[test_case("simple_deps")]
+    fn deserialize_geiger_output_smoke_test(crate_name: &'static str) {
+        let path_string = format!("test_data/geiger-output/{crate_name}.json");
+        let path = Path::new(&path_string);
+        let json_string = fs::read_to_string(path).unwrap();
+        serde_json::from_str::<GeigerOutput>(&json_string).unwrap();
     }
 }

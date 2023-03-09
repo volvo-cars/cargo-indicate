@@ -1,10 +1,10 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Geiger {
     used: GeigerCount,
     unused: GeigerCount,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GeigerCount {
     safe_count: u32,
     unsafe_count: u32,
@@ -49,8 +49,17 @@ impl GeigerCount {
 
 #[cfg(test)]
 mod test {
+    use crate::geiger::Geiger;
+
     use super::GeigerCount;
     use test_case::test_case;
+
+    #[test]
+    fn geiger_is_copy() {
+        fn is_copy<T: Sized>() {}
+        is_copy::<Geiger>();
+        is_copy::<GeigerCount>();
+    }
 
     #[test_case(0, 0 => 0.0)]
     #[test_case(3, 1 => 25.0)]

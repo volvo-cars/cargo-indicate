@@ -78,10 +78,10 @@ type Geiger {
 }
 
 type GeigerCount {
-    safe: Number!
-    unsafe: Number!
-    total: Number!
-    percentageUnsafe: Number!
+    safe: Int!
+    unsafe: Int!
+    total: Int!
+    percentageUnsafe: Float!
 }
 
 interface Webpage {

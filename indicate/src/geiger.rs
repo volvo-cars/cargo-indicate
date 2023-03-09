@@ -161,7 +161,7 @@ impl GeigerTargets {
 }
 
 /// The safety stats for a package analyzed by `cargo-geiger`
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct GeigerCount {
     pub safe: u32,
     pub unsafe_: u32,
@@ -190,6 +190,8 @@ mod test {
 
     use test_case::test_case;
 
+    use crate::geiger::GeigerCount;
+
     use super::GeigerOutput;
 
     #[test_case(0, 0 => 0.0)]
@@ -206,5 +208,24 @@ mod test {
         let path = Path::new(&path_string);
         let json_string = fs::read_to_string(path).unwrap();
         serde_json::from_str::<GeigerOutput>(&json_string).unwrap();
+    }
+
+    #[test_case(0, 0, 0, 0)]
+    #[test_case(1, 1, 0, 0)]
+    #[test_case(1, 2, 3, 4)]
+    fn add_geiger_counts(safe0: u32, unsafe0: u32, safe1: u32, unsafe1: u32) {
+        let gc0 = GeigerCount {
+            safe: safe0,
+            unsafe_: unsafe0,
+        };
+        let gc1 = GeigerCount {
+            safe: safe1,
+            unsafe_: unsafe1,
+        };
+        let gc_res = GeigerCount {
+            safe: safe0 + safe1,
+            unsafe_: unsafe0 + unsafe1,
+        };
+        assert_eq!(gc0 + gc1, gc_res);
     }
 }

@@ -42,10 +42,18 @@
 //! In general this is achieved by a `total` method that allows for aggregating
 //! for example used+unused, and at a lower level safe+unsafe_.
 
-use std::{collections::HashMap, ops::Add, path::Path};
+use std::{
+    collections::HashMap,
+    io::Read,
+    ops::Add,
+    path::Path,
+    process::{Command, Stdio},
+};
 
 use rustsec::Version;
 use serde::Deserialize;
+
+use crate::errors::GeigerError;
 
 /// A client used to lazily evaluate `cargo-geiger` information for some package
 /// and its dependencies
@@ -57,8 +65,75 @@ pub struct GeigerClient {
 
 impl GeigerClient {
     /// Creates a new client from the path one would pass to `cargo-geiger`
-    pub fn from_path(path: &Path) -> Self {
-        todo!()
+    ///
+    /// Requires that `cargo-geiger` is installed on the system, and will panic
+    /// if it is not.
+    ///
+    /// This can be very slow, especially if the package has not been parsed
+    /// before. Therefore, it is often better to do this lazily (i.e. wrapping
+    /// in a [`Lazy`](once_cell::sync::Lazy)).
+    ///
+    /// Will redirect both `stdout` and `stderr` internally.
+    #[must_use]
+    pub fn from_path(manifest_path: &Path) -> Result<Self, Box<GeigerError>> {
+        // TODO: Add include_default_features and features parameters to
+        // pass to `cargo-geiger`
+        let mut proc = Command::new("cargo-geiger")
+            .args(["--output-format", "Json"])
+            .arg("--quiet") // Only output tree
+            .arg("--manifest-path")
+            .arg(manifest_path.as_os_str())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap_or_else(|e| {
+                panic!(
+                    "geiger command failed to start with error: {e}, are you sure `cargo-geiger` is installed?"
+                )
+            });
+
+        let status = match proc.wait() {
+            Ok(o) => o,
+            Err(e) => {
+                panic!("could not execute geiger command due to error: {e}")
+            }
+        };
+
+        if !status.success() {
+            let mut stderr = String::new();
+            proc.stderr
+                .take()
+                .unwrap()
+                .read_to_string(&mut stderr)
+                .expect("could not read stderr");
+            return Err(Box::new(GeigerError::NonZeroStatus(
+                status.code().unwrap_or(-1),
+                stderr,
+            )));
+        }
+
+        let mut stdout = String::new();
+        proc.stdout
+            .take()
+            .unwrap()
+            .read_to_string(&mut stdout)
+            .expect("could not read stdout");
+        let res = Self::from_json(&stdout);
+        match res {
+            Ok(s) => Ok(s),
+            Err(e) => {
+                let mut stderr = String::new();
+                proc.stderr
+                    .take()
+                    .unwrap()
+                    .read_to_string(&mut stderr)
+                    .expect("could not read stderr");
+                Err(Box::new(GeigerError::UnexpectedOutput(
+                    stderr,
+                    e.to_string(),
+                )))
+            }
+        }
     }
 
     pub fn from_json(geiger_output: &str) -> Result<Self, serde_json::Error> {
@@ -205,7 +280,7 @@ pub struct GeigerTargets {
 }
 
 impl GeigerTargets {
-    /// Aggregates all [`GeigerCounts`] for all targets, returning one with total
+    /// Aggregates all [`GeigerCount`] for all targets, returning one with total
     /// safe and total unsafe for all targets
     pub fn total(&self) -> GeigerCount {
         self.functions
@@ -286,7 +361,7 @@ mod test {
 
     use crate::geiger::GeigerCount;
 
-    use super::GeigerOutput;
+    use super::{GeigerClient, GeigerOutput};
 
     #[test_case(0, 0 => 0.0)]
     #[test_case(3, 1 => 25.0)]
@@ -294,6 +369,13 @@ mod test {
     #[test_case(2, 1 => 33.33)]
     fn two_digit_percentage(safe_count: u32, unsafe_count: u32) -> f64 {
         super::two_digit_percentage(unsafe_count, safe_count + unsafe_count)
+    }
+
+    #[test_case("simple_deps" => ignore["geiger is very slow"])]
+    fn geiger_from_path(crate_name: &'static str) {
+        let path_string = format!("test_data/fake_crate/{crate_name}");
+        let path = Path::new(&path_string);
+        GeigerClient::from_path(path).unwrap();
     }
 
     #[test_case("simple_deps")]

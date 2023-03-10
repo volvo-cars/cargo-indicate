@@ -15,3 +15,14 @@ pub enum FileParseError {
     )]
     NotFound(String),
 }
+
+#[derive(Error, Debug, Clone)]
+pub enum GeigerError {
+    #[error("geiger status code was not OK ({0}), stderr was: `{1}`")]
+    NonZeroStatus(i32, String),
+
+    #[error(
+        "could not parse geiger output due to error `{0}`, stdout was: `{1}`"
+    )]
+    UnexpectedOutput(String, String),
+}

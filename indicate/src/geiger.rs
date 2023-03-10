@@ -47,6 +47,34 @@ use std::{collections::HashMap, ops::Add};
 use rustsec::Version;
 use serde::Deserialize;
 
+/// A client used to lazily evaluate `cargo-geiger` information for some package
+/// and its dependencies
+#[derive(Debug)]
+pub struct GeigerClient {
+    output: GeigerOutput,
+    unsafety: HashMap<GeigerId, GeigerUnsafety>,
+}
+
+impl GeigerClient {
+    pub fn from_json(geiger_output: &str) -> Result<Self, serde_json::Error> {
+        let output = serde_json::from_str::<GeigerOutput>(geiger_output)?;
+        Ok(Self::from(output))
+    }
+}
+
+impl From<GeigerOutput> for GeigerClient {
+    fn from(value: GeigerOutput) -> Self {
+        let mut unsafety = HashMap::with_capacity(value.packages.len());
+        for p in value.packages.iter() {
+            unsafety.insert(p.package.id.to_owned(), p.unsafety);
+        }
+        Self {
+            output: value,
+            unsafety,
+        }
+    }
+}
+
 /// Calculates a percentage, rounded to two
 /// decimal points
 ///
@@ -81,7 +109,7 @@ pub struct GeigerPackage {
     // Other fields ignored
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
 pub struct GeigerId {
     pub name: String,
     pub version: Version,

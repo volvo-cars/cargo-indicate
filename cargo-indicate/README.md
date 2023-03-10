@@ -1,5 +1,16 @@
 # `cargo-indicate` Run queries against your dependency tree
 
+
+## Installation
+
+To be able to query the unsafety of a package and its dependencies, you need to
+install [`cargo-geiger`](https://github.com/rust-secure-code/cargo-geiger).
+To do this, simply run:
+
+```ignore
+cargo install cargo-geiger
+```
+
 You can install the custom command using
 
 ```ignore

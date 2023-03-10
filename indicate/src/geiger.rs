@@ -161,6 +161,8 @@ impl GeigerClient {
         }
     }
 
+    /// Parse [`GeigerOutput`] from a JSON string (i.e. the output of
+    /// `cargo-geiger` when run with `--output-format Json`)
     pub fn from_json(geiger_output: &str) -> Result<Self, serde_json::Error> {
         let output = serde_json::from_str::<GeigerOutput>(geiger_output)?;
         Ok(Self::from(output))
@@ -396,7 +398,9 @@ mod test {
         super::two_digit_percentage(unsafe_count, safe_count + unsafe_count)
     }
 
-    #[test_case("simple_deps" => ignore["geiger is very slow"])]
+    #[test_case("simple_deps")]
+    #[test_case("known_advisory_deps")]
+    #[test_case("feature_deps")]
     fn geiger_from_path(crate_name: &'static str) {
         let path_string =
             format!("test_data/fake_crates/{crate_name}/Cargo.toml");

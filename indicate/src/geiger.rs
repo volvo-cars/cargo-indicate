@@ -44,6 +44,7 @@
 
 use std::{collections::HashMap, ops::Add};
 
+use rustsec::Version;
 use serde::Deserialize;
 
 /// Calculates a percentage, rounded to two
@@ -64,13 +65,27 @@ pub(crate) fn two_digit_percentage(part: u32, total: u32) -> f64 {
 /// The full output of `cargo-geiger`
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeigerOutput {
-    packages: Vec<GeigerPackageOutput>,
+    pub packages: Vec<GeigerPackageOutput>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeigerPackageOutput {
-    unsafety: GeigerUnsafety,
-    id: HashMap<String, String>,
+    pub package: GeigerPackage,
+    pub unsafety: GeigerUnsafety,
+}
+
+/// A package in `cargo-geiger` used to identify what has been parsed
+#[derive(Debug, Clone, Deserialize)]
+pub struct GeigerPackage {
+    pub id: GeigerId,
+    // Other fields ignored
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GeigerId {
+    pub name: String,
+    pub version: Version,
+    // Other fields ignored, assume crates.io registry
 }
 
 /// The output of `cargo-geiger` for one package/dependency
@@ -87,7 +102,8 @@ pub struct GeigerUnsafety {
 }
 
 impl GeigerUnsafety {
-    /// Retrieves the total geiger count for all targets
+    /// Retrieves the total geiger count for all targets, i.e. total for used
+    /// and unused code
     pub fn total(&self) -> GeigerTargets {
         GeigerTargets {
             functions: self.used.functions + self.unused.functions,
@@ -184,7 +200,8 @@ impl Add<GeigerTargets> for GeigerTargets {
     }
 }
 
-/// The safety stats for a package analyzed by `cargo-geiger`
+/// The safety stats for a package analyzed by `cargo-geiger`,
+/// i.e. counts for lines of safe and unsafe code
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct GeigerCount {
     pub safe: u32,
@@ -214,6 +231,7 @@ impl Add<GeigerCount> for GeigerCount {
         }
     }
 }
+
 #[cfg(test)]
 mod test {
     use std::{fs, path::Path};

@@ -44,9 +44,10 @@
 
 use std::{
     collections::HashMap,
+    fs,
     io::Read,
     ops::Add,
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -69,21 +70,45 @@ impl GeigerClient {
     /// Requires that `cargo-geiger` is installed on the system, and will panic
     /// if it is not.
     ///
+    /// Will create an absolute path of `manifest_path`.
+    ///
     /// This can be very slow, especially if the package has not been parsed
     /// before. Therefore, it is often better to do this lazily (i.e. wrapping
     /// in a [`Lazy`](once_cell::sync::Lazy)).
     ///
     /// Will redirect both `stdout` and `stderr` internally.
     #[must_use]
-    pub fn from_path(manifest_path: &Path) -> Result<Self, Box<GeigerError>> {
-        // TODO: Add include_default_features and features parameters to
-        // pass to `cargo-geiger`
-        let mut proc = Command::new("cargo-geiger")
-            .args(["--output-format", "Json"])
+    pub fn from_path(
+        manifest_path: &Path,
+        default_features: bool,
+        features: Option<Vec<String>>,
+    ) -> Result<Self, Box<GeigerError>> {
+        let absolute_manifest_path = if !manifest_path.is_absolute() {
+            fs::canonicalize(manifest_path)
+                .expect("could not resolve absolute path to manifest")
+        } else {
+            PathBuf::from(manifest_path)
+        };
+
+        let mut cmd = Command::new("cargo-geiger");
+        cmd.args(["--output-format", "Json"])
             .arg("--quiet") // Only output tree
             .arg("--manifest-path")
-            .arg(manifest_path.as_os_str())
-            .stdout(Stdio::piped())
+            .arg(absolute_manifest_path.as_os_str());
+
+        if !default_features {
+            cmd.arg("--no-default-features");
+        }
+
+        if let Some(f) = features {
+            if !f.is_empty() {
+                cmd.arg("--features");
+                cmd.args(f);
+            }
+        }
+
+        let mut proc = cmd
+            .stdout(Stdio::piped()) // Don't print `cargo-geiger` output
             .stderr(Stdio::piped())
             .spawn()
             .unwrap_or_else(|e| {
@@ -373,9 +398,10 @@ mod test {
 
     #[test_case("simple_deps" => ignore["geiger is very slow"])]
     fn geiger_from_path(crate_name: &'static str) {
-        let path_string = format!("test_data/fake_crate/{crate_name}");
+        let path_string =
+            format!("test_data/fake_crates/{crate_name}/Cargo.toml");
         let path = Path::new(&path_string);
-        GeigerClient::from_path(path).unwrap();
+        GeigerClient::from_path(path, true, None).unwrap();
     }
 
     #[test_case("simple_deps")]

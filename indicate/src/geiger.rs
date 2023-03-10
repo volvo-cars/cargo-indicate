@@ -77,7 +77,6 @@ impl GeigerClient {
     /// in a [`Lazy`](once_cell::sync::Lazy)).
     ///
     /// Will redirect both `stdout` and `stderr` internally.
-    #[must_use]
     pub fn from_path(
         manifest_path: &Path,
         default_features: bool,

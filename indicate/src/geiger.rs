@@ -42,7 +42,7 @@
 //! In general this is achieved by a `total` method that allows for aggregating
 //! for example used+unused, and at a lower level safe+unsafe_.
 
-use std::{collections::HashMap, ops::Add};
+use std::{collections::HashMap, ops::Add, path::Path};
 
 use rustsec::Version;
 use serde::Deserialize;
@@ -56,9 +56,18 @@ pub struct GeigerClient {
 }
 
 impl GeigerClient {
+    /// Creates a new client from the path one would pass to `cargo-geiger`
+    pub fn from_path(path: &Path) -> Self {
+        todo!()
+    }
+
     pub fn from_json(geiger_output: &str) -> Result<Self, serde_json::Error> {
         let output = serde_json::from_str::<GeigerOutput>(geiger_output)?;
         Ok(Self::from(output))
+    }
+
+    pub fn unsafety(&self, gid: &GeigerId) -> Option<GeigerUnsafety> {
+        self.unsafety.get(gid).copied()
     }
 }
 
@@ -114,6 +123,15 @@ pub struct GeigerId {
     pub name: String,
     pub version: Version,
     // Other fields ignored, assume crates.io registry
+}
+
+impl From<(String, Version)> for GeigerId {
+    fn from(value: (String, Version)) -> Self {
+        Self {
+            name: value.0,
+            version: value.1,
+        }
+    }
 }
 
 /// The output of `cargo-geiger` for one package/dependency

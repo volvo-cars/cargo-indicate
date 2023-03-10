@@ -1,10 +1,11 @@
+#[deny(unsafe_code)]
 use std::{fs, path::PathBuf};
 
 use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
-    adapter_builder::IndicateAdapterBuilder, advisory::AdvisoryClient,
-    execute_query, execute_query_with_adapter, extract_metadata_from_path,
-    query::FullQuery, query::FullQueryBuilder, util::transparent_results,
+    advisory::AdvisoryClient, execute_query, execute_query_with_adapter,
+    extract_metadata_from_path, query::FullQuery, query::FullQueryBuilder,
+    util::transparent_results, IndicateAdapterBuilder,
 };
 
 /// Program to query Rust dependencies

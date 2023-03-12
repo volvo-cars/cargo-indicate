@@ -2,7 +2,7 @@ use std::{fs, path::PathBuf};
 
 use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
-    adapter_builder::IndicateAdapterBuilder, advisory::AdvisoryClient,
+    adapter::adapter_builder::IndicateAdapterBuilder, advisory::AdvisoryClient,
     execute_query, execute_query_with_adapter, extract_metadata_from_path,
     query::FullQuery, query::FullQueryBuilder, util::transparent_results,
 };

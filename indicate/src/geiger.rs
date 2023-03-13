@@ -80,7 +80,7 @@ impl GeigerClient {
     /// in a [`Lazy`](once_cell::sync::Lazy)).
     ///
     /// Will redirect both `stdout` and `stderr` internally.
-    pub fn from_path(
+    pub fn new(
         manifest_path: &ManifestPath,
         features: Vec<CargoOpt>,
     ) -> Result<Self, Box<GeigerError>> {
@@ -406,7 +406,7 @@ mod test {
         let path_string =
             format!("test_data/fake_crates/{crate_name}/Cargo.toml");
         let path = ManifestPath::from(path_string);
-        GeigerClient::from_path(&path, vec![]).unwrap();
+        GeigerClient::new(&path, vec![]).unwrap();
     }
 
     #[test_case("simple_deps")]

@@ -1,11 +1,11 @@
-#[deny(unsafe_code)]
+#![deny(unsafe_code)]
 use std::{fs, path::PathBuf};
 
-use clap::{ArgGroup, CommandFactory, Parser};
+use clap::{ArgGroup, Parser};
 use indicate::{
-    advisory::AdvisoryClient, execute_query, execute_query_with_adapter,
-    query::FullQuery, query::FullQueryBuilder, util::transparent_results,
-    CargoOpt, IndicateAdapterBuilder, ManifestPath,
+    advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
+    query::FullQueryBuilder, util::transparent_results, CargoOpt,
+    IndicateAdapterBuilder, ManifestPath,
 };
 
 /// Program to query Rust dependencies
@@ -75,7 +75,6 @@ struct IndicateCli {
 
 fn main() {
     let cli = IndicateCli::parse();
-    let cmd = IndicateCli::command();
 
     if cli.show_schema {
         println!("{}", indicate::RAW_SCHEMA);

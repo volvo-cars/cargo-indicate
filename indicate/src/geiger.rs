@@ -55,7 +55,7 @@ use cargo_metadata::CargoOpt;
 use rustsec::Version;
 use serde::Deserialize;
 
-use crate::errors::GeigerError;
+use crate::{errors::GeigerError, ManifestPath};
 
 /// A client used to lazily evaluate `cargo-geiger` information for some package
 /// and its dependencies
@@ -81,21 +81,14 @@ impl GeigerClient {
     ///
     /// Will redirect both `stdout` and `stderr` internally.
     pub fn from_path(
-        manifest_path: &Path,
+        manifest_path: &ManifestPath,
         features: Vec<CargoOpt>,
     ) -> Result<Self, Box<GeigerError>> {
-        let absolute_manifest_path = if !manifest_path.is_absolute() {
-            fs::canonicalize(manifest_path)
-                .expect("could not resolve absolute path to manifest")
-        } else {
-            PathBuf::from(manifest_path)
-        };
-
         let mut cmd = Command::new("cargo-geiger");
         cmd.args(["--output-format", "Json"])
             .arg("--quiet") // Only output tree
             .arg("--manifest-path")
-            .arg(absolute_manifest_path.as_os_str());
+            .arg(manifest_path.as_path());
 
         for f in features {
             // Validity of these should be checked by CLI, not library
@@ -394,7 +387,7 @@ mod test {
 
     use test_case::test_case;
 
-    use crate::geiger::GeigerCount;
+    use crate::{geiger::GeigerCount, ManifestPath};
 
     use super::{GeigerClient, GeigerOutput};
 
@@ -412,8 +405,8 @@ mod test {
     fn geiger_from_path(crate_name: &'static str) {
         let path_string =
             format!("test_data/fake_crates/{crate_name}/Cargo.toml");
-        let path = Path::new(&path_string);
-        GeigerClient::from_path(path, vec![]).unwrap();
+        let path = ManifestPath::from(path_string);
+        GeigerClient::from_path(&path, vec![]).unwrap();
     }
 
     #[test_case("simple_deps")]

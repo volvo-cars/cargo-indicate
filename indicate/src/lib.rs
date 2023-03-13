@@ -114,7 +114,7 @@ impl ManifestPath {
         &self.0
     }
 
-    /// Extracts metadata from a `Cargo.toml` file by its
+    /// Extracts metadata from a `Cargo.toml` file, using the features provided.
     ///
     /// Optionally provide a list of features to be used when creating the metadata,
     /// however some combinations may not be viable (see [`CargoOpt`]).
@@ -149,6 +149,12 @@ impl From<String> for ManifestPath {
     /// Attempts to create a valid [`ManifestPath`] from a String representation
     /// of a path, using the same coresions as [`ManifestPath::new`]
     fn from(value: String) -> Self {
+        ManifestPath::from(value.as_str())
+    }
+}
+
+impl From<&String> for ManifestPath {
+    fn from(value: &String) -> Self {
         ManifestPath::from(value.as_str())
     }
 }

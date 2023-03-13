@@ -114,7 +114,7 @@ impl ManifestPath {
         features: Option<Vec<String>>,
     ) -> Result<Metadata, Box<dyn Error>> {
         let mut m = MetadataCommand::new();
-        m.manifest_path(self.0.as_path());
+        m.manifest_path(self.as_path());
 
         if !default_features {
             m.features(CargoOpt::NoDefaultFeatures);
@@ -126,6 +126,20 @@ impl ManifestPath {
 
         let res = m.exec()?;
         Ok(res)
+    }
+}
+
+impl From<&'_ str> for ManifestPath {
+    fn from(value: &'_ str) -> Self {
+        let mut pb = PathBuf::new();
+        pb.push(value);
+        ManifestPath::new(pb)
+    }
+}
+
+impl From<String> for ManifestPath {
+    fn from(value: String) -> Self {
+        ManifestPath::from(value.as_str())
     }
 }
 
@@ -213,7 +227,7 @@ mod test {
         adapter::IndicateAdapter, advisory::AdvisoryClient, execute_query,
         execute_query_with_adapter, extract_metadata_from_path,
         query::FullQuery, repo::github::GH_API_CALL_COUNTER,
-        util::transparent_results, IndicateAdapterBuilder,
+        util::transparent_results, IndicateAdapterBuilder, ManifestPath,
     };
 
     /// File that may never exist, to ensure some test work
@@ -248,6 +262,13 @@ mod test {
     #[test]
     fn non_existant_file() {
         assert!(!Path::new(NONEXISTENT_FILE).exists());
+    }
+
+    #[test_case("./")]
+    #[test_case("./Cargo.toml")]
+    fn manifest_path_smoke_test(path_str: &'static str) {
+        let res = ManifestPath::from(path_str);
+        assert!(res.as_path().ends_with("Cargo.toml"))
     }
 
     /// Assert that a query results matches the results provided in a file

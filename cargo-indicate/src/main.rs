@@ -4,8 +4,8 @@ use std::{fs, path::PathBuf};
 use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query, execute_query_with_adapter,
-    extract_metadata_from_path, query::FullQuery, query::FullQueryBuilder,
-    util::transparent_results, IndicateAdapterBuilder,
+    query::FullQuery, query::FullQueryBuilder, util::transparent_results,
+    CargoOpt, IndicateAdapterBuilder, ManifestPath,
 };
 
 /// Program to query Rust dependencies
@@ -14,10 +14,6 @@ use indicate::{
 #[command(group(
     ArgGroup::new("query_inputs")
         .required(true)
-))]
-#[command(group(
-    ArgGroup::new("adapter_adapters") // Arguments that creates a special IndicateAdapter
-        .required(false)
 ))]
 struct IndicateCli {
     /// An indicate query in a supported file format
@@ -52,25 +48,28 @@ struct IndicateCli {
     show_schema: bool,
 
     /// Which features to use when resolving metadata for this package
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with = "all_features")]
     features: Option<Vec<String>>,
 
     /// Do not include default features when resolving metadata for this package
     #[arg(short = 'n', long, default_value_t = false)]
     no_default_features: bool,
 
+    #[arg(
+        long,
+        default_value_t = false,
+        conflicts_with = "no_default_features"
+    )]
+    all_features: bool,
+
     /// Use a local `advisory-db` database instead of fetching the default
     /// from GitHub
-    #[arg(long, group = "adapter_adapters")]
+    #[arg(long)]
     advisory_db_dir: Option<PathBuf>,
 
     /// Attempt to use a cached version of `advisory-db` from the default
     /// location; Will fetch a new one if not present
-    #[arg(
-        long,
-        group = "adapter_adapters",
-        conflicts_with = "advisory_db_dir"
-    )]
+    #[arg(long, conflicts_with = "advisory_db_dir")]
     cached_advisory_db: bool,
 }
 
@@ -103,43 +102,45 @@ fn main() {
         unreachable!("no query provided");
     }
 
-    let metadata = extract_metadata_from_path(
-        &cli.package,
-        !cli.no_default_features,
-        cli.features,
-    )
-    .unwrap_or_else(|e| {
-        panic!("could not extract metadata due to error: {e}");
-    });
+    let manifest_path = ManifestPath::new(cli.package);
 
     // How we execute the query depends on if the user defined any special
     // requirements for the adapter
-    let res = if cmd.get_groups().any(|s| s.get_id() == "adapter_adapters") {
-        let mut b = IndicateAdapterBuilder::new(metadata);
 
-        // These two are mutually exclusive, but that is checked by clap already
-        if let Some(p) = cli.advisory_db_dir {
-            let ac =
-                AdvisoryClient::from_path(p.as_path()).unwrap_or_else(|e| {
-                    panic!(
-                        "could not parse advisory-db in {} due to error: {e}",
-                        p.to_string_lossy()
-                    )
-                });
-            b = b.advisory_client(ac);
-        } else if cli.cached_advisory_db {
-            let ac = AdvisoryClient::from_default_path().unwrap_or_else(|_| {
+    let mut b = IndicateAdapterBuilder::new(manifest_path);
+
+    // Clap will ensure that these do not mismatch
+    if cli.all_features {
+        b = b.features(vec![CargoOpt::AllFeatures]);
+    } else {
+        let mut features = Vec::with_capacity(2);
+        if let Some(f) = cli.features {
+            features.push(CargoOpt::SomeFeatures(f));
+        }
+        if cli.no_default_features {
+            features.push(CargoOpt::NoDefaultFeatures);
+        }
+    }
+
+    // These two are mutually exclusive, but that is checked by clap already
+    if let Some(p) = cli.advisory_db_dir {
+        let ac = AdvisoryClient::from_path(p.as_path()).unwrap_or_else(|e| {
+            panic!(
+                "could not parse advisory-db in {} due to error: {e}",
+                p.to_string_lossy()
+            )
+        });
+        b = b.advisory_client(ac);
+    } else if cli.cached_advisory_db {
+        let ac = AdvisoryClient::from_default_path().unwrap_or_else(|_| {
                 AdvisoryClient::new().unwrap_or_else(|e| {
                     panic!("could not fetch advisory-db due to error: {e} (cache also failed)")
                 })
             });
-            b = b.advisory_client(ac);
-        }
+        b = b.advisory_client(ac);
+    }
 
-        execute_query_with_adapter(&fq, b.build(), cli.max_results)
-    } else {
-        execute_query(&fq, metadata, cli.max_results)
-    };
+    let res = execute_query_with_adapter(&fq, b.build(), cli.max_results);
 
     let transparent_res = transparent_results(res);
     let res_string = serde_json::to_string_pretty(&transparent_res)

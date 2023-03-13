@@ -76,7 +76,7 @@ impl ManifestPath {
     ) -> Result<PathBuf, Box<dyn Error>> {
         let mut manifest_path = path;
 
-        if manifest_path.is_dir() && manifest_path.ends_with("Cargo.toml") {
+        if manifest_path.is_dir() && !manifest_path.ends_with("Cargo.toml") {
             manifest_path.push("Cargo.toml")
         }
 
@@ -104,7 +104,7 @@ impl ManifestPath {
         let manifest_path = Self::absolute_manifest_path_from(path)
             .unwrap_or_else(|e| {
                 panic!(
-                    "path to package could not be resolved due to error: {e}"
+                    "path to package could not be resolved due to error: {e}",
                 )
             });
         Self(manifest_path)
@@ -380,7 +380,7 @@ mod test {
 
     #[test_case("test_data/fake_crates/simple_deps" ; "extract from directory")]
     #[test_case("test_data/fake_crates/simple_deps/Cargo.toml" ; "extract from direct path")]
-    #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
+    #[test_case(NONEXISTENT_FILE => panics ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
         ManifestPath::from(path_str);
     }

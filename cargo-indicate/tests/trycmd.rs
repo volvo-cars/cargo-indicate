@@ -1,4 +1,6 @@
 #[test]
 fn cli_test() {
-    trycmd::TestCases::new().case("README.md");
+    trycmd::TestCases::new()
+        .case("tests/cmd/*.md")
+        .case("README.md");
 }

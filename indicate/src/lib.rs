@@ -17,13 +17,14 @@ use std::{
     cell::RefCell,
     collections::BTreeMap,
     error::Error,
+    fs,
     path::{Path, PathBuf},
     rc::Rc,
     sync::Arc,
 };
 
 use cargo_metadata::{CargoOpt, Metadata, MetadataCommand};
-use errors::FileParseError;
+use errors::{FileParseError, ManifestPathError};
 use once_cell::sync::Lazy;
 use query::FullQuery;
 use tokio::runtime::Runtime;
@@ -61,6 +62,72 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .build()
         .expect("could not create tokio runtime")
 });
+
+/// The absolute path to a `Cargo.toml` file for a valid Rust package,
+/// used to extract metadata and the like
+pub struct ManifestPath(PathBuf);
+
+impl ManifestPath {
+    /// Attempts to create an absolute path to a Rust package `Cargo.toml` file
+    fn absolute_manifest_path_from(
+        path: PathBuf,
+    ) -> Result<PathBuf, Box<dyn Error>> {
+        let mut manifest_path = path;
+
+        if manifest_path.is_dir() && manifest_path.ends_with("Cargo.toml") {
+            manifest_path.push("Cargo.toml")
+        }
+
+        manifest_path = if !manifest_path.is_absolute() {
+            fs::canonicalize(manifest_path)?
+        } else {
+            manifest_path
+        };
+
+        if !manifest_path.exists() {
+            Err(Box::new(ManifestPathError::CouldNotCreateValidPath(
+                manifest_path.to_string_lossy().into_owned(),
+            )))
+        } else {
+            Ok(manifest_path)
+        }
+    }
+
+    /// Creates a new, guaranteed valid, path to a `Cargo.toml` manifest
+    pub fn new(path: PathBuf) -> Self {
+        let manifest_path = Self::absolute_manifest_path_from(path)
+            .unwrap_or_else(|e| {
+                panic!(
+                    "path to package could not be resolved due to error: {e}"
+                )
+            });
+        Self(manifest_path)
+    }
+
+    pub fn as_path(&self) -> &Path {
+        &self.0
+    }
+
+    pub fn metadata(
+        &self,
+        default_features: bool,
+        features: Option<Vec<String>>,
+    ) -> Result<Metadata, Box<dyn Error>> {
+        let mut m = MetadataCommand::new();
+        m.manifest_path(self.0.as_path());
+
+        if !default_features {
+            m.features(CargoOpt::NoDefaultFeatures);
+        }
+
+        if let Some(f) = features {
+            m.features(CargoOpt::SomeFeatures(f));
+        }
+
+        let res = m.exec()?;
+        Ok(res)
+    }
+}
 
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`.

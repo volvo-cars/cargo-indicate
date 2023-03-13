@@ -26,3 +26,9 @@ pub enum GeigerError {
     )]
     UnexpectedOutput(String, String),
 }
+
+#[derive(Error, Debug, Clone)]
+pub enum ManifestPathError {
+    #[error("could not create a valid absoulute path to a `Cargo`.toml file: Created `{0}")]
+    CouldNotCreateValidPath(String),
+}

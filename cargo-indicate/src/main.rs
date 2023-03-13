@@ -47,20 +47,21 @@ struct IndicateCli {
     #[arg(long)]
     show_schema: bool,
 
-    /// Which features to use when resolving metadata for this package
-    #[arg(short, long, conflicts_with = "all_features")]
-    features: Option<Vec<String>>,
-
-    /// Do not include default features when resolving metadata for this package
-    #[arg(short = 'n', long, default_value_t = false)]
-    no_default_features: bool,
-
+    /// Use all available features when resolving metadata for this package
     #[arg(
         long,
         default_value_t = false,
         conflicts_with = "no_default_features"
     )]
     all_features: bool,
+
+    /// Do not include default features when resolving metadata for this package
+    #[arg(short = 'n', long, default_value_t = false)]
+    no_default_features: bool,
+
+    /// Which features to use when resolving metadata for this package
+    #[arg(short, long, conflicts_with = "all_features")]
+    features: Option<Vec<String>>,
 
     /// Use a local `advisory-db` database instead of fetching the default
     /// from GitHub

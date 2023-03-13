@@ -83,7 +83,7 @@ impl IndicateAdapter {
     ///
     /// If control over what GitHub client is used, if a cached `advisory-db`
     /// is to be used etc., consider using
-    /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder)
+    /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder).
     pub fn new(manifest_path: ManifestPath) -> Self {
         // Providing no features will use defaults
         let metadata = manifest_path.metadata(Vec::new()).unwrap_or_else(|e| {

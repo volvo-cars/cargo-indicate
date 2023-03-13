@@ -18,6 +18,12 @@ pub struct IndicateAdapterBuilder {
 }
 
 impl IndicateAdapterBuilder {
+    /// Creates a new builder for a [`IndicateAdapter`]
+    ///
+    /// Without any manual calls to set the fields of the future adapter, it
+    /// will produce the same adapter as [`IndicateAdapter::new`]. This means
+    /// that default features will be used when parsing metadata, if features
+    /// are not set using [`IndicateAdapterBuilder::features`].
     pub fn new(manifest_path: ManifestPath) -> IndicateAdapterBuilder {
         Self {
             manifest_path,
@@ -33,7 +39,7 @@ impl IndicateAdapterBuilder {
     /// If metadata is not explicitly set, one will be generated using the
     /// features provided (or if none, default features).
     ///
-    /// Will panic if both features and metadata is set manually.
+    /// Will panic if both features and metadata have been set manually.
     pub fn build(self) -> IndicateAdapter {
         if !self.features.is_empty() && self.metadata.is_some() {
             panic!(
@@ -93,11 +99,13 @@ impl IndicateAdapterBuilder {
         self
     }
 
+    /// Manually sets the GitHub client used by the adapter
     pub fn github_client(mut self, github_client: GitHubClient) -> Self {
         self.github_client = Some(github_client);
         self
     }
 
+    /// Manually sets the `advisory-db` client used by the adapter
     pub fn advisory_client(mut self, advisory_client: AdvisoryClient) -> Self {
         self.advisory_client = Some(advisory_client);
         self

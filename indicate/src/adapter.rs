@@ -18,6 +18,7 @@ use crate::{
     advisory::AdvisoryClient,
     repo::github::{GitHubClient, GitHubRepositoryId},
     vertex::Vertex,
+    ManifestPath,
 };
 
 pub mod adapter_builder;
@@ -57,6 +58,7 @@ pub fn parse_metadata(
 }
 
 pub struct IndicateAdapter {
+    manifest_path: Rc<ManifestPath>,
     metadata: Rc<Metadata>,
     packages: Rc<PackageMap>,
 
@@ -77,12 +79,16 @@ impl IndicateAdapter {
 
 /// Helper methods to resolve fields using the metadata
 impl IndicateAdapter {
-    /// Creates a new [`IndicateAdapter`], using a provided metadata as a starting point
+    /// Creates a new [`IndicateAdapter`], using a manifest path as a starting point
     ///
     /// If control over what GitHub client is used, if a cached `advisory-db`
     /// is to be used etc., consider using
     /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder)
-    pub fn new(metadata: Metadata) -> Self {
+    pub fn new(manifest_path: ManifestPath) -> Self {
+        let metadata = manifest_path.metadata(true, None).unwrap_or_else(|e| {
+            panic!("could not parse metadata due to error {e}")
+        });
+
         let (packages, direct_dependencies) = parse_metadata(&metadata);
 
         let advisory_client = AdvisoryClient::new().unwrap_or_else(|e| {
@@ -90,6 +96,7 @@ impl IndicateAdapter {
         });
 
         Self {
+            manifest_path: Rc::new(manifest_path),
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),

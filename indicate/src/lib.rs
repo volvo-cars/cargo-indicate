@@ -108,6 +108,10 @@ impl ManifestPath {
         &self.0
     }
 
+    /// Extracts metadata from a `Cargo.toml` file by its
+    ///
+    /// Optionally provide a list of features to be used when creating the metadata,
+    /// and if default features are to be included or not.
     pub fn metadata(
         &self,
         default_features: bool,
@@ -147,10 +151,10 @@ impl From<String> for ManifestPath {
 /// provided by `indicate`.
 pub fn execute_query(
     query: &FullQuery,
-    metadata: Metadata,
+    manifest_path: ManifestPath,
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
-    let adapter = IndicateAdapter::new(metadata);
+    let adapter = IndicateAdapter::new(manifest_path);
     execute_query_with_adapter(query, adapter, max_results)
 }
 
@@ -174,41 +178,6 @@ pub fn execute_query_with_adapter(
     res
 }
 
-/// Extracts metadata from a `Cargo.toml` file by its direct path, or the path
-/// of its directory
-///
-/// Optionally provide a list of features to be used when creating the metadata,
-/// and if default features are to be included or not.
-pub fn extract_metadata_from_path(
-    path: &Path,
-    default_features: bool,
-    features: Option<Vec<String>>,
-) -> Result<Metadata, Box<dyn Error>> {
-    let mut m = MetadataCommand::new();
-    if path.is_file() {
-        m.manifest_path(path);
-    } else if path.is_dir() {
-        let mut assumed_path = PathBuf::from(path);
-        assumed_path.push("Cargo.toml");
-        m.manifest_path(assumed_path);
-    } else {
-        return Err(Box::new(FileParseError::NotFound(
-            path.to_string_lossy().to_string(),
-        )));
-    };
-
-    if !default_features {
-        m.features(CargoOpt::NoDefaultFeatures);
-    }
-
-    if let Some(f) = features {
-        m.features(CargoOpt::SomeFeatures(f));
-    }
-
-    let res = m.exec()?;
-    Ok(res)
-}
-
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
@@ -225,9 +194,9 @@ mod test {
 
     use crate::{
         adapter::IndicateAdapter, advisory::AdvisoryClient, execute_query,
-        execute_query_with_adapter, extract_metadata_from_path,
-        query::FullQuery, repo::github::GH_API_CALL_COUNTER,
-        util::transparent_results, IndicateAdapterBuilder, ManifestPath,
+        execute_query_with_adapter, query::FullQuery,
+        repo::github::GH_API_CALL_COUNTER, util::transparent_results,
+        IndicateAdapterBuilder, ManifestPath,
     };
 
     /// File that may never exist, to ensure some test work

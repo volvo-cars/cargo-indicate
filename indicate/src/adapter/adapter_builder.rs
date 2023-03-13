@@ -2,20 +2,28 @@ use std::{cell::RefCell, rc::Rc};
 
 use cargo_metadata::Metadata;
 
-use crate::{advisory::AdvisoryClient, repo::github::GitHubClient};
+use crate::{
+    advisory::AdvisoryClient, repo::github::GitHubClient, ManifestPath,
+};
 
 use super::{parse_metadata, IndicateAdapter};
 
 /// Builder for [`IndicateAdapter`]
 pub struct IndicateAdapterBuilder {
+    manifest_path: ManifestPath,
     metadata: Metadata,
     github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
 }
 
 impl IndicateAdapterBuilder {
-    pub fn new(metadata: Metadata) -> IndicateAdapterBuilder {
+    pub fn new(manifest_path: ManifestPath) -> IndicateAdapterBuilder {
+        let metadata = manifest_path.metadata(true, None).unwrap_or_else(|e| {
+            panic!("could not parse metadata due to error: {e}")
+        });
+
         Self {
+            manifest_path,
             metadata,
             github_client: None,
             advisory_client: None,
@@ -25,6 +33,7 @@ impl IndicateAdapterBuilder {
     pub fn build(self) -> IndicateAdapter {
         let (packages, direct_dependencies) = parse_metadata(&self.metadata);
         IndicateAdapter {
+            manifest_path: Rc::new(self.manifest_path),
             metadata: Rc::new(self.metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),

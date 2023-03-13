@@ -24,7 +24,7 @@ use std::{
 };
 
 use cargo_metadata::{CargoOpt, Metadata, MetadataCommand};
-use errors::{FileParseError, ManifestPathError};
+use errors::ManifestPathError;
 use once_cell::sync::Lazy;
 use query::FullQuery;
 use tokio::runtime::Runtime;
@@ -94,6 +94,10 @@ impl ManifestPath {
     }
 
     /// Creates a new, guaranteed valid, path to a `Cargo.toml` manifest
+    ///
+    /// If the path is not an absolute path to a `Cargo.toml` file, it will be
+    /// attempted to be converted to it. If a directory is passed, it will be
+    /// assumed to contain a `Cargo.toml` file
     pub fn new(path: PathBuf) -> Self {
         let manifest_path = Self::absolute_manifest_path_from(path)
             .unwrap_or_else(|e| {
@@ -142,6 +146,8 @@ impl From<&'_ str> for ManifestPath {
 }
 
 impl From<String> for ManifestPath {
+    /// Attempts to create a valid [`ManifestPath`] from a String representation
+    /// of a path, using the same coresions as [`ManifestPath::new`]
     fn from(value: String) -> Self {
         ManifestPath::from(value.as_str())
     }
@@ -181,7 +187,6 @@ pub fn execute_query_with_adapter(
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
-    use cargo_metadata::Metadata;
     use core::panic;
     use std::{
         collections::BTreeMap,
@@ -219,8 +224,8 @@ mod test {
     }
 
     /// Crates an [`IndicateAdapter`] that is usable in tests
-    fn test_adapter(metadata: Metadata) -> IndicateAdapter {
-        IndicateAdapterBuilder::new(metadata)
+    fn test_adapter(manifest_path: ManifestPath) -> IndicateAdapter {
+        IndicateAdapterBuilder::new(manifest_path)
             .advisory_client(
                 AdvisoryClient::from_default_path()
                     .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
@@ -277,12 +282,10 @@ mod test {
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
-        let metadata =
-            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
-                .unwrap();
+        let manifest_path = ManifestPath::new(cargo_toml_path);
         execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            test_adapter(metadata),
+            test_adapter(manifest_path),
             None,
         );
     }
@@ -298,14 +301,11 @@ mod test {
         let raw_expected_result_name =
             format!("test_data/queries/{query_name}.expected.json");
         let expected_result_path = Path::new(&raw_expected_result_name);
-        let metadata =
-            extract_metadata_from_path(cargo_toml_path.as_path(), true, None)
-                .unwrap();
 
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            test_adapter(metadata),
+            test_adapter(ManifestPath::new(cargo_toml_path)),
             None,
         ));
 
@@ -332,12 +332,15 @@ mod test {
         let mut sorted_features = features.to_owned();
         sorted_features.sort();
 
-        let metadata = extract_metadata_from_path(
-            cargo_toml_path.as_path(),
-            default_features,
-            Some(features.iter().map(|s| s.to_string()).collect::<Vec<_>>()),
-        )
-        .expect("should be able to parse metadata");
+        let manifest_path = ManifestPath::new(cargo_toml_path);
+        let metadata = manifest_path
+            .metadata(
+                default_features,
+                Some(
+                    features.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
+                ),
+            )
+            .expect("should be able to parse metadata");
 
         let mut raw_expected_result_name =
             format!("test_data/queries/{query_name}-{default_features}");
@@ -355,7 +358,7 @@ mod test {
 
         let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(&query_path).unwrap(),
-            test_adapter(metadata),
+            test_adapter(),
             None,
         ));
 

@@ -51,6 +51,7 @@ use std::{
     process::{Command, Stdio},
 };
 
+use cargo_metadata::CargoOpt;
 use rustsec::Version;
 use serde::Deserialize;
 
@@ -68,7 +69,9 @@ impl GeigerClient {
     /// Creates a new client from the path one would pass to `cargo-geiger`
     ///
     /// Requires that `cargo-geiger` is installed on the system, and will panic
-    /// if it is not.
+    /// if it is not. The caller must also check that `features` is a valid
+    /// combination, otherwise `cargo-geiger` may fail. An empty vector will
+    /// be handled as default features.
     ///
     /// Will create an absolute path of `manifest_path`.
     ///
@@ -79,8 +82,7 @@ impl GeigerClient {
     /// Will redirect both `stdout` and `stderr` internally.
     pub fn from_path(
         manifest_path: &Path,
-        default_features: bool,
-        features: Option<Vec<String>>,
+        features: Vec<CargoOpt>,
     ) -> Result<Self, Box<GeigerError>> {
         let absolute_manifest_path = if !manifest_path.is_absolute() {
             fs::canonicalize(manifest_path)
@@ -95,14 +97,21 @@ impl GeigerClient {
             .arg("--manifest-path")
             .arg(absolute_manifest_path.as_os_str());
 
-        if !default_features {
-            cmd.arg("--no-default-features");
-        }
-
-        if let Some(f) = features {
-            if !f.is_empty() {
-                cmd.arg("--features");
-                cmd.args(f);
+        for f in features {
+            // Validity of these should be checked by CLI, not library
+            match f {
+                CargoOpt::AllFeatures => {
+                    cmd.arg("--all-features");
+                }
+                CargoOpt::NoDefaultFeatures => {
+                    cmd.arg("--no-default-features");
+                }
+                CargoOpt::SomeFeatures(s) => {
+                    if !s.is_empty() {
+                        cmd.arg("--features");
+                        cmd.args(s);
+                    }
+                }
             }
         }
 
@@ -404,7 +413,7 @@ mod test {
         let path_string =
             format!("test_data/fake_crates/{crate_name}/Cargo.toml");
         let path = Path::new(&path_string);
-        GeigerClient::from_path(path, true, None).unwrap();
+        GeigerClient::from_path(path, vec![]).unwrap();
     }
 
     #[test_case("simple_deps")]

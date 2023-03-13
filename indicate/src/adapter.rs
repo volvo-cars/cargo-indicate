@@ -85,7 +85,8 @@ impl IndicateAdapter {
     /// is to be used etc., consider using
     /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder)
     pub fn new(manifest_path: ManifestPath) -> Self {
-        let metadata = manifest_path.metadata(true, None).unwrap_or_else(|e| {
+        // Providing no features will use defaults
+        let metadata = manifest_path.metadata(Vec::new()).unwrap_or_else(|e| {
             panic!("could not parse metadata due to error {e}")
         });
 

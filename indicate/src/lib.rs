@@ -23,7 +23,7 @@ use std::{
     sync::Arc,
 };
 
-use cargo_metadata::{CargoOpt, Metadata, MetadataCommand};
+use cargo_metadata::{Metadata, MetadataCommand};
 use errors::ManifestPathError;
 use once_cell::sync::Lazy;
 use query::FullQuery;
@@ -39,6 +39,8 @@ mod repo;
 pub mod util;
 mod vertex;
 
+/// Features to create metadata with
+pub use cargo_metadata::CargoOpt;
 pub use rustsec::advisory::Severity;
 /// Valid platforms that can be provided to queries
 pub use rustsec::platforms;
@@ -115,21 +117,19 @@ impl ManifestPath {
     /// Extracts metadata from a `Cargo.toml` file by its
     ///
     /// Optionally provide a list of features to be used when creating the metadata,
-    /// and if default features are to be included or not.
+    /// however some combinations may not be viable (see [`CargoOpt`]).
+    ///
+    /// May return a failure if the features provided are not of a possible
+    /// combination (such as `AllFeatures` with `NoDefaultFeatures`).
     pub fn metadata(
         &self,
-        default_features: bool,
-        features: Option<Vec<String>>,
+        features: Vec<CargoOpt>,
     ) -> Result<Metadata, Box<dyn Error>> {
         let mut m = MetadataCommand::new();
         m.manifest_path(self.as_path());
 
-        if !default_features {
-            m.features(CargoOpt::NoDefaultFeatures);
-        }
-
-        if let Some(f) = features {
-            m.features(CargoOpt::SomeFeatures(f));
+        for feature in features {
+            m.features(feature);
         }
 
         let res = m.exec()?;
@@ -187,6 +187,7 @@ pub fn execute_query_with_adapter(
 #[cfg(test)]
 mod test {
     // use lazy_static::lazy_static;
+    use cargo_metadata::CargoOpt;
     use core::panic;
     use std::{
         collections::BTreeMap,
@@ -224,13 +225,22 @@ mod test {
     }
 
     /// Crates an [`IndicateAdapter`] that is usable in tests
-    fn test_adapter(manifest_path: ManifestPath) -> IndicateAdapter {
-        IndicateAdapterBuilder::new(manifest_path)
-            .advisory_client(
-                AdvisoryClient::from_default_path()
-                    .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
-            )
-            .build()
+    ///
+    /// Passing `None` features will use default features.
+    fn test_adapter(
+        manifest_path: ManifestPath,
+        features: Option<Vec<CargoOpt>>,
+    ) -> IndicateAdapter {
+        let mut b = IndicateAdapterBuilder::new(manifest_path).advisory_client(
+            AdvisoryClient::from_default_path()
+                .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
+        );
+
+        if let Some(f) = features {
+            b = b.features(f);
+        }
+
+        b.build()
     }
 
     #[test]
@@ -285,7 +295,7 @@ mod test {
         let manifest_path = ManifestPath::new(cargo_toml_path);
         execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            test_adapter(manifest_path),
+            test_adapter(manifest_path, None),
             None,
         );
     }
@@ -305,7 +315,7 @@ mod test {
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            test_adapter(ManifestPath::new(cargo_toml_path)),
+            test_adapter(ManifestPath::new(cargo_toml_path), None),
             None,
         ));
 
@@ -332,15 +342,18 @@ mod test {
         let mut sorted_features = features.to_owned();
         sorted_features.sort();
 
+        let mut features = vec![CargoOpt::SomeFeatures(
+            features
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>(),
+        )];
+
+        if !default_features {
+            features.push(CargoOpt::NoDefaultFeatures);
+        }
+
         let manifest_path = ManifestPath::new(cargo_toml_path);
-        let metadata = manifest_path
-            .metadata(
-                default_features,
-                Some(
-                    features.iter().map(|s| s.to_string()).collect::<Vec<_>>(),
-                ),
-            )
-            .expect("should be able to parse metadata");
 
         let mut raw_expected_result_name =
             format!("test_data/queries/{query_name}-{default_features}");
@@ -358,7 +371,7 @@ mod test {
 
         let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(&query_path).unwrap(),
-            test_adapter(),
+            test_adapter(manifest_path, Some(features)),
             None,
         ));
 
@@ -369,11 +382,7 @@ mod test {
     #[test_case("test_data/fake_crates/simple_deps/Cargo.toml" ; "extract from direct path")]
     #[test_case(NONEXISTENT_FILE => panics "does not exist" ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
-        let m = extract_metadata_from_path(Path::new(path_str), true, None);
-        match m {
-            Ok(_) => return,
-            Err(b) => panic!("{}", b),
-        }
+        ManifestPath::from(path_str);
     }
 
     #[test_case("test_data/queries/no_deps_all_fields.in.ron" ; "extract ron file")]
@@ -393,13 +402,11 @@ mod test {
             "test_data/queries/github_simple.in.ron",
         ))
         .unwrap();
-        let metadata = extract_metadata_from_path(
-            Path::new("test_data/fake_crates/direct_dependencies"),
-            true,
+        let adapter = test_adapter(
+            ManifestPath::from("test_data/fake_crates/direct_dependencies"),
             None,
-        )
-        .unwrap();
-        let res = execute_query(&q, metadata, Some(1));
+        );
+        let res = execute_query_with_adapter(&q, adapter, Some(1));
         assert_eq!(res.len(), GH_API_CALL_COUNTER.get())
     }
 }

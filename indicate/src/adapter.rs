@@ -5,7 +5,7 @@ use std::{
 use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
-use once_cell::unsync::{Lazy, OnceCell};
+use once_cell::unsync::OnceCell;
 use trustfall::{
     provider::{
         accessor_property, field_property, resolve_neighbors_with,
@@ -456,6 +456,30 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         .into()
                 })
             }
+            ("GeigerUnsafety", "forbidsUnsafe") => resolve_property_with(
+                contexts,
+                field_property!(as_geiger_unsafety, forbids_unsafe),
+            ),
+            ("GeigerCount", "safe") => resolve_property_with(
+                contexts,
+                field_property!(as_geiger_count, safe),
+            ),
+            ("GeigerCount", "unsafe") => resolve_property_with(
+                contexts,
+                field_property!(as_geiger_count, unsafe_),
+            ),
+            ("GeigerCount", "total") => resolve_property_with(
+                contexts,
+                accessor_property!(as_geiger_count, total),
+            ),
+            ("GeigerCount", "percentageUnsafe") => {
+                resolve_property_with(contexts, |vertex| {
+                    // From<f64> for FieldValue not implemented at this time
+                    let count = vertex.as_geiger_count().unwrap();
+                    let percentage = count.percentage_unsafe();
+                    FieldValue::Float64(percentage)
+                })
+            }
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }
@@ -576,6 +600,19 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     Box::new(res)
                 })
             }
+            ("Package", "geiger") => {
+                let geiger_client = self.geiger_client();
+                resolve_neighbors_with(contexts, move |vertex| {
+                    let package = vertex.as_package().unwrap();
+                    let gid =
+                        (package.name.clone(), package.version.clone()).into();
+                    let unsafety = geiger_client
+                            .unsafety(&gid).unwrap_or_else(|| {
+                                panic!("could not resolve unsafety for package {} (v. {})", package.name, package.version);
+                            });
+                    Box::new(std::iter::once(Vertex::GeigerUnsafety(unsafety)))
+                })
+            }
             ("GitHubRepository", "owner") => {
                 let gh_client = self.gh_client();
                 resolve_neighbors_with(contexts, move |vertex| {
@@ -610,6 +647,78 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         ),
                         None => Box::new(std::iter::empty()),
                     }
+                })
+            }
+            ("GeigerUnsafety", "used") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let unsafety = vertex.as_geiger_unsafety().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCategories(
+                        unsafety.used,
+                    )))
+                })
+            }
+            ("GeigerUnsafety", "unused") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let unsafety = vertex.as_geiger_unsafety().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCategories(
+                        unsafety.unused,
+                    )))
+                })
+            }
+            ("GeigerUnsafety", "total") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let unsafety = vertex.as_geiger_unsafety().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCategories(
+                        unsafety.total(),
+                    )))
+                })
+            }
+            ("GeigerCategories", "functions") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.functions,
+                    )))
+                })
+            }
+            ("GeigerCategories", "exprs") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.exprs,
+                    )))
+                })
+            }
+            ("GeigerCategories", "item_impls") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.item_impls,
+                    )))
+                })
+            }
+            ("GeigerCategories", "item_traits") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.item_traits,
+                    )))
+                })
+            }
+            ("GeigerCategories", "methods") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.methods,
+                    )))
+                })
+            }
+            ("GeigerCategories", "total") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let categories = vertex.as_geiger_categories().unwrap();
+                    Box::new(std::iter::once(Vertex::GeigerCount(
+                        categories.total(),
+                    )))
                 })
             }
             (t, e) => {

@@ -44,10 +44,8 @@
 
 use std::{
     collections::HashMap,
-    fs,
     io::Read,
     ops::Add,
-    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -245,16 +243,16 @@ impl From<(String, Version)> for GeigerId {
 /// nothing is used by the analyzed package.
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub struct GeigerUnsafety {
-    pub used: GeigerTargets,
-    pub unused: GeigerTargets,
+    pub used: GeigerCategories,
+    pub unused: GeigerCategories,
     pub forbids_unsafe: bool,
 }
 
 impl GeigerUnsafety {
     /// Retrieves the total geiger count for all targets, i.e. total for used
     /// and unused code
-    pub fn total(&self) -> GeigerTargets {
-        GeigerTargets {
+    pub fn total(&self) -> GeigerCategories {
+        GeigerCategories {
             functions: self.used.functions + self.unused.functions,
             exprs: self.used.exprs + self.unused.exprs,
             item_impls: self.used.item_impls + self.unused.item_impls,
@@ -299,7 +297,7 @@ impl GeigerUnsafety {
 
 /// All different targets in Rust code that `cargo-geiger` counts
 #[derive(Debug, Clone, Copy, Deserialize)]
-pub struct GeigerTargets {
+pub struct GeigerCategories {
     pub functions: GeigerCount,
     pub exprs: GeigerCount,
     pub item_impls: GeigerCount,
@@ -307,7 +305,7 @@ pub struct GeigerTargets {
     pub methods: GeigerCount,
 }
 
-impl GeigerTargets {
+impl GeigerCategories {
     /// Aggregates all [`GeigerCount`] for all targets, returning one with total
     /// safe and total unsafe for all targets
     pub fn total(&self) -> GeigerCount {
@@ -335,11 +333,11 @@ impl GeigerTargets {
     }
 }
 
-impl Add<GeigerTargets> for GeigerTargets {
-    type Output = GeigerTargets;
+impl Add<GeigerCategories> for GeigerCategories {
+    type Output = GeigerCategories;
 
-    fn add(self, rhs: GeigerTargets) -> Self::Output {
-        GeigerTargets {
+    fn add(self, rhs: GeigerCategories) -> Self::Output {
+        GeigerCategories {
             functions: self.functions + rhs.functions,
             exprs: self.exprs + rhs.exprs,
             item_impls: self.item_impls + rhs.item_impls,

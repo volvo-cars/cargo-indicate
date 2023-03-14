@@ -16,11 +16,17 @@ use indicate::{
         .required(true)
 ))]
 struct IndicateCli {
-    /// Indicate queries in a supported file format
+    /// Indicate queries in a supported file format to be run in series
+    ///
+    /// These queries will run using the same Trustfall adapter, meaning there
+    /// is a performance gain versus multiple `cargo-indicate` calls.
     #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE")]
     query_path: Option<Vec<PathBuf>>,
 
-    /// Indicate queries in plain text, without arguments
+    /// Indicate queries in plain text, without arguments, to be run in series
+    ///
+    /// These queries will run using the same Trustfall adapter, meaning there
+    /// is a performance gain versus multiple `cargo-indicate` calls.
     #[arg(short, long, group = "query_inputs", conflicts_with = "query_path")]
     query: Option<Vec<String>>,
 

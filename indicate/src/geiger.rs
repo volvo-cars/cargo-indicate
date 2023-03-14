@@ -287,6 +287,8 @@ impl GeigerUnsafety {
 
     /// Calculates the percentage of the package to be unsafe, to two decimal
     /// points
+    ///
+    /// Uses the total unsafe and total safe code as basis.
     pub fn percentage_unsafe(&self) -> f64 {
         two_digit_percentage(
             self.total_unsafe(),
@@ -306,8 +308,8 @@ pub struct GeigerCategories {
 }
 
 impl GeigerCategories {
-    /// Aggregates all [`GeigerCount`] for all targets, returning one with total
-    /// safe and total unsafe for all targets
+    /// Aggregates all [`GeigerCount`] for all categories, returning one with
+    /// total safe and total unsafe for all categories
     pub fn total(&self) -> GeigerCount {
         self.functions
             + self.exprs

@@ -317,6 +317,7 @@ mod test {
     #[test_case("simple_deps", "count_dependencies" ; "count the number of dependencies used by each dependency")]
     #[test_case("forbids_unsafe", "geiger_forbids_unsafe")]
     #[test_case("forbids_unsafe", "geiger_total_percentage")]
+    #[test_case("unsafe_crate", "geiger_advanced")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

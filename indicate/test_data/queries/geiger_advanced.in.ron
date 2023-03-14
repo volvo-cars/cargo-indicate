@@ -1,0 +1,42 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        geiger {
+            forbidsUnsafe @output
+            used {
+                exprs {
+                    safe @output(name: "safeExprs")
+                    unsafe @output(name: "unsafeExprs")
+                    total @output(name: "totalExprs")
+                    percentageUnsafe @output(name: "exprsPercentageUnsafe")
+                }
+            }
+        }
+        dependencies {
+            geiger {
+                used {
+                    methods {
+                        safe @output(name: "depUsedSafeMethods")
+                        unsafe @output(name: "depUsedUnsafeMethods")
+                        total @output(name: "depUsedTotalMethods")
+                        percentageUnsafe @output(name: "depUsedMethodPercentageUnsafe")
+                    }
+                }
+                unused {
+                    total {
+                        percentageUnsafe @output(name: "depUnusedTotalPercentageUnsafe")
+                    }
+                }
+                total {
+                    total {
+                        percentageUnsafe @output(name: "depTotalPercentageUnsafe")
+                    }
+                }
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

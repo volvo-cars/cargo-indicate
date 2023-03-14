@@ -8,5 +8,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+crazy_unsafe = [] # Enable at your own risk!
+
 [dependencies]
 libc = "0.2.139"

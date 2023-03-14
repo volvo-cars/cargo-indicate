@@ -11,6 +11,10 @@ To do this, simply run:
 cargo install cargo-geiger
 ```
 
+Due to a known problem with the `cargo-geiger` `--features` flag, it may not
+always work as intended. See 
+[the issue on rust-secure-code/cargo-geiger](https://github.com/rust-secure-code/cargo-geiger/issues/379).
+
 You can install the custom command using
 
 ```ignore

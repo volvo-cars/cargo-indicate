@@ -209,7 +209,7 @@ mod test {
     use trustfall::TransparentValue;
 
     use crate::{
-        adapter::IndicateAdapter, advisory::AdvisoryClient, execute_query,
+        adapter::IndicateAdapter, advisory::AdvisoryClient,
         execute_query_with_adapter, query::FullQuery,
         repo::github::GH_API_CALL_COUNTER, util::transparent_results,
         IndicateAdapterBuilder, ManifestPath,
@@ -317,7 +317,7 @@ mod test {
     #[test_case("simple_deps", "count_dependencies" ; "count the number of dependencies used by each dependency")]
     #[test_case("forbids_unsafe", "geiger_forbids_unsafe")]
     #[test_case("forbids_unsafe", "geiger_total_percentage")]
-    #[test_case("unsafe_crate", "geiger_advanced")]
+    #[test_case("unsafe_crate", "geiger_advanced" => inconclusive["cargo-geiger --features flag broken, see https://github.com/rust-secure-code/cargo-geiger/issues/379"])]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
@@ -340,17 +340,22 @@ mod test {
     /// Relies on a naming scheme where the expected ends with
     /// `-<default_features>-<feat1>-<feat2>.expected.json` (features are sorted
     /// alphabetically, and not included if empty)
-    #[test_case(true, vec![] ; "default features enabled")]
-    #[test_case(false, vec![] ; "no features no dependencies")]
-    #[test_case(false, vec!["a", "b"] ; "default features manually enabled")]
-    #[test_case(false, vec!["c"] ; "no default features single dep")]
-    #[test_case(false, vec!["d"] ; "no default features single dep via other dep")]
-    #[test_case(true, vec!["a", "b"] ; "default features enabled together with manual")]
-    #[test_case(false, vec!["a", "b", "c", "d"] ; "no default features all deps")]
-    fn feature_query_test(default_features: bool, features: Vec<&'static str>) {
-        let query_name = "list_direct_dependencies";
+    #[test_case("feature_deps", "list_direct_dependencies", true, vec![] ; "default features enabled")]
+    #[test_case("feature_deps", "list_direct_dependencies", false, vec![] ; "no features no dependencies")]
+    #[test_case("feature_deps", "list_direct_dependencies", false, vec!["a", "b"] ; "default features manually enabled")]
+    #[test_case("feature_deps", "list_direct_dependencies", false, vec!["c"] ; "no default features single dep")]
+    #[test_case("feature_deps", "list_direct_dependencies", false, vec!["d"] ; "no default features single dep via other dep")]
+    #[test_case("feature_deps", "list_direct_dependencies", true, vec!["a", "b"] ; "default features enabled together with manual")]
+    #[test_case("feature_deps", "list_direct_dependencies", false, vec!["a", "b", "c", "d"] ; "no default features all deps")]
+    #[test_case("unsafe_crate", "geiger_advanced", false, vec!["crazy_unsafe"] ; "dangerous feature increases geiger unsafety")]
+    fn feature_query_test(
+        fake_crate_name: &str,
+        query_name: &str,
+        default_features: bool,
+        features: Vec<&'static str>,
+    ) {
         let (cargo_toml_path, query_path) =
-            get_paths("feature_deps", query_name);
+            get_paths(fake_crate_name, query_name);
 
         let mut sorted_features = features.to_owned();
         sorted_features.sort();

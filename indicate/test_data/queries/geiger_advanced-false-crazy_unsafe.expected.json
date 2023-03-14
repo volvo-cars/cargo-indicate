@@ -1,0 +1,15 @@
+[
+  {
+    "depTotalPercentageUnsafe": 10.57,
+    "depUnusedTotalPercentageUnsafe": 10.92,
+    "depUsedMethodPercentageUnsafe": 28.57,
+    "depUsedSafeMethods": 5,
+    "depUsedTotalMethods": 7,
+    "depUsedUnsafeMethods": 2,
+    "exprsPercentageUnsafe": 20.0,
+    "forbidsUnsafe": false,
+    "safeExprs": 8,
+    "totalExprs": 10,
+    "unsafeExprs": 2
+  }
+]

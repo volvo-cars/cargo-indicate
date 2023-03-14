@@ -1,9 +1,11 @@
 use std::{cell::RefCell, rc::Rc};
 
 use cargo_metadata::{CargoOpt, Metadata};
+use once_cell::unsync::OnceCell;
 
 use crate::{
-    advisory::AdvisoryClient, repo::github::GitHubClient, ManifestPath,
+    advisory::AdvisoryClient, geiger::GeigerClient, repo::github::GitHubClient,
+    ManifestPath,
 };
 
 use super::{parse_metadata, IndicateAdapter};
@@ -15,6 +17,7 @@ pub struct IndicateAdapterBuilder {
     metadata: Option<Metadata>,
     github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
+    geiger_client: Option<GeigerClient>,
 }
 
 impl IndicateAdapterBuilder {
@@ -31,6 +34,7 @@ impl IndicateAdapterBuilder {
             metadata: None,
             github_client: None,
             advisory_client: None,
+            geiger_client: None,
         }
     }
 
@@ -49,19 +53,24 @@ impl IndicateAdapterBuilder {
 
         let metadata = match self.metadata {
             Some(m) => m,
-            None => {
-                self.manifest_path
-                    .metadata(self.features)
-                    .unwrap_or_else(|e| {
-                        panic!("could not generate metadata due to error: {e}")
-                    })
-            }
+            None => self
+                .manifest_path
+                .metadata(self.features.clone())
+                .unwrap_or_else(|e| {
+                    panic!("could not generate metadata due to error: {e}")
+                }),
         };
 
         // unwrap OK, if-statement above guarantees self.metadata to exist
         let (packages, direct_dependencies) = parse_metadata(&metadata);
+        let geiger_client = self
+            .geiger_client
+            .map(|gc| OnceCell::with_value(Rc::new(gc)))
+            .unwrap_or_else(|| OnceCell::new());
+
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),
+            features: self.features,
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
@@ -77,6 +86,7 @@ impl IndicateAdapterBuilder {
                             })
                     }),
             ),
+            geiger_client,
         }
     }
 
@@ -108,6 +118,17 @@ impl IndicateAdapterBuilder {
     /// Manually sets the `advisory-db` client used by the adapter
     pub fn advisory_client(mut self, advisory_client: AdvisoryClient) -> Self {
         self.advisory_client = Some(advisory_client);
+        self
+    }
+
+    /// Manually sets the `cargo-geiger` client used by the adapter
+    ///
+    /// This should generally not be done, since it is an expensive operation to
+    /// run `cargo-geiger`; Instead set the desired `manifest_path` and features,
+    /// which will make a lazily evaluated [`GeigerClient`] be available to the
+    /// adapter.
+    pub fn geiger_client(mut self, geiger_client: GeigerClient) -> Self {
+        self.geiger_client = Some(geiger_client);
         self
     }
 }

@@ -67,6 +67,7 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 
 /// The absolute path to a `Cargo.toml` file for a valid Rust package,
 /// used to extract metadata and the like
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ManifestPath(PathBuf);
 
 impl ManifestPath {
@@ -160,7 +161,10 @@ impl From<&String> for ManifestPath {
 }
 
 /// Executes a Trustfall query at a defined path, using the schema
-/// provided by `indicate`.
+/// provided by `indicate`
+///
+/// Will assume sane defaults for the adapter, such as enabling default features
+/// when resolving metadata.
 pub fn execute_query(
     query: &FullQuery,
     manifest_path: ManifestPath,
@@ -172,7 +176,7 @@ pub fn execute_query(
 
 /// Executes a Trustfall query with a dedicated [`IndicateAdapter`]
 ///
-/// Use when the default configuration does not provide enough control
+/// Use when the default configuration does not provide enough control.
 pub fn execute_query_with_adapter(
     query: &FullQuery,
     adapter: IndicateAdapter,

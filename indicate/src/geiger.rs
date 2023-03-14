@@ -57,7 +57,7 @@ use serde::Deserialize;
 
 use crate::{errors::GeigerError, ManifestPath};
 
-/// A client used to lazily evaluate `cargo-geiger` information for some package
+/// A client used to evaluate `cargo-geiger` information for some package
 /// and its dependencies
 #[derive(Debug)]
 pub struct GeigerClient {

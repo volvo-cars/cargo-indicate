@@ -2,9 +2,10 @@ use std::{
     cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Arc,
 };
 
-use cargo_metadata::{Metadata, Package, PackageId};
+use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
+use once_cell::unsync::{Lazy, OnceCell};
 use trustfall::{
     provider::{
         accessor_property, field_property, resolve_neighbors_with,
@@ -16,6 +17,7 @@ use trustfall::{
 
 use crate::{
     advisory::AdvisoryClient,
+    geiger::GeigerClient,
     repo::github::{GitHubClient, GitHubRepositoryId},
     vertex::Vertex,
     ManifestPath,
@@ -23,6 +25,7 @@ use crate::{
 
 pub mod adapter_builder;
 
+/// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
 
@@ -59,13 +62,13 @@ pub fn parse_metadata(
 
 pub struct IndicateAdapter {
     manifest_path: Rc<ManifestPath>,
+    features: Vec<CargoOpt>,
     metadata: Rc<Metadata>,
     packages: Rc<PackageMap>,
-
-    /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
     direct_dependencies: Rc<DirectDependencyMap>,
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: Rc<AdvisoryClient>,
+    geiger_client: OnceCell<Rc<GeigerClient>>,
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -98,11 +101,13 @@ impl IndicateAdapter {
 
         Self {
             manifest_path: Rc::new(manifest_path),
+            features: Vec::new(),
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(GitHubClient::new())),
             advisory_client: Rc::new(advisory_client),
+            geiger_client: OnceCell::new(),
         }
     }
 
@@ -128,6 +133,27 @@ impl IndicateAdapter {
     #[must_use]
     fn gh_client(&self) -> Rc<RefCell<GitHubClient>> {
         Rc::clone(&self.gh_client)
+    }
+
+    /// Retrieve or evaluate a [`GeigerClient`] for the features and manifest
+    /// path used by this adapter
+    ///
+    /// Since this is an expensive operation, it should only be done when the
+    /// data *must* be used.
+    #[must_use]
+    fn geiger_client(&self) -> Rc<GeigerClient> {
+        let sgc = self.geiger_client.get_or_init(|| {
+            let gc = GeigerClient::new(
+                &self.manifest_path,
+                self.features.to_owned(),
+            )
+            .unwrap_or_else(|e| {
+                panic!("failed to create geiger data due to error: {e}")
+            });
+            Rc::new(gc)
+        });
+
+        Rc::clone(sgc)
     }
 
     fn get_dependencies(

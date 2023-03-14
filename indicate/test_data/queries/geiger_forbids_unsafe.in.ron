@@ -1,0 +1,12 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        geiger {
+            forbidsUnsafe @output
+        }
+    }
+}
+    "#,
+    args: {}
+)

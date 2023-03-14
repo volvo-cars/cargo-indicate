@@ -12,7 +12,7 @@
 //! ```graphql
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 use std::{
     cell::RefCell,
     collections::BTreeMap,
@@ -315,6 +315,8 @@ mod test {
     #[test_case("simple_deps", "dependency_package_info" ; "information about root package direct dependencies")]
     #[test_case("simple_deps", "recursive_dependency" ; "retrieve recursive dependency information")]
     #[test_case("simple_deps", "count_dependencies" ; "count the number of dependencies used by each dependency")]
+    #[test_case("forbids_unsafe", "geiger_forbids_unsafe")]
+    #[test_case("forbids_unsafe", "geiger_total_percentage")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

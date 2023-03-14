@@ -1,0 +1,16 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        geiger @fold {
+            total {
+                total {
+                    percentageUnsafe @output
+                }
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

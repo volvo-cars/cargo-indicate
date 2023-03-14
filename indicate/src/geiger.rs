@@ -400,6 +400,7 @@ mod test {
     #[test_case("simple_deps")]
     #[test_case("known_advisory_deps")]
     #[test_case("feature_deps")]
+    #[test_case("forbids_unsafe")]
     fn geiger_from_path(crate_name: &'static str) {
         let path_string =
             format!("test_data/fake_crates/{crate_name}/Cargo.toml");

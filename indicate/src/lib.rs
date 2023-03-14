@@ -165,26 +165,34 @@ impl From<&String> for ManifestPath {
 ///
 /// Will assume sane defaults for the adapter, such as enabling default features
 /// when resolving metadata.
+///
+/// If multiple queries are to be resolved using the same adapter,
+/// [`execute_query_with_adapter`] can be used instead.
 pub fn execute_query(
     query: &FullQuery,
     manifest_path: ManifestPath,
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let adapter = IndicateAdapter::new(manifest_path);
-    execute_query_with_adapter(query, adapter, max_results)
+    execute_query_with_adapter(
+        query,
+        Rc::new(RefCell::new(adapter)),
+        max_results,
+    )
 }
 
-/// Executes a Trustfall query with a dedicated [`IndicateAdapter`]
+/// Executes a Trustfall query with a dedicated [`IndicateAdapter`], that may
+/// be reused
 ///
 /// Use when the default configuration does not provide enough control.
 pub fn execute_query_with_adapter(
     query: &FullQuery,
-    adapter: IndicateAdapter,
+    adapter: Rc<RefCell<IndicateAdapter>>,
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let res = match trustfall_execute_query(
         &SCHEMA,
-        Rc::new(RefCell::new(adapter)),
+        adapter,
         query.query.as_str(),
         query.args.clone(),
     ) {
@@ -200,9 +208,11 @@ mod test {
     use cargo_metadata::CargoOpt;
     use core::panic;
     use std::{
+        cell::RefCell,
         collections::BTreeMap,
         fs,
         path::{Path, PathBuf},
+        rc::Rc,
         sync::Arc,
     };
     use test_case::test_case;
@@ -240,7 +250,7 @@ mod test {
     fn test_adapter(
         manifest_path: ManifestPath,
         features: Option<Vec<CargoOpt>>,
-    ) -> IndicateAdapter {
+    ) -> Rc<RefCell<IndicateAdapter>> {
         let mut b = IndicateAdapterBuilder::new(manifest_path).advisory_client(
             AdvisoryClient::from_default_path()
                 .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
@@ -250,7 +260,7 @@ mod test {
             b = b.features(f);
         }
 
-        b.build()
+        Rc::new(RefCell::new(b.build()))
     }
 
     #[test]

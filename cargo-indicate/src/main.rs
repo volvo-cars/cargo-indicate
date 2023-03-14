@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-use std::{fs, path::PathBuf};
+use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
 
 use clap::{ArgGroup, Parser};
 use indicate::{
@@ -16,26 +16,34 @@ use indicate::{
         .required(true)
 ))]
 struct IndicateCli {
-    /// An indicate query in a supported file format
+    /// Indicate queries in a supported file format
     #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE")]
-    query_path: Option<PathBuf>,
+    query_path: Option<Vec<PathBuf>>,
 
-    /// An indicate query in plain text, without arguments
+    /// Indicate queries in plain text, without arguments
     #[arg(short, long, group = "query_inputs", conflicts_with = "query_path")]
-    query: Option<String>,
+    query: Option<Vec<String>>,
 
     /// Indicate arguments including arguments in plain text, without query in a
     /// JSON format
+    ///
+    /// If more than one query was provided, the args will be mapped to the
+    /// queries in the same order. If the number of args _n_ is less than the number
+    /// of queries, empty args will be used for all queries _m > n_.
     #[arg(short, long, requires = "query_inputs")]
-    args: Option<String>,
+    args: Option<Vec<String>>,
 
     /// Path to a Cargo.toml file, or a directory containing one
     #[arg(default_value = "./")]
     package: PathBuf,
 
     /// Define another output than stdout for query results
+    ///
+    /// If more than one is provided, it must be the same number as the number
+    /// of queries provided, and query _i_ will be located in the _i_ defined
+    /// output.
     #[arg(short, long, value_name = "FILE")]
-    output: Option<PathBuf>,
+    output: Option<Vec<PathBuf>>,
 
     /// The max number of query results to evaluate,
     /// use to limit for example third party API calls
@@ -82,24 +90,50 @@ fn main() {
         return;
     }
 
-    let fq: FullQuery;
-    if let Some(query_path) = cli.query_path {
-        fq = FullQuery::from_path(&query_path).unwrap_or_else(|e| {
-            panic!("could not parse query file due to error: {e}");
-        });
-    } else if let Some(query_str) = cli.query {
-        let mut fqb = FullQueryBuilder::new(query_str);
-
-        if let Some(args) = cli.args {
-            fqb = fqb.args(
-                serde_json::from_str(&args)
-                    .expect("could not parse args argument"),
-            );
+    let mut fqs: Vec<FullQuery>;
+    if let Some(query_paths) = cli.query_path {
+        fqs = Vec::with_capacity(query_paths.len());
+        for path in query_paths {
+            fqs.push(FullQuery::from_path(&path).unwrap_or_else(|e| {
+                panic!("could not parse query file due to error: {e}");
+            }));
+        }
+    } else if let Some(query_strs) = cli.query {
+        if let Some(args) = &cli.args {
+            if args.len() > query_strs.len() {
+                panic!("more arguments provided than queries");
+            }
         }
 
-        fq = fqb.build();
+        fqs = Vec::with_capacity(query_strs.len());
+        let mut args = cli.args
+            .iter()
+            .flatten();
+
+        // Queries with index over the amount of arguments get no arguments
+        for query_str in query_strs {
+            let mut fqb = FullQueryBuilder::new(query_str);
+
+            if let Some(args) = args.next() {
+                fqb = fqb.args(
+                    serde_json::from_str(&args)
+                        .expect("could not parse args argument"),
+                );
+            }
+
+            fqs.push(fqb.build());
+        }
     } else {
         unreachable!("no query provided");
+    }
+
+    // Test this early, so we panic before anything expensive is done
+    if let Some(output_paths) = &cli.output {
+        // If we have more than one output, it must be a list of files to write
+        // each query to
+        if output_paths.len() > 1 && output_paths.len() != fqs.len() {
+            panic!("if more than one output path is defined, it must match the amount of queries");
+        }
     }
 
     let manifest_path = ManifestPath::new(cli.package);
@@ -140,19 +174,49 @@ fn main() {
         b = b.advisory_client(ac);
     }
 
-    let res = execute_query_with_adapter(&fq, b.build(), cli.max_results);
+    // Reuse the same adapter for multiple queries
+    let adapter = Rc::new(RefCell::new(b.build()));
 
-    let transparent_res = transparent_results(res);
-    let res_string = serde_json::to_string_pretty(&transparent_res)
-        .expect("could not serialize result");
-    if let Some(output) = cli.output {
-        fs::write(output.as_path(), res_string).unwrap_or_else(|e| {
-            panic!(
-                "could not write output to {} due to error: {e}",
-                output.to_string_lossy()
-            )
-        });
+    let mut res_strings = Vec::with_capacity(fqs.len());
+    for query in fqs {
+        let res = execute_query_with_adapter(&query, Rc::clone(&adapter), cli.max_results);
+        let transparent_res = transparent_results(res);
+        res_strings.push(
+            serde_json::to_string_pretty(&transparent_res)
+                .expect("could not serialize result"),
+        );
+    }
+
+    // At this point we have already checked that the amount of outputs is acceptable
+    // in accordance with how many queries there are
+    if let Some(output_paths) = cli.output {
+        match output_paths {
+            single_path if output_paths.len() == 1 => {
+                // Write all queries to a single file
+                let concat_res = res_strings.join("\n");
+                
+                fs::write(single_path[0].as_path(), concat_res).unwrap_or_else(|e| {
+                    panic!(
+                        "could not write output to {} due to error: {e}",
+                        single_path[0].to_string_lossy()
+                    )
+                });
+            },
+            multiple_paths if output_paths.len() > 1 => {
+                // We would have panicked already if these are not equal
+                for (res, path) in res_strings.iter().zip(multiple_paths.iter()) {
+                    fs::write(path.as_path(), res).unwrap_or_else(|e| {
+                        panic!(
+                            "could not write output to {} due to error: {e}",
+                            path.to_string_lossy()
+                        )
+                    });
+                }
+            }
+            _ => unreachable!("if more than one output path is defined, it must match the amount of queries"),
+        }
     } else {
-        print!("{res_string}");
+        let concat_res = res_strings.join("\n");
+        print!("{concat_res}");
     }
 }

@@ -332,7 +332,7 @@ mod test {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
         let raw_expected_result_name =
-            format!("test_data/queries/{query_name}.expected.json");
+            format!("test_data/queries_expected/{query_name}.expected.json");
         let expected_result_path = Path::new(&raw_expected_result_name);
 
         // We use `TransparentValue for neater JSON serialization
@@ -383,8 +383,9 @@ mod test {
 
         let manifest_path = ManifestPath::new(cargo_toml_path);
 
-        let mut raw_expected_result_name =
-            format!("test_data/queries/{query_name}-{default_features}");
+        let mut raw_expected_result_name = format!(
+            "test_data/queries_expected/{query_name}-{default_features}"
+        );
 
         if !sorted_features.is_empty() {
             raw_expected_result_name = format!(

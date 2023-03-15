@@ -44,6 +44,10 @@ struct IndicateCli {
     )]
     query_dir: Option<PathBuf>,
 
+    /// Exclude files containing this substring when using `--query-dir`
+    #[arg(short = 'x', long, requires = "query_dir")]
+    exclude: Vec<String>,
+
     /// Indicate query in plain text, without arguments, to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
@@ -160,6 +164,15 @@ fn main() {
 
                 if file_path.is_dir() {
                     panic! ("nested directories with --query-dir not supported, found {}", file_path.to_string_lossy())
+                } else if cli.exclude.contains(
+                    &file_path
+                        .file_name()
+                        .unwrap_or_default()
+                        .to_string_lossy()
+                        .into(),
+                ) {
+                    // Don't add this, it is included in list of excluded files
+                    continue;
                 } else {
                     q.push(file_path);
                 }

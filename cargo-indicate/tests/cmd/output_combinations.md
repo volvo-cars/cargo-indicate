@@ -10,3 +10,4 @@ Usage: cargo-indicate --output <FILE> <--query-path <FILE>|--query-dir <DIR>|--q
 For more information, try '--help'.
 
 ```
+

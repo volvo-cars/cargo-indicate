@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![feature(path_file_prefix)]
 use std::{
     cell::RefCell, collections::BTreeSet, ffi::OsString, fs, path::PathBuf,
     rc::Rc,
@@ -23,7 +24,7 @@ struct IndicateCli {
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE")]
+    #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE(s)")]
     query_path: Option<Vec<PathBuf>>,
 
     /// A directory containing indicate queries in a supported file format
@@ -39,11 +40,11 @@ struct IndicateCli {
         long,
         group = "query_inputs",
         value_name = "DIR",
-        conflicts_with = "query"
+        conflicts_with = "query" // Can be combined with `query_path` though
     )]
     query_dir: Option<PathBuf>,
 
-    /// Indicate queries in plain text, without arguments, to be run in series
+    /// Indicate query in plain text, without arguments, to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
@@ -292,16 +293,15 @@ fn main() {
         // We generate the file names from the names of our input queries
         // unwrap is safe, since clap ensures --output-dir cannot be used
         // with non-file queries
-        let mut used_file_stems: BTreeSet<OsString> = BTreeSet::new();
+        let mut used_file_prefix: BTreeSet<OsString> = BTreeSet::new();
         Some(
             query_paths
                 .unwrap()
                 .iter()
                 .map(|p| {
-                    let mut pb = PathBuf::new();
-                    pb.push(&dir_root);
+                    let mut pb = PathBuf::from(&dir_root);
 
-                    let true_file_stem = match p.file_stem() {
+                    let true_file_prefix = match p.file_prefix() {
                         Some(fs) => fs,
                         None => panic!(
                             "could not extract file stem from {}",
@@ -311,25 +311,28 @@ fn main() {
 
                     // To avoid overwriting when we have duplicate query name stems,
                     // we append a number to the stem when they are duplicates.
-                    let file_stem = if !used_file_stems.contains(true_file_stem)
+                    let file_prefix = if !used_file_prefix
+                        .contains(true_file_prefix)
                     {
-                        used_file_stems.insert(true_file_stem.to_os_string());
-                        OsString::from(true_file_stem)
+                        used_file_prefix
+                            .insert(true_file_prefix.to_os_string());
+                        OsString::from(true_file_prefix)
                     } else {
                         let mut i: u32 = 1;
-                        let mut file_stem = OsString::from(true_file_stem);
-                        while used_file_stems.contains(file_stem.as_os_str()) {
-                            // This is to avoid file_stem-1-2-3-4-....
-                            file_stem = OsString::from(true_file_stem);
-                            file_stem.push(format!("({i})"));
+                        let mut file_prefix = OsString::from(true_file_prefix);
+                        while used_file_prefix.contains(file_prefix.as_os_str())
+                        {
+                            // This is to avoid file_prefix-1-2-3-4-....
+                            file_prefix = OsString::from(true_file_prefix);
+                            file_prefix.push(format!("({i})"));
                             i += 1;
                         }
-                        used_file_stems.insert(file_stem.clone());
-                        file_stem
+                        used_file_prefix.insert(file_prefix.clone());
+                        file_prefix
                     };
 
-                    pb.push(file_stem);
-                    pb.push(".out.json");
+                    pb.push(file_prefix);
+                    pb.set_extension("out.json"); // first  `.` inserted automatically
 
                     pb
                 })

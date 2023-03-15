@@ -1,5 +1,8 @@
 #![forbid(unsafe_code)]
-use std::{cell::RefCell, fs, path::PathBuf, rc::Rc, collections::BTreeSet, ffi::{OsStr, OsString}};
+use std::{
+    cell::RefCell, collections::BTreeSet, ffi::OsString, fs, path::PathBuf,
+    rc::Rc,
+};
 
 use clap::{ArgGroup, Parser};
 use indicate::{
@@ -31,7 +34,13 @@ struct IndicateCli {
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(short = 'd', long, group = "query_inputs", value_name = "DIR", conflicts_with = "query")]
+    #[arg(
+        short = 'd',
+        long,
+        group = "query_inputs",
+        value_name = "DIR",
+        conflicts_with = "query"
+    )]
     query_dir: Option<PathBuf>,
 
     /// Indicate queries in plain text, without arguments, to be run in series
@@ -74,7 +83,6 @@ struct IndicateCli {
         conflicts_with = "query"
     )]
     output_dir: Option<PathBuf>,
-    
 
     /// The max number of query results to evaluate,
     /// use to limit for example third party API calls
@@ -122,7 +130,9 @@ fn main() {
     }
 
     // Aggregate query paths from `--query-path` and `--query-dir` flags
-    let query_paths: Option<Vec<PathBuf>> = if cli.query_path.is_some() || cli.query_dir.is_some() {
+    let query_paths: Option<Vec<PathBuf>> = if cli.query_path.is_some()
+        || cli.query_dir.is_some()
+    {
         let mut q = Vec::new();
 
         if let Some(query_paths) = cli.query_path {
@@ -131,13 +141,21 @@ fn main() {
 
         if let Some(dir_path) = cli.query_dir {
             let files = fs::read_dir(&dir_path).unwrap_or_else(|e| {
-                panic!("could not read queries in directory {} due to error: {e}", dir_path.to_string_lossy())
+                panic!(
+                    "could not read queries in directory {} due to error: {e}",
+                    dir_path.to_string_lossy()
+                )
             });
 
             for f in files {
-                let file_path = f.unwrap_or_else(|e| {
-                    panic!("could not read file in {} due to error {e}", dir_path.to_string_lossy())
-                }).path();
+                let file_path = f
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "could not read file in {} due to error {e}",
+                            dir_path.to_string_lossy()
+                        )
+                    })
+                    .path();
 
                 if file_path.is_dir() {
                     panic! ("nested directories with --query-dir not supported, found {}", file_path.to_string_lossy())
@@ -153,7 +171,7 @@ fn main() {
     };
 
     let mut fqs: Vec<FullQuery>;
-    if let Some(query_paths) = &query_paths {       
+    if let Some(query_paths) = &query_paths {
         fqs = Vec::with_capacity(query_paths.len());
         for path in query_paths {
             fqs.push(FullQuery::from_path(&path).unwrap_or_else(|e| {
@@ -168,9 +186,7 @@ fn main() {
         }
 
         fqs = Vec::with_capacity(query_strs.len());
-        let mut args = cli.args
-            .iter()
-            .flatten();
+        let mut args = cli.args.iter().flatten();
 
         // Queries with index over the amount of arguments get no arguments
         for query_str in query_strs {
@@ -241,7 +257,11 @@ fn main() {
 
     let mut res_strings = Vec::with_capacity(fqs.len());
     for query in fqs {
-        let res = execute_query_with_adapter(&query, Rc::clone(&adapter), cli.max_results);
+        let res = execute_query_with_adapter(
+            &query,
+            Rc::clone(&adapter),
+            cli.max_results,
+        );
         let transparent_res = transparent_results(res);
         res_strings.push(
             serde_json::to_string_pretty(&transparent_res)
@@ -255,11 +275,11 @@ fn main() {
     let output_paths: Option<Vec<PathBuf>> = if let Some(paths) = cli.output {
         // Assertion for amount of queries - amount of output paths done before
         Some(paths)
-    } else if let Some (dir_path) = cli.output_dir {
+    } else if let Some(dir_path) = cli.output_dir {
         // Ensure we have a proper directory to write to
         let dir_root = if dir_path.is_dir() {
             dir_path
-        } else if dir_path.exists() && !dir_path.is_dir()  {
+        } else if dir_path.exists() && !dir_path.is_dir() {
             panic!("provided output path is not a directory");
         } else {
             // It does not exist, so we try to create it (recursively)
@@ -273,43 +293,52 @@ fn main() {
         // unwrap is safe, since clap ensures --output-dir cannot be used
         // with non-file queries
         let mut used_file_stems: BTreeSet<OsString> = BTreeSet::new();
-        Some(query_paths.unwrap().iter().map(|p| {
-            let mut pb = PathBuf::new();
-            pb.push(&dir_root);
+        Some(
+            query_paths
+                .unwrap()
+                .iter()
+                .map(|p| {
+                    let mut pb = PathBuf::new();
+                    pb.push(&dir_root);
 
-            let true_file_stem = match p.file_stem() {
-                Some(fs) => fs,
-                None => panic!("could not extract file stem from {}", p.to_string_lossy()) 
-            };
-            
-            // To avoid overwriting when we have duplicate query name stems,
-            // we append a number to the stem when they are duplicates.
-            let file_stem = if !used_file_stems.contains(true_file_stem){
-                used_file_stems.insert(true_file_stem.to_os_string());
-                OsString::from(true_file_stem)
-            } else {
-                let mut i: u32 = 1;
-                let mut file_stem = OsString::from(true_file_stem);
-                while used_file_stems.contains(file_stem.as_os_str()) {
-                    // This is to avoid file_stem-1-2-3-4-....
-                    file_stem = OsString::from(true_file_stem);
-                    file_stem.push(format!("({i})"));
-                    i += 1;
-                }
-                used_file_stems.insert(file_stem.clone());
-                file_stem
-            };
+                    let true_file_stem = match p.file_stem() {
+                        Some(fs) => fs,
+                        None => panic!(
+                            "could not extract file stem from {}",
+                            p.to_string_lossy()
+                        ),
+                    };
 
-            pb.push(file_stem);
-            pb.push(".out.json");
+                    // To avoid overwriting when we have duplicate query name stems,
+                    // we append a number to the stem when they are duplicates.
+                    let file_stem = if !used_file_stems.contains(true_file_stem)
+                    {
+                        used_file_stems.insert(true_file_stem.to_os_string());
+                        OsString::from(true_file_stem)
+                    } else {
+                        let mut i: u32 = 1;
+                        let mut file_stem = OsString::from(true_file_stem);
+                        while used_file_stems.contains(file_stem.as_os_str()) {
+                            // This is to avoid file_stem-1-2-3-4-....
+                            file_stem = OsString::from(true_file_stem);
+                            file_stem.push(format!("({i})"));
+                            i += 1;
+                        }
+                        used_file_stems.insert(file_stem.clone());
+                        file_stem
+                    };
 
-            pb
-        }).collect::<Vec<_>>())
+                    pb.push(file_stem);
+                    pb.push(".out.json");
 
+                    pb
+                })
+                .collect::<Vec<_>>(),
+        )
     } else {
         None
     };
-    
+
     // At this point we have already checked that the amount of outputs is acceptable
     // in accordance with how many queries there are
     if let Some(output_paths) = output_paths {
@@ -317,8 +346,11 @@ fn main() {
             single_path if output_paths.len() == 1 => {
                 // Write all queries to a single file
                 let concat_res = res_strings.join("\n");
-                
-                fs::write(single_path[0].as_path(), concat_res).unwrap_or_else(|e| {
+
+                fs::write(
+                    single_path[0].as_path(),
+                    concat_res
+                ).unwrap_or_else(|e| {
                     panic!(
                         "could not write output to {} due to error: {e}",
                         single_path[0].to_string_lossy()

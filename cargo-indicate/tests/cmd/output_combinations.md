@@ -11,3 +11,24 @@ For more information, try '--help'.
 
 ```
 
+## Using more `--output` than input queries fails (no `--query-dir`)
+
+```console
+$ cargo-indicate
+> -Q ../indicate/test_data/queries/direct_dependencies.in.ron
+> --output test_target/t1.out.json test_target/t2.out.json
+> ../indicate/test_data/fake_crates/simple_deps
+? failed
+```
+
+## Using more than one `--output`, but not exactly the amount of queries provided fails
+
+_The directory is guaranteed to contain more than two queries_
+
+```console
+$ cargo-indicate
+> --query-dir ../indicate/test_data/queries/
+> --output test_target/t1 test_target/t2
+> ../indicate/test_data/fake_crates/simple_deps
+? failed
+```

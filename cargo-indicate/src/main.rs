@@ -24,7 +24,12 @@ struct IndicateCli {
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE(s)")]
+    #[arg(
+        short = 'Q',
+        long, group = "query_inputs",
+        value_name = "FILE(s)",
+        value_hint = clap::ValueHint::FilePath
+    )]
     query_path: Option<Vec<PathBuf>>,
 
     /// A directory containing indicate queries in a supported file format
@@ -40,7 +45,8 @@ struct IndicateCli {
         long,
         group = "query_inputs",
         value_name = "DIR",
-        conflicts_with = "query" // Can be combined with `query_path` though
+        conflicts_with = "query", // Can be combined with `query_path` though
+        value_hint = clap::ValueHint::DirPath
     )]
     query_dir: Option<PathBuf>,
 
@@ -65,7 +71,7 @@ struct IndicateCli {
     args: Option<Vec<String>>,
 
     /// Path to a Cargo.toml file, or a directory containing one
-    #[arg(default_value = "./")]
+    #[arg(default_value = "./", value_hint = clap::ValueHint::AnyPath)]
     package: PathBuf,
 
     /// Define another output than stdout for query results
@@ -73,7 +79,11 @@ struct IndicateCli {
     /// If more than one is provided, it must be the same number as the number
     /// of queries provided, and query _i_ will be located in the _i_ defined
     /// output.
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(short,
+        long,
+        value_name = "FILE",
+        value_hint = clap::ValueHint::FilePath
+    )]
     output: Option<Vec<PathBuf>>,
 
     /// Define a directory to write query results to
@@ -84,6 +94,7 @@ struct IndicateCli {
         short = 'O',
         long,
         value_name = "DIR",
+        value_hint = clap::ValueHint::DirPath,
         conflicts_with = "output",
         conflicts_with = "query"
     )]
@@ -117,7 +128,7 @@ struct IndicateCli {
 
     /// Use a local `advisory-db` database instead of fetching the default
     /// from GitHub
-    #[arg(long)]
+    #[arg(long, value_hint = clap::ValueHint::DirPath)]
     advisory_db_dir: Option<PathBuf>,
 
     /// Attempt to use a cached version of `advisory-db` from the default

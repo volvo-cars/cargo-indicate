@@ -1,5 +1,5 @@
 #![forbid(unsafe_code)]
-use std::{cell::RefCell, fs, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, fs, path::PathBuf, rc::Rc, collections::BTreeSet, ffi::{OsStr, OsString}};
 
 use clap::{ArgGroup, Parser};
 use indicate::{
@@ -24,6 +24,10 @@ struct IndicateCli {
     query_path: Option<Vec<PathBuf>>,
 
     /// A directory containing indicate queries in a supported file format
+    ///
+    /// Will create file names depending on the names of the input query files;
+    /// if there are duplicate query names, a number will be appended to avoid
+    /// overwriting. The extension will be `.out.json`.
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
@@ -149,7 +153,7 @@ fn main() {
     };
 
     let mut fqs: Vec<FullQuery>;
-    if let Some(query_paths) = &query_paths {
+    if let Some(query_paths) = &query_paths {       
         fqs = Vec::with_capacity(query_paths.len());
         for path in query_paths {
             fqs.push(FullQuery::from_path(&path).unwrap_or_else(|e| {
@@ -268,13 +272,32 @@ fn main() {
         // We generate the file names from the names of our input queries
         // unwrap is safe, since clap ensures --output-dir cannot be used
         // with non-file queries
+        let mut used_file_stems: BTreeSet<OsString> = BTreeSet::new();
         Some(query_paths.unwrap().iter().map(|p| {
             let mut pb = PathBuf::new();
             pb.push(&dir_root);
 
-            let file_stem = match p.file_stem() {
+            let true_file_stem = match p.file_stem() {
                 Some(fs) => fs,
                 None => panic!("could not extract file stem from {}", p.to_string_lossy()) 
+            };
+            
+            // To avoid overwriting when we have duplicate query name stems,
+            // we append a number to the stem when they are duplicates.
+            let file_stem = if !used_file_stems.contains(true_file_stem){
+                used_file_stems.insert(true_file_stem.to_os_string());
+                OsString::from(true_file_stem)
+            } else {
+                let mut i: u32 = 1;
+                let mut file_stem = OsString::from(true_file_stem);
+                while used_file_stems.contains(file_stem.as_os_str()) {
+                    // This is to avoid file_stem-1-2-3-4-....
+                    file_stem = OsString::from(true_file_stem);
+                    file_stem.push(format!("({i})"));
+                    i += 1;
+                }
+                used_file_stems.insert(file_stem.clone());
+                file_stem
             };
 
             pb.push(file_stem);
@@ -282,7 +305,7 @@ fn main() {
 
             pb
         }).collect::<Vec<_>>())
-    
+
     } else {
         None
     };

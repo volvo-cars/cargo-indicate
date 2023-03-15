@@ -1,6 +1,10 @@
 # Cargo output
 /**/target/*
 
+# Test output: Keep directory, but not the output
+/**/test_target/*
+!/**/test_target/.gitkeep
+
 # If someone spends a lot of money to pollute repos
 .DS_Store
 /**/.env

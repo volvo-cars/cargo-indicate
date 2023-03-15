@@ -23,6 +23,13 @@ struct IndicateCli {
     #[arg(short = 'Q', long, group = "query_inputs", value_name = "FILE")]
     query_path: Option<Vec<PathBuf>>,
 
+    /// A directory containing indicate queries in a supported file format
+    ///
+    /// These queries will run using the same Trustfall adapter, meaning there
+    /// is a performance gain versus multiple separate `cargo-indicate` calls.
+    #[arg(short = 'd', long, group = "query_inputs", value_name = "DIR", conflicts_with = "query")]
+    query_dir: Option<PathBuf>,
+
     /// Indicate queries in plain text, without arguments, to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
@@ -50,6 +57,20 @@ struct IndicateCli {
     /// output.
     #[arg(short, long, value_name = "FILE")]
     output: Option<Vec<PathBuf>>,
+
+    /// Define a directory to write query results to
+    ///
+    /// The results will be placed in files in accordance with their filename
+    /// with the extension replaced with `.out.json`.
+    #[arg(
+        short = 'O',
+        long,
+        value_name = "DIR",
+        conflicts_with = "output",
+        conflicts_with = "query"
+    )]
+    output_dir: Option<PathBuf>,
+    
 
     /// The max number of query results to evaluate,
     /// use to limit for example third party API calls
@@ -96,8 +117,39 @@ fn main() {
         return;
     }
 
+    // Aggregate query paths from `--query-path` and `--query-dir` flags
+    let query_paths: Option<Vec<PathBuf>> = if cli.query_path.is_some() || cli.query_dir.is_some() {
+        let mut q = Vec::new();
+
+        if let Some(query_paths) = cli.query_path {
+            q.extend(query_paths);
+        }
+
+        if let Some(dir_path) = cli.query_dir {
+            let files = fs::read_dir(&dir_path).unwrap_or_else(|e| {
+                panic!("could not read queries in directory {} due to error: {e}", dir_path.to_string_lossy())
+            });
+
+            for f in files {
+                let file_path = f.unwrap_or_else(|e| {
+                    panic!("could not read file in {} due to error {e}", dir_path.to_string_lossy())
+                }).path();
+
+                if file_path.is_dir() {
+                    panic! ("nested directories with --query-dir not supported, found {}", file_path.to_string_lossy())
+                } else {
+                    q.push(file_path);
+                }
+            }
+        }
+
+        Some(q)
+    } else {
+        None
+    };
+
     let mut fqs: Vec<FullQuery>;
-    if let Some(query_paths) = cli.query_path {
+    if let Some(query_paths) = &query_paths {
         fqs = Vec::with_capacity(query_paths.len());
         for path in query_paths {
             fqs.push(FullQuery::from_path(&path).unwrap_or_else(|e| {
@@ -193,9 +245,51 @@ fn main() {
         );
     }
 
+    // Use provided outputs, or create them in a directory, bases on the query
+    // file names. `cli.output` and `cli.output_dir` are exclusive, guaranteed
+    // by clap
+    let output_paths: Option<Vec<PathBuf>> = if let Some(paths) = cli.output {
+        // Assertion for amount of queries - amount of output paths done before
+        Some(paths)
+    } else if let Some (dir_path) = cli.output_dir {
+        // Ensure we have a proper directory to write to
+        let dir_root = if dir_path.is_dir() {
+            dir_path
+        } else if dir_path.exists() && !dir_path.is_dir()  {
+            panic!("provided output path is not a directory");
+        } else {
+            // It does not exist, so we try to create it (recursively)
+            fs::create_dir_all(&dir_path).unwrap_or_else(|e| {
+                panic!("could not create output dir (recursively) due to error: {e}")
+            });
+            dir_path
+        };
+
+        // We generate the file names from the names of our input queries
+        // unwrap is safe, since clap ensures --output-dir cannot be used
+        // with non-file queries
+        Some(query_paths.unwrap().iter().map(|p| {
+            let mut pb = PathBuf::new();
+            pb.push(&dir_root);
+
+            let file_stem = match p.file_stem() {
+                Some(fs) => fs,
+                None => panic!("could not extract file stem from {}", p.to_string_lossy()) 
+            };
+
+            pb.push(file_stem);
+            pb.push(".out.json");
+
+            pb
+        }).collect::<Vec<_>>())
+    
+    } else {
+        None
+    };
+    
     // At this point we have already checked that the amount of outputs is acceptable
     // in accordance with how many queries there are
-    if let Some(output_paths) = cli.output {
+    if let Some(output_paths) = output_paths {
         match output_paths {
             single_path if output_paths.len() == 1 => {
                 // Write all queries to a single file
@@ -214,8 +308,7 @@ fn main() {
                     fs::write(path.as_path(), res).unwrap_or_else(|e| {
                         panic!(
                             "could not write output to {} due to error: {e}",
-                            path.to_string_lossy()
-                        )
+                            path.to_string_lossy())
                     });
                 }
             }

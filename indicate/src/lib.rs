@@ -73,9 +73,9 @@ pub struct ManifestPath(PathBuf);
 impl ManifestPath {
     /// Attempts to create an absolute path to a Rust package `Cargo.toml` file
     fn absolute_manifest_path_from(
-        path: PathBuf,
+        path: &Path,
     ) -> Result<PathBuf, Box<dyn Error>> {
-        let mut manifest_path = path;
+        let mut manifest_path = path.to_path_buf();
 
         if manifest_path.is_dir() && !manifest_path.ends_with("Cargo.toml") {
             manifest_path.push("Cargo.toml")
@@ -102,10 +102,15 @@ impl ManifestPath {
     /// attempted to be converted to it. If a directory is passed, it will be
     /// assumed to contain a `Cargo.toml` file
     pub fn new(path: PathBuf) -> Self {
-        let manifest_path = Self::absolute_manifest_path_from(path)
+        let manifest_path = Self::absolute_manifest_path_from(&path)
             .unwrap_or_else(|e| {
+                let current_dir = std::env::current_dir()
+                    .map(|p| p.to_string_lossy().into())
+                    .unwrap_or(String::from("unknown"));
                 panic!(
-                    "path to package could not be resolved due to error: {e}",
+                    "path {} to package could not be resolved due to error: {e} (current dir is {})",
+                    path.to_string_lossy(),
+                    current_dir
                 )
             });
         Self(manifest_path)

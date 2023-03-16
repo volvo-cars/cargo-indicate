@@ -73,3 +73,19 @@ $ cargo-indicate
 > -- ../indicate/test_data/fake_crates/known_advisory_deps
 []
 ```
+
+## Testing
+
+Both `cargo-indicate` and the underlying library `indicate` are tested against
+queries and dummy crates. Tests here in `cargo-indicate` ensure the CLI is
+working as intended.
+
+It uses [`trycmd`](https://crates.io/crates/trycmd). For more info, see the
+[`trycmd` docs](https://docs.rs/trycmd), but the general idea is that tests
+compare input and output. Directories `<test-name>.in` are the root of a command
+defined in `<test-name>.toml`, and when a `<test-name>.out` directory is present
+`trycmd` ensures that after the command in `<test-name>.toml` is run
+`<test-name>.in` and `<test-name.out>` is the same (after which they are reset).
+
+This is done using `/tmp` files, so relative files will not work as if actually
+being called in `<test-name>.in`.

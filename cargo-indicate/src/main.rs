@@ -17,6 +17,7 @@ use indicate::{
 #[command(author, version, about, long_about = None)]
 #[command(group(
     ArgGroup::new("query_inputs")
+        .multiple(true) // We can have `--query-dir` AND `--query-path`
         .required(true)
 ))]
 struct IndicateCli {
@@ -47,7 +48,6 @@ struct IndicateCli {
         long,
         group = "query_inputs",
         value_name = "DIR",
-        conflicts_with = "query", // Can be combined with `query_path` though
         value_hint = clap::ValueHint::DirPath
     )]
     query_dir: Option<PathBuf>,
@@ -60,7 +60,12 @@ struct IndicateCli {
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(short, long, num_args = 1.., group = "query_inputs", conflicts_with = "query_path")]
+    #[arg(
+        short, long,
+        num_args = 1..,
+        group = "query_inputs", 
+        conflicts_with_all = ["query_path", "query_dir"]
+    )]
     query: Option<Vec<String>>,
 
     /// Indicate arguments including arguments in plain text, without query in a
@@ -386,7 +391,7 @@ fn main() {
                         {
                             // This is to avoid file_prefix-1-2-3-4-....
                             file_prefix = OsString::from(true_file_prefix);
-                            file_prefix.push(format!("({i})"));
+                            file_prefix.push(i.to_string());
                             i += 1;
                         }
                         used_file_prefix.insert(file_prefix.clone());

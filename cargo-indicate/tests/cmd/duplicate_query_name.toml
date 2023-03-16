@@ -1,0 +1,15 @@
+bin.name ="cargo-indicate"
+args = [
+  "--query-dir",
+  "queries",
+  "-x",
+  ".keep", # Used by test harness
+  "--query-path",
+  "./query.in.ron", # We have a duplicate!
+  "--output-dir",
+  "results",
+  "--",
+  "dummy_crate"
+]
+
+fs.sandbox = true

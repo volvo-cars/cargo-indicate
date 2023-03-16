@@ -80,7 +80,7 @@ struct IndicateCli {
     /// Path to a Cargo.toml file, or a directory containing one
     #[arg(
         last(true),
-        required = true,
+        required_unless_present = "show_schema",
         default_value = "./",
         value_hint = clap::ValueHint::AnyPath
     )]
@@ -120,8 +120,13 @@ struct IndicateCli {
     max_results: Option<usize>,
 
     /// Outputs the schema that is used to write queries,
-    /// in a GraphQL format
-    #[arg(long)]
+    /// in a GraphQL format, and exits
+    #[arg(
+        long,
+        exclusive = true,
+        // Hack due to clap not supporting `required_unless` for groups
+        group = "query_inputs"
+    )]
     show_schema: bool,
 
     /// Use all available features when resolving metadata for this package

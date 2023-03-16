@@ -5,6 +5,9 @@
 /**/test_target/*
 !/**/test_target/.gitkeep
 
+# trycmd dump files
+/**/dump/*
+
 # If someone spends a lot of money to pollute repos
 .DS_Store
 /**/.env

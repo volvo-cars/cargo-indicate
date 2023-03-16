@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use clap::{ArgGroup, Command, CommandFactory, Parser};
+use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
     query::FullQueryBuilder, util::transparent_results, CargoOpt,

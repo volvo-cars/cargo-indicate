@@ -143,7 +143,7 @@ impl IndicateAdapter {
             });
             Rc::new(ac)
         });
-        Rc::clone(&sac)
+        Rc::clone(sac)
     }
 
     /// Retrieve or evaluate a [`GeigerClient`] for the features and manifest

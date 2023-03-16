@@ -66,7 +66,7 @@ impl IndicateAdapterBuilder {
         let geiger_client = self
             .geiger_client
             .map(|gc| OnceCell::with_value(Rc::new(gc)))
-            .unwrap_or_else(|| OnceCell::new());
+            .unwrap_or_else(OnceCell::new);
 
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),

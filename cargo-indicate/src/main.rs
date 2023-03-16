@@ -230,7 +230,7 @@ fn main() {
     if let Some(query_paths) = &query_paths {
         fqs = Vec::with_capacity(query_paths.len());
         for path in query_paths {
-            fqs.push(FullQuery::from_path(&path).unwrap_or_else(|e| {
+            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
                 panic!("could not parse query file due to error: {e}");
             }));
         }
@@ -254,7 +254,7 @@ fn main() {
 
             if let Some(args) = args.next() {
                 fqb =
-                    fqb.args(serde_json::from_str(&args).unwrap_or_else(|e| {
+                    fqb.args(serde_json::from_str(args).unwrap_or_else(|e| {
                         let msg = format!(
                             "could not parse args argument due to error: {e}"
                         );

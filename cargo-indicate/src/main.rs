@@ -56,7 +56,7 @@ struct IndicateCli {
     #[arg(short = 'x', num_args = 0.., long, requires = "query_dir")]
     exclude: Vec<String>,
 
-    /// Indicate query in plain text, without arguments, to be run in series
+    /// Indicate queries in plain text, without arguments, to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.

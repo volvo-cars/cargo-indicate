@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use clap::{ArgGroup, Parser};
+use clap::{ArgGroup, Command, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
     query::FullQueryBuilder, util::transparent_results, CargoOpt,
@@ -73,7 +73,12 @@ struct IndicateCli {
     args: Option<Vec<String>>,
 
     /// Path to a Cargo.toml file, or a directory containing one
-    #[arg(last(true), default_value = "./", value_hint = clap::ValueHint::AnyPath)]
+    #[arg(
+        last(true),
+        required = true,
+        default_value = "./",
+        value_hint = clap::ValueHint::AnyPath
+    )]
     package: PathBuf,
 
     /// Define another output than stdout for query results
@@ -81,7 +86,8 @@ struct IndicateCli {
     /// If more than one is provided, it must be the same number as the number
     /// of queries provided, and query _i_ will be located in the _i_ defined
     /// output.
-    #[arg(short,
+    #[arg(
+        short,
         long,
         num_args = 1..,
         value_name = "FILE",
@@ -143,6 +149,9 @@ struct IndicateCli {
 fn main() {
     let cli = IndicateCli::parse();
 
+    // Used to report errors
+    let mut cmd = IndicateCli::command();
+
     if cli.show_schema {
         println!("{}", indicate::RAW_SCHEMA);
         return;
@@ -160,10 +169,14 @@ fn main() {
 
         if let Some(dir_path) = cli.query_dir {
             let files = fs::read_dir(&dir_path).unwrap_or_else(|e| {
-                panic!(
-                    "could not read queries in directory {} due to error: {e}",
-                    dir_path.to_string_lossy()
-                )
+                cmd.error(
+                    clap::error::ErrorKind::InvalidValue,
+                format!(
+                            "could not read queries in directory {} due to error: {e}",
+                            dir_path.to_string_lossy()
+                            ),
+                    )
+                    .exit();
             });
 
             for f in files {
@@ -177,7 +190,12 @@ fn main() {
                     .path();
 
                 if file_path.is_dir() {
-                    panic! ("nested directories with --query-dir not supported, found {}", file_path.to_string_lossy())
+                    let msg = format!(
+                        "nested directories with --query-dir not supported, found {}",
+                        file_path.to_string_lossy()
+                    );
+                    cmd.error(clap::error::ErrorKind::ValueValidation, msg)
+                        .exit();
                 } else if cli.exclude.contains(
                     &file_path
                         .file_name()
@@ -209,7 +227,11 @@ fn main() {
     } else if let Some(query_strs) = cli.query {
         if let Some(args) = &cli.args {
             if args.len() > query_strs.len() {
-                panic!("more arguments provided than queries");
+                cmd.error(
+                    clap::error::ErrorKind::TooManyValues,
+                    "more arguments provided than queries",
+                )
+                .exit();
             }
         }
 
@@ -221,10 +243,14 @@ fn main() {
             let mut fqb = FullQueryBuilder::new(query_str);
 
             if let Some(args) = args.next() {
-                fqb = fqb.args(
-                    serde_json::from_str(&args)
-                        .expect("could not parse args argument"),
-                );
+                fqb =
+                    fqb.args(serde_json::from_str(&args).unwrap_or_else(|e| {
+                        let msg = format!(
+                            "could not parse args argument due to error: {e}"
+                        );
+                        cmd.error(clap::error::ErrorKind::ValueValidation, msg)
+                            .exit();
+                    }));
             }
 
             fqs.push(fqb.build());
@@ -238,7 +264,12 @@ fn main() {
         // If we have more than one output, it must be a list of files to write
         // each query to
         if output_paths.len() > 1 && output_paths.len() != fqs.len() {
-            panic!("if more than one output path is defined, it must match the amount of queries");
+            cmd
+                .error(
+                    clap::error::ErrorKind::WrongNumberOfValues,
+                    "if more than one output path is defined, it must match the amount of queries"
+                )
+                .exit();
         }
     }
 
@@ -308,7 +339,11 @@ fn main() {
         let dir_root = if dir_path.is_dir() {
             dir_path
         } else if dir_path.exists() && !dir_path.is_dir() {
-            panic!("provided output path is not a directory");
+            cmd.error(
+                clap::error::ErrorKind::ValueValidation,
+                "provided output path is not a directory",
+            )
+            .exit();
         } else {
             // It does not exist, so we try to create it (recursively)
             fs::create_dir_all(&dir_path).unwrap_or_else(|e| {

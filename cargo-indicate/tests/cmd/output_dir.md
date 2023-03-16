@@ -1,11 +1,11 @@
 ## Cannot output into directory when using `-q` as input
 ```console
 $ cargo-indicate -q '' --output-dir test_target/will_fail
-> ../indicate/test_data/fake_crates/simple_deps
+> -- ../indicate/test_data/fake_crates/simple_deps
 ? failed
 error: the argument '--query <QUERY>' cannot be used with '--output-dir <DIR>'
 
-Usage: cargo-indicate <--query-path <FILE>|--query-dir <DIR>|--query <QUERY>> <PACKAGE>
+cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> [-- <PACKAGE>]
 
 For more information, try '--help'.
 
@@ -16,7 +16,7 @@ For more information, try '--help'.
 $ cargo-indicate
 > --query-path ../indicate/test_data/queries/direct_dependencies.in.ron
 > --output-dir test_target
-> ../indicate/test_data/fake_crates/simple_deps
+> -- ../indicate/test_data/fake_crates/simple_deps
 ? success
 ```
 
@@ -26,7 +26,7 @@ $ cargo-indicate
 $ cargo-indicate
 > --query-path ../indicate/test_data/queries/direct_dependencies.in.ron ../indicate/test_data/queries/count_dependencies.in.ron
 > --output-dir test_target
-> ../indicate/test_data/fake_crates/simple_deps
+> -- ../indicate/test_data/fake_crates/simple_deps
 ? success
 ```
 
@@ -38,6 +38,6 @@ Ignored for now, requires GitHub token
 $ cargo-indicate
 > --query-dir ../indicate/test_data/queries/
 > --output-dir test_target
-> ../indicate/test_data/fake_crates/simple_deps
+> -- ../indicate/test_data/fake_crates/simple_deps
 ? success
 ```

@@ -35,7 +35,8 @@ package. For example
 ```console
 $ cargo-indicate 
 > -Q ../indicate/test_data/queries/count_dependencies.in.ron
-> ../indicate/test_data/fake_crates/simple_deps
+> --cached-advisory-db # Useful when running concurrent requests, like in tests
+> -- ../indicate/test_data/fake_crates/simple_deps
 [
   {
     "dep_name": [],
@@ -69,6 +70,6 @@ return an empty list
 $ cargo-indicate
 > --advisory-db-dir .
 > -Q ../indicate/test_data/queries/advisory_db_simple.in.ron
-> ../indicate/test_data/fake_crates/known_advisory_deps
+> -- ../indicate/test_data/fake_crates/known_advisory_deps
 []
 ```

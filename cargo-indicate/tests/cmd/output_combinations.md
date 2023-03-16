@@ -17,6 +17,7 @@ For more information, try '--help'.
 $ cargo-indicate
 > -Q ../indicate/test_data/queries/direct_dependencies.in.ron
 > --output test_target/t1.out.json test_target/t2.out.json
+> --
 > ../indicate/test_data/fake_crates/simple_deps
 ? failed
 ```
@@ -29,6 +30,7 @@ _The directory is guaranteed to contain more than two queries_
 $ cargo-indicate
 > --query-dir ../indicate/test_data/queries/
 > --output test_target/t1 test_target/t2
+> --
 > ../indicate/test_data/fake_crates/simple_deps
 ? failed
 ```

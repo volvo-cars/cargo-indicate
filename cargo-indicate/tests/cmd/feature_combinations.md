@@ -5,7 +5,7 @@ $ cargo-indicate --all-features --no-default-features
 ? failed
 error: the argument '--all-features' cannot be used with '--no-default-features'
 
-cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> [-- <PACKAGE>]
+Usage: cargo-indicate --all-features <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
 
 For more information, try '--help'.
 
@@ -16,9 +16,9 @@ For more information, try '--help'.
 ```console
 $ cargo-indicate --all-features --features hello world
 ? failed
-error: the argument '--all-features' cannot be used with '--features <FEATURES>'
+error: the argument '--all-features' cannot be used with '--features [<FEATURES>...]'
 
-cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> [-- <PACKAGE>]
+Usage: cargo-indicate --all-features <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
 
 For more information, try '--help'.
 

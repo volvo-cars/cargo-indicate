@@ -3,9 +3,9 @@
 ```console
 $ cargo-indicate --output test_target/output.out.json --output-dir test_target/will_fail
 ? failed
-error: the argument '--output <FILE>' cannot be used with '--output-dir <DIR>'
+error: the argument '--output <FILE>...' cannot be used with '--output-dir <DIR>'
 
-Usage: cargo-indicate --output <FILE> <--query-path <FILE>|--query-dir <DIR>|--query <QUERY>> [PACKAGE]
+Usage: cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
 
 For more information, try '--help'.
 
@@ -20,6 +20,12 @@ $ cargo-indicate
 > --
 > ../indicate/test_data/fake_crates/simple_deps
 ? failed
+error: if more than one output path is defined, it must match the amount of queries
+
+Usage: cargo-indicate [OPTIONS] <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
+
+For more information, try '--help'.
+
 ```
 
 ## Using more than one `--output`, but not exactly the amount of queries provided fails
@@ -33,4 +39,10 @@ $ cargo-indicate
 > --
 > ../indicate/test_data/fake_crates/simple_deps
 ? failed
+error: if more than one output path is defined, it must match the amount of queries
+
+Usage: cargo-indicate [OPTIONS] <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
+
+For more information, try '--help'.
+
 ```

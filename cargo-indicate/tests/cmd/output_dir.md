@@ -3,9 +3,9 @@
 $ cargo-indicate -q '' --output-dir test_target/will_fail
 > -- ../indicate/test_data/fake_crates/simple_deps
 ? failed
-error: the argument '--query <QUERY>' cannot be used with '--output-dir <DIR>'
+error: the argument '--query <QUERY>...' cannot be used with '--output-dir <DIR>'
 
-cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> [-- <PACKAGE>]
+Usage: cargo-indicate <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...> -- <PACKAGE>
 
 For more information, try '--help'.
 

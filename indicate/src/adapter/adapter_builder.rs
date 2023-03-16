@@ -63,6 +63,10 @@ impl IndicateAdapterBuilder {
 
         // unwrap OK, if-statement above guarantees self.metadata to exist
         let (packages, direct_dependencies) = parse_metadata(&metadata);
+        let advisory_client = self
+            .advisory_client
+            .map(|ac| OnceCell::with_value(Rc::new(ac)))
+            .unwrap_or_else(OnceCell::new);
         let geiger_client = self
             .geiger_client
             .map(|gc| OnceCell::with_value(Rc::new(gc)))
@@ -77,15 +81,7 @@ impl IndicateAdapterBuilder {
             gh_client: Rc::new(RefCell::new(
                 self.github_client.unwrap_or_else(GitHubClient::new),
             )),
-            advisory_client: Rc::new(
-                self.advisory_client
-                    .unwrap_or_else(|| {
-                        AdvisoryClient::new()
-                        .unwrap_or_else(|e| {
-                                panic!("could not create advisory client due to error: {e}")
-                            })
-                    }),
-            ),
+            advisory_client,
             geiger_client,
         }
     }

@@ -67,7 +67,7 @@ pub struct IndicateAdapter {
     packages: Rc<PackageMap>,
     direct_dependencies: Rc<DirectDependencyMap>,
     gh_client: Rc<RefCell<GitHubClient>>,
-    advisory_client: Rc<AdvisoryClient>,
+    advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
 }
 
@@ -95,10 +95,6 @@ impl IndicateAdapter {
 
         let (packages, direct_dependencies) = parse_metadata(&metadata);
 
-        let advisory_client = AdvisoryClient::new().unwrap_or_else(|e| {
-            panic!("could not create advisory client due to error: {e}")
-        });
-
         Self {
             manifest_path: Rc::new(manifest_path),
             features: Vec::new(),
@@ -106,7 +102,7 @@ impl IndicateAdapter {
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(GitHubClient::new())),
-            advisory_client: Rc::new(advisory_client),
+            advisory_client: OnceCell::new(),
             geiger_client: OnceCell::new(),
         }
     }
@@ -133,6 +129,21 @@ impl IndicateAdapter {
     #[must_use]
     fn gh_client(&self) -> Rc<RefCell<GitHubClient>> {
         Rc::clone(&self.gh_client)
+    }
+
+    /// Retrieve or create a [`AdvisoryClient`]
+    ///
+    /// Since this is an expensive operation, it should only be done when the
+    /// data *must* be used.
+    #[must_use]
+    fn advisory_client(&self) -> Rc<AdvisoryClient> {
+        let sac = self.advisory_client.get_or_init(|| {
+            let ac = AdvisoryClient::new().unwrap_or_else(|e| {
+                panic!("could not create advisory client due to error: {e}")
+            });
+            Rc::new(ac)
+        });
+        Rc::clone(&sac)
     }
 
     /// Retrieve or evaluate a [`GeigerClient`] for the features and manifest
@@ -534,7 +545,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 })
             }
             ("Package", "advisoryHistory") => {
-                let advisory_client = Rc::clone(&self.advisory_client);
+                let advisory_client = self.advisory_client();
                 let include_withdrawn =
                     parameters.get("includeWithdrawn").map(|p| p.to_owned());
                 let arch = parameters.get("arch").map(|p| p.to_owned());

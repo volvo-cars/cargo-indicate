@@ -34,6 +34,11 @@ impl From<AdvisoryClient> for Database {
 
 impl AdvisoryClient {
     /// Creates a new client by fetching the default database from GitHub
+    ///
+    /// It is a good idea to create this lazily (for example using [`OnceCell`]
+    /// (once_cell::unsync::OnceCell)) since the operation is costly when not
+    /// needed.
+    #[must_use]
     pub fn new() -> Result<Self, rustsec::Error> {
         let db = Database::fetch()?;
         Ok(Self { db })

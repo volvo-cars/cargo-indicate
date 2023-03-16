@@ -26,8 +26,10 @@ struct IndicateCli {
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
     #[arg(
         short = 'Q',
-        long, group = "query_inputs",
-        value_name = "FILE(s)",
+        long,
+        group = "query_inputs",
+        num_args = 1..,
+        value_name = "FILE",
         value_hint = clap::ValueHint::FilePath
     )]
     query_path: Option<Vec<PathBuf>>,
@@ -51,14 +53,14 @@ struct IndicateCli {
     query_dir: Option<PathBuf>,
 
     /// Exclude files containing this substring when using `--query-dir`
-    #[arg(short = 'x', long, requires = "query_dir")]
+    #[arg(short = 'x', num_args = 0.., long, requires = "query_dir")]
     exclude: Vec<String>,
 
     /// Indicate query in plain text, without arguments, to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(short, long, group = "query_inputs", conflicts_with = "query_path")]
+    #[arg(short, long, num_args = 1.., group = "query_inputs", conflicts_with = "query_path")]
     query: Option<Vec<String>>,
 
     /// Indicate arguments including arguments in plain text, without query in a
@@ -67,11 +69,11 @@ struct IndicateCli {
     /// If more than one query was provided, the args will be mapped to the
     /// queries in the same order. If the number of args _n_ is less than the number
     /// of queries, empty args will be used for all queries _m > n_.
-    #[arg(short, long, requires = "query_inputs")]
+    #[arg(short, long, num_args = 0.., requires = "query_inputs")]
     args: Option<Vec<String>>,
 
     /// Path to a Cargo.toml file, or a directory containing one
-    #[arg(default_value = "./", value_hint = clap::ValueHint::AnyPath)]
+    #[arg(last(true), default_value = "./", value_hint = clap::ValueHint::AnyPath)]
     package: PathBuf,
 
     /// Define another output than stdout for query results
@@ -81,6 +83,7 @@ struct IndicateCli {
     /// output.
     #[arg(short,
         long,
+        num_args = 1..,
         value_name = "FILE",
         value_hint = clap::ValueHint::FilePath
     )]
@@ -123,7 +126,7 @@ struct IndicateCli {
     no_default_features: bool,
 
     /// Which features to use when resolving metadata for this package
-    #[arg(short, long, conflicts_with = "all_features")]
+    #[arg(short, long, num_args=0.., conflicts_with = "all_features")]
     features: Option<Vec<String>>,
 
     /// Use a local `advisory-db` database instead of fetching the default

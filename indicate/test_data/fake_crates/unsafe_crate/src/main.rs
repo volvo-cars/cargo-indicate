@@ -10,7 +10,8 @@ fn crazy_unsafe() {
 
     uk.leave = 1;
 
-    assert!(unsafe { uk.stay } < 50);
+    let final_vote = unsafe { uk.stay };
+    assert!(final_vote < 50);
 
     println!("Independence restored!");
 }
@@ -19,13 +20,14 @@ fn main() {
     let m = std::mem::size_of::<i64>();
 
     // Call to unsafe function
-    let p: *const i64 = unsafe { libc::malloc(m) as *const i64 };
+    let p: *const i64 = unsafe { libc::malloc(m) } as *const i64;
 
     // `p` is never checked against `libc::PT_NULL` to ensure
     // memory allocation succeeded
 
     // Unsafe dereference of raw pointer
-    println!("Found {} at allocated memory", unsafe { *p });
+    let n: i64 = unsafe { *p };
+    println!("Found {n} at allocated memory");
 
     // `p` is never freed!
 

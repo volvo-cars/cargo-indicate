@@ -1,15 +1,15 @@
 [
   {
     "depTotalPercentageUnsafe": 10.57,
-    "depUnusedTotalPercentageUnsafe": 10.92,
-    "depUsedMethodPercentageUnsafe": 28.57,
-    "depUsedSafeMethods": 5,
-    "depUsedTotalMethods": 7,
-    "depUsedUnsafeMethods": 2,
-    "exprsPercentageUnsafe": 50.0,
+    "depUnusedTotalPercentageUnsafe": 10.57,
+    "depUsedFunctionPercentageUnsafe": 0.0,
+    "depUsedSafeFunctions": 0,
+    "depUsedTotalFunctions": 1,
+    "depUsedUnsafeFunctions": 1,
+    "exprsPercentageUnsafe": 25.0,
     "forbidsUnsafe": false,
-    "safeExprs": 2,
-    "totalExprs": 4,
+    "safeExprs": 8,
+    "totalExprs": 10,
     "unsafeExprs": 2
   }
 ]

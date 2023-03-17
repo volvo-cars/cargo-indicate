@@ -16,11 +16,11 @@ FullQuery(
         dependencies {
             geiger {
                 used {
-                    methods {
-                        safe @output(name: "depUsedSafeMethods")
-                        unsafe @output(name: "depUsedUnsafeMethods")
-                        total @output(name: "depUsedTotalMethods")
-                        percentageUnsafe @output(name: "depUsedMethodPercentageUnsafe")
+                    functions {
+                        safe @output(name: "depUsedSafeFunctions")
+                        unsafe @output(name: "depUsedUnsafeFunctions")
+                        total @output(name: "depUsedTotalFunctions")
+                        percentageUnsafe @output(name: "depUsedFunctionPercentageUnsafe")
                     }
                 }
                 unused {

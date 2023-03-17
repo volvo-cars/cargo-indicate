@@ -362,7 +362,7 @@ mod test {
     #[test_case("feature_deps", "list_direct_dependencies", false, vec!["d"] ; "no default features single dep via other dep")]
     #[test_case("feature_deps", "list_direct_dependencies", true, vec!["a", "b"] ; "default features enabled together with manual")]
     #[test_case("feature_deps", "list_direct_dependencies", false, vec!["a", "b", "c", "d"] ; "no default features all deps")]
-    #[test_case("unsafe_crate", "geiger_advanced", false, vec!["crazy_unsafe"] ; "dangerous feature increases geiger unsafety")]
+    #[test_case("unsafe_crate", "geiger_advanced", false, vec!["crazy_unsafe"] => inconclusive["cargo-geiger and libc disagrees, see https://github.com/rust-secure-code/cargo-geiger/issues/447"] ; "dangerous feature increases geiger unsafety")]
     fn feature_query_test(
         fake_crate_name: &str,
         query_name: &str,
@@ -416,7 +416,7 @@ mod test {
     #[test_case("test_data/fake_crates/simple_deps/Cargo.toml" ; "extract from direct path")]
     #[test_case(NONEXISTENT_FILE => panics ; "extract from directory without Cargo.toml")]
     fn extract_metadata(path_str: &str) {
-        ManifestPath::from(path_str);
+        let _ = ManifestPath::from(path_str);
     }
 
     #[test_case("test_data/queries/no_deps_all_fields.in.ron" ; "extract ron file")]
@@ -432,6 +432,8 @@ mod test {
     #[test]
     #[ignore = "run in isolation"]
     fn max_results_limits_api_calls() {
+        // TODO: Use cfg(test) bookkeeping fields on GitHubClient to avoid
+        // global counter
         let q = FullQuery::from_path(Path::new(
             "test_data/queries/github_simple.in.ron",
         ))

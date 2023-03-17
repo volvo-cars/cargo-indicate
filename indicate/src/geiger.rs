@@ -106,54 +106,31 @@ impl GeigerClient {
             }
         }
 
-        let mut proc = cmd
-            .stdout(Stdio::piped()) // Don't print `cargo-geiger` output
-            .stderr(Stdio::piped())
-            .spawn()
+        let output = cmd
+            .stdin(Stdio::null())
+            .output()
             .unwrap_or_else(|e| {
                 panic!(
                     "geiger command failed to start with error: {e}, are you sure `cargo-geiger` is installed?"
                 )
             });
 
-        let status = match proc.wait() {
-            Ok(o) => o,
-            Err(e) => {
-                panic!("could not execute geiger command due to error: {e}")
-            }
-        };
-
-        if !status.success() {
-            let mut stderr = String::new();
-            proc.stderr
-                .take()
-                .unwrap()
-                .read_to_string(&mut stderr)
-                .expect("could not read stderr");
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(Box::new(GeigerError::NonZeroStatus(
-                status.code().unwrap_or(-1),
-                stderr,
+                output.status.code().unwrap_or(-1),
+                stderr.to_string(),
             )));
         }
 
-        let mut stdout = String::new();
-        proc.stdout
-            .take()
-            .unwrap()
-            .read_to_string(&mut stdout)
-            .expect("could not read stdout");
+        let stdout = String::from_utf8_lossy(&output.stdout);
         let res = Self::from_json(&stdout);
         match res {
             Ok(s) => Ok(s),
             Err(e) => {
-                let mut stderr = String::new();
-                proc.stderr
-                    .take()
-                    .unwrap()
-                    .read_to_string(&mut stderr)
-                    .expect("could not read stderr");
+                let stderr = String::from_utf8_lossy(&output.stderr);
                 Err(Box::new(GeigerError::UnexpectedOutput(
-                    stderr,
+                    stderr.to_string(),
                     e.to_string(),
                 )))
             }

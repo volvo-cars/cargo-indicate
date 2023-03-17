@@ -100,7 +100,8 @@ struct IndicateCli {
     )]
     output: Option<Vec<PathBuf>>,
 
-    /// Define a directory to write query results to
+    /// Define a directory to write query results to, recursively creating
+    /// directories if needed
     ///
     /// The results will be placed in files in accordance with their filename
     /// with the extension replaced with `.out.json`.

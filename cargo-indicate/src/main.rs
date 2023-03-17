@@ -270,6 +270,12 @@ fn main() {
         unreachable!("no query provided");
     }
 
+    // If empty directory was provided we check that here
+    if fqs.is_empty() {
+        cmd.error(clap::error::ErrorKind::TooFewValues, "no queries provided")
+            .exit();
+    }
+
     // Test this early, so we panic before anything expensive is done
     if let Some(output_paths) = &cli.output {
         // If we have more than one output, it must be a list of files to write

@@ -1,0 +1,13 @@
+bin.name ="cargo-indicate"
+args = [
+  "--query-dir",
+  "queries",
+  "-x",
+  ".keep", # Used by test harness
+  "--output-dir",
+  "results/nestled/", # Write all results to single file
+  "--",
+  "dummy_crate"
+]
+
+fs.sandbox = true

@@ -1,0 +1,11 @@
+// This is a duplicate of queries/query.in.ron, and is supposed to be!
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        name @output
+    }
+}
+    "#,
+    args: {},
+)

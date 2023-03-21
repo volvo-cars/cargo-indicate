@@ -151,7 +151,7 @@ impl ManifestPath {
                     // Last check
                     if !s.0.is_dir() {
                         panic!(
-                            "could not figure out path valid to workspace member {name} when looking in {}", 
+                            "could not figure out valid path to workspace member {name} when looking in {}", 
                             s.0.to_string_lossy()
                         );
                     }
@@ -159,6 +159,23 @@ impl ManifestPath {
             }
 
             s.0.push("Cargo.toml"); // Add `Cargo.toml` again
+
+            // Ensure we found the right thing
+            let found_name = s.metadata(vec![]).unwrap_or_else(|_| {
+                panic!(
+                    "did not manage to figure out path to {name}, dir {} contained no valid metadata",
+                    s.0.to_string_lossy()
+                );
+            })
+            .root_package()
+            .expect("assumed package root was not package root")
+            .name.clone();
+
+            assert_eq!(
+                found_name.replace('-', "_"),
+                name.replace('-', "_"),
+                "the desired name did not match the found name"
+            );
 
             // TODO: Better logging
             println!(

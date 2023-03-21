@@ -135,7 +135,16 @@ impl ManifestPath {
             // It IS a workspace!
             // We solve this in the hackiest way possible: Update the path to be
             // the crate name
-            s.0.push(name);
+            s.0.pop(); // Remove `Cargo.toml`, guaranteed by `new` to be last
+            s.0.push(&name);
+            s.0.push("Cargo.toml"); // Add `Cargo.toml` again
+
+            // TODO: Better logging
+            println!(
+                "original path for {name} was a workspace, updated path to {}",
+                s.0.to_string_lossy()
+            );
+
             s
         } else {
             s

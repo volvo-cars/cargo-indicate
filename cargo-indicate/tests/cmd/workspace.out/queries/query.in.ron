@@ -1,0 +1,10 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        name @output
+    }
+}
+    "#,
+    args: {},
+)

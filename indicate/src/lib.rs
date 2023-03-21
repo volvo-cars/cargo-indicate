@@ -137,6 +137,27 @@ impl ManifestPath {
             // the crate name
             s.0.pop(); // Remove `Cargo.toml`, guaranteed by `new` to be last
             s.0.push(&name);
+
+            // We check that this is, in fact, a directory
+            if !s.0.is_dir() {
+                // The naming convention between '-' and '_' is sketchy, so
+                // we try to replace them and check again
+                s.0.pop();
+                s.0.push(name.replace('-', "_"));
+                if !s.0.is_dir() {
+                    s.0.pop();
+                    s.0.push(name.replace('_', "-"));
+
+                    // Last check
+                    if !s.0.is_dir() {
+                        panic!(
+                            "could not figure out path valid to workspace member {name} when looking in {}", 
+                            s.0.to_string_lossy()
+                        );
+                    }
+                }
+            }
+
             s.0.push("Cargo.toml"); // Add `Cargo.toml` again
 
             // TODO: Better logging

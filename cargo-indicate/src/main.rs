@@ -86,7 +86,8 @@ struct IndicateCli {
     )]
     package: PathBuf,
 
-    /// Specify the package name that is to be parsed from the package path
+    /// Specify the package name that is to be parsed from the package path, if
+    /// it might be a workspace
     ///
     /// Use this if the target directory might be a workspace. If it is certain,
     /// point directly to the package in the `package` parameter instead

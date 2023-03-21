@@ -86,6 +86,13 @@ struct IndicateCli {
     )]
     package: PathBuf,
 
+    /// Specify the package name that is to be parsed from the package path
+    ///
+    /// Use this if the target directory might be a workspace. If it is certain,
+    /// point directly to the package in the `package` parameter instead
+    #[arg(long)]
+    package_name: Option<String>,
+
     /// Define another output than stdout for query results
     ///
     /// If more than one is provided, it must be the same number as the number
@@ -290,7 +297,11 @@ fn main() {
         }
     }
 
-    let manifest_path = ManifestPath::new(cli.package);
+    let manifest_path = if let Some(package_name) = cli.package_name {
+        ManifestPath::with_package_name(cli.package, package_name)
+    } else {
+        ManifestPath::new(cli.package)
+    };
 
     // How we execute the query depends on if the user defined any special
     // requirements for the adapter

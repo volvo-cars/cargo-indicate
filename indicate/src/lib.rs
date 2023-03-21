@@ -117,12 +117,15 @@ impl ManifestPath {
     }
 
     /// Creates a new, guaranteed valid, path to a `Cargo.toml` manifest
-    /// where the crate name _must_ match the provided name
+    /// where the package name _must_ match the provided name
     ///
     /// Used when there is a possibility that the provided path contains a
     /// workspace `Cargo.toml` file. In this case, the path will be changed
     /// to point to the correct `Cargo.toml` file.
-    pub fn with_crate_name(path: PathBuf, name: String) -> Self {
+    ///
+    /// This requires `Metadata` to be parsed, so only use when it is unsure
+    /// if the target is a workspace. Otherwise use [`ManifestPath::new`].
+    pub fn with_package_name(path: PathBuf, name: String) -> Self {
         let mut s = Self::new(path);
         let m = s.metadata(vec![]).unwrap_or_else(|e| {
             panic!("could not create metadata to check for workspace due to error: {e}");

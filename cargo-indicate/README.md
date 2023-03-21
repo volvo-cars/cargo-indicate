@@ -58,6 +58,18 @@ $ cargo-indicate
 ]
 ```
 
+## Targeting Workspaces
+
+There are two ways to handle workspaces when using `cargo-indicate`:
+
+1. Pass the direct path to a member package directory/`Cargo.toml`-file
+2. Use the `--package-name` flag to specify the name of the package you are
+   interested in
+
+The first option is generally preferable, but the second option is useful when
+analyzing a lot of packages automatically, and it is unknown if the target dir
+is a workspace, but you know the desired package name.
+
 ## Selecting sources
 
 Some arguments change the source of data for some signals. For example,

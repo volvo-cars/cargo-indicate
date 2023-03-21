@@ -117,14 +117,19 @@ impl ManifestPath {
     }
 
     /// Creates a new, guaranteed valid, path to a `Cargo.toml` manifest
-    /// where the package name _must_ match the provided name
+    /// where the package name _must_ match the provided name (handling `-` and
+    /// `_` as the same character)
     ///
     /// Used when there is a possibility that the provided path contains a
     /// workspace `Cargo.toml` file. In this case, the path will be changed
     /// to point to the correct `Cargo.toml` file.
     ///
-    /// This requires `Metadata` to be parsed, so only use when it is unsure
-    /// if the target is a workspace. Otherwise use [`ManifestPath::new`].
+    /// The motivation for `_` and `-` handling is that they are considered the
+    /// same character by `crates.io` and `cargo`, except in presentation.
+    ///
+    /// This requires `Metadata` to be parsed (twice), so only use
+    /// when it is unsure if the target is a workspace. Otherwise use
+    /// [`ManifestPath::new`].
     pub fn with_package_name(path: PathBuf, name: String) -> Self {
         let mut s = Self::new(path);
         let m = s.metadata(vec![]).unwrap_or_else(|e| {

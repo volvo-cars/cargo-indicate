@@ -101,7 +101,7 @@ impl IndicateAdapter {
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
-            gh_client: Rc::new(RefCell::new(GitHubClient::new())),
+            gh_client: Rc::new(RefCell::new(GitHubClient::default())),
             advisory_client: OnceCell::new(),
             geiger_client: OnceCell::new(),
         }

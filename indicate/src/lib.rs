@@ -35,7 +35,7 @@ pub mod advisory;
 pub mod errors;
 pub mod geiger;
 pub mod query;
-mod repo;
+pub mod repo;
 pub mod util;
 mod vertex;
 

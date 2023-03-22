@@ -8,8 +8,8 @@ use std::{
 use clap::{ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
-    query::FullQueryBuilder, util::transparent_results, CargoOpt,
-    IndicateAdapterBuilder, ManifestPath,
+    query::FullQueryBuilder, repo::github::GitHubClient,
+    util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath,
 };
 
 /// Program to query Rust dependencies
@@ -163,6 +163,14 @@ struct IndicateCli {
     /// location; Will fetch a new one if not present
     #[arg(long, conflicts_with = "advisory_db_dir")]
     cached_advisory_db: bool,
+
+    /// If the program should sleep while awaiting a new GitHub quota, if it
+    /// is reached during execution
+    ///
+    /// This can sleep for a loong time, so only recommended use is in automated
+    /// invocations where execution time is not important.
+    #[arg(long)]
+    await_github_quota: bool,
 }
 
 fn main() {
@@ -338,6 +346,10 @@ fn main() {
                 })
             });
         b = b.advisory_client(ac);
+    }
+
+    if cli.await_github_quota {
+        b = b.github_client(GitHubClient::new(true));
     }
 
     // Reuse the same adapter for multiple queries

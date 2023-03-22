@@ -311,7 +311,10 @@ pub fn execute_query_with_adapter(
         query.args.clone(),
     ) {
         Ok(res) => res.take(max_results.unwrap_or(usize::MAX)).collect(),
-        Err(e) => panic!("Could not execute query due to error: {:#?}", e),
+        Err(e) => panic!(
+            "Could not execute query due to error: {:#?}, query was: {:#?}",
+            e, query
+        ),
     };
     res
 }

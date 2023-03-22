@@ -164,7 +164,7 @@ struct IndicateCli {
     #[arg(long, conflicts_with = "advisory_db_dir")]
     cached_advisory_db: bool,
 
-    /// If the program should sleep while awaiting a new GitHub quota, if it
+    /// If the program should sleep while awaiting a new GitHub API quota, if it
     /// is reached during execution
     ///
     /// This can sleep for a loong time, so only recommended use is in automated

@@ -27,11 +27,11 @@ use std::{
 use cargo_metadata::{Metadata, MetadataCommand};
 use cargo_toml;
 use errors::ManifestPathError;
-use glob::glob;
 use once_cell::sync::Lazy;
 use query::FullQuery;
 use tokio::runtime::Runtime;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
+use walkdir::WalkDir;
 
 pub mod adapter;
 pub mod advisory;
@@ -159,43 +159,17 @@ impl ManifestPath {
 
             // Remove `Cargo.toml`
             s.0.pop();
-
-            // All directories in the `member` part of workspace
-            // are potential targets
-            let member_globs = ctf
-                .workspace
-                .unwrap_or_else(|| {
-                    panic!(
-                        "{} is neither workspace nor root package!",
-                        s.0.to_string_lossy()
-                    );
-                })
-                .members;
-
-            // Create paths to all member `Cargo.toml` files
-            let mut member_manifest_paths = Vec::new();
-            for member_glob in member_globs {
-                // We need to prepend the glob with the path of the workspace
-                let mut new_glob = s.0.clone();
-                new_glob.push(member_glob);
-                let new_glob = new_glob.to_string_lossy();
-
-                // Find all paths for each glob (granted it is valid)
-                if let Ok(entries) = glob(&new_glob) {
-                    for entry in entries {
-                        // Create a path to each `Cargo.toml` for each path
-                        // created by glob
-                        if let Ok(mut pb) = entry {
-                            if pb.is_dir() {
-                                pb.push("Cargo.toml");
-                            }
-                            member_manifest_paths.push(pb);
-                        }
+            let manifest_paths = WalkDir::new(s.0.as_path())
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    Ok(dir_entry) if dir_entry.file_name() == "Cargo.toml" => {
+                        Some(dir_entry.into_path())
                     }
-                }
-            }
+                    _ => None,
+                });
 
-            for manifest_path in member_manifest_paths {
+            for manifest_path in manifest_paths {
                 // Read the file, parse as toml, and see if package.name mathces
                 let ct = cargo_toml::Manifest::from_path(&manifest_path);
                 match ct {

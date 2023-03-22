@@ -22,7 +22,7 @@ cvss = "2.0.0"
 thiserror = "1.0.38"
 chrono = "0.4.23"
 cargo_toml = "0.15.2"
-glob = "0.3.1"
+walkdir = "2"
 
 [dev-dependencies]
 test-case = "3.0.0"

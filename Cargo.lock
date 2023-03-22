@@ -1047,6 +1047,7 @@ dependencies = [
  "chrono",
  "cvss",
  "git-url-parse",
+ "glob",
  "global_counter",
  "octorust",
  "once_cell",
@@ -1059,7 +1060,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "trustfall",
- "walkdir",
 ]
 
 [[package]]

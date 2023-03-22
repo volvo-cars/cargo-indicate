@@ -248,7 +248,10 @@ fn main() {
         fqs = Vec::with_capacity(query_paths.len());
         for path in query_paths {
             fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
-                panic!("could not parse query file due to error: {e}");
+                panic!(
+                    "could not parse query file {} due to error: {e}",
+                    path.to_string_lossy()
+                );
             }));
         }
     } else if let Some(query_strs) = cli.query {

@@ -13,6 +13,7 @@
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
 #![forbid(unsafe_code)]
+#![feature(is_some_and)]
 use std::{
     cell::RefCell,
     collections::BTreeMap,
@@ -24,11 +25,13 @@ use std::{
 };
 
 use cargo_metadata::{Metadata, MetadataCommand};
+use cargo_toml;
 use errors::ManifestPathError;
 use once_cell::sync::Lazy;
 use query::FullQuery;
 use tokio::runtime::Runtime;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
+use walkdir::WalkDir;
 
 pub mod adapter;
 pub mod advisory;
@@ -96,6 +99,12 @@ impl ManifestPath {
         }
     }
 
+    /// Checks if two package names is equal, using `crates.io` behaviour
+    fn equal_package_names(s1: &str, s2: &str) -> bool {
+        s1.replace('-', "_").to_lowercase()
+            == s2.replace('-', "_").to_lowercase()
+    }
+
     /// Creates a new, guaranteed valid, path to a `Cargo.toml` manifest
     ///
     /// If the path is not an absolute path to a `Cargo.toml` file, it will be
@@ -132,63 +141,60 @@ impl ManifestPath {
     /// [`ManifestPath::new`].
     pub fn with_package_name(path: PathBuf, name: String) -> Self {
         let mut s = Self::new(path);
-        let m = s.metadata(vec![]).unwrap_or_else(|e| {
-            panic!("could not create metadata to check for workspace due to error: {e}");
+
+        let ctf = cargo_toml::Manifest::from_path(&s.0).unwrap_or_else(|e| {
+            panic!(
+                "could not parse manifest file {} due to error {e}",
+                s.0.to_string_lossy()
+            )
         });
 
-        if m.root_package().is_none() {
-            // It IS a workspace!
-            // We solve this in the hackiest way possible: Update the path to be
-            // the crate name
-            s.0.pop(); // Remove `Cargo.toml`, guaranteed by `new` to be last
-            s.0.push(&name);
+        if ctf.package.is_none()
+            || ctf
+                .package
+                .is_some_and(|p| Self::equal_package_names(&p.name(), &name))
+        {
+            // It is probably a workspace, we'll have to find a `Cargo.toml`
+            // file with matching name
 
-            // We check that this is, in fact, a directory
-            if !s.0.is_dir() {
-                // The naming convention between '-' and '_' is sketchy, so
-                // we try to replace them and check again
-                s.0.pop();
-                s.0.push(name.replace('-', "_"));
-                if !s.0.is_dir() {
-                    s.0.pop();
-                    s.0.push(name.replace('_', "-"));
+            // Remove `Cargo.toml`
+            s.0.pop();
 
-                    // Last check
-                    if !s.0.is_dir() {
-                        panic!(
-                            "could not figure out valid path to workspace member {name} when looking in {}", 
-                            s.0.to_string_lossy()
-                        );
+            let manifest_paths = WalkDir::new(s.0.as_path())
+                .follow_links(true)
+                .into_iter()
+                .filter_map(|entry| match entry {
+                    Ok(dir_entry) if dir_entry.file_name() == "Cargo.toml" => {
+                        Some(dir_entry.into_path())
+                    }
+                    _ => None,
+                });
+
+            for manifest_path in manifest_paths {
+                // Read the file, parse as toml, and see if package.name mathces
+                let ct = cargo_toml::Manifest::from_path(&manifest_path);
+                match ct {
+                    Ok(parsed_config_toml)
+                        if parsed_config_toml.package.is_some() =>
+                    {
+                        if Self::equal_package_names(
+                            &parsed_config_toml.package.unwrap().name(),
+                            &name,
+                        ) {
+                            return Self::new(manifest_path);
+                        }
+                    }
+                    Ok(_) => {
+                        continue;
+                    }
+                    Err(_) => {
+                        // Might not be a manifest file at all
+                        continue;
                     }
                 }
             }
 
-            s.0.push("Cargo.toml"); // Add `Cargo.toml` again
-
-            // Ensure we found the right thing
-            let found_name = s.metadata(vec![]).unwrap_or_else(|_| {
-                panic!(
-                    "did not manage to figure out path to {name}, dir {} contained no valid metadata",
-                    s.0.to_string_lossy()
-                );
-            })
-            .root_package()
-            .expect("assumed package root was not package root")
-            .name.clone();
-
-            assert_eq!(
-                found_name.replace('-', "_"),
-                name.replace('-', "_"),
-                "the desired name did not match the found name"
-            );
-
-            // TODO: Better logging
-            println!(
-                "original path for {name} was a workspace, updated path to {}",
-                s.0.to_string_lossy()
-            );
-
-            s
+            panic!("did not manage to find a `Cargo.toml` manifest file matching the package name {name}");
         } else {
             s
         }

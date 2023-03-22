@@ -136,7 +136,7 @@ impl ManifestPath {
             panic!("could not create metadata to check for workspace due to error: {e}");
         });
 
-        if !m.workspace_members.is_empty() {
+        if m.root_package().is_none() {
             // It IS a workspace!
             // We solve this in the hackiest way possible: Update the path to be
             // the crate name

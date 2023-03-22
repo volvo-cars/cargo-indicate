@@ -8,6 +8,8 @@ args = [
   "./query.in.ron", # We have a duplicate!
   "--output",
   "results/query.out.json", # Write all results to single file
+  "--package-name", # Test that package name just works (TM)
+  "dummy_crate",
   "--",
   "dummy_crate"
 ]

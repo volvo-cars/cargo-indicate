@@ -13,7 +13,6 @@
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
 #![forbid(unsafe_code)]
-#![feature(is_some_and)]
 use std::{
     cell::RefCell,
     collections::BTreeMap,
@@ -149,10 +148,11 @@ impl ManifestPath {
             )
         });
 
-        if ctf.package.is_none()
-            || ctf
-                .package
-                .is_some_and(|p| !Self::equal_package_names(&p.name(), &name))
+        // Either package is none and it is a workspace, or it has a name not
+        // equal to what we're looking for
+        if ctf
+            .package
+            .map_or(true, |p| !Self::equal_package_names(&p.name(), &name))
         {
             // It is probably a workspace, we'll have to find a `Cargo.toml`
             // file with matching name

@@ -91,7 +91,7 @@ struct IndicateCli {
     ///
     /// Use this if the target directory might be a workspace. If it is certain,
     /// point directly to the package in the `package` parameter instead
-    #[arg(long)]
+    #[arg(short = 'p', long = "package")]
     package_name: Option<String>,
 
     /// Define another output than stdout for query results

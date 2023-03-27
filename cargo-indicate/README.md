@@ -63,7 +63,7 @@ $ cargo-indicate
 There are two ways to handle workspaces when using `cargo-indicate`:
 
 1. Pass the direct path to a member package directory/`Cargo.toml`-file
-2. Use the `--package-name` flag to specify the name of the package you are
+2. Use the `--package` flag to specify the name of the package you are
    interested in
 
 The first option is generally preferable, but the second option is useful when

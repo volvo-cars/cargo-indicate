@@ -6,7 +6,7 @@ args = [
   ".keep", # Used by test harness
   "--output",
   "results/query.out.json", # Write all results to single file
-  "--package-name",
+  "--package",
   "dummy-crate", # We also check that `indicate` attempts to figure out '-' vs '_'
   "--",
   "dummy_workspace"

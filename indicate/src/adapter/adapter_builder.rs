@@ -88,6 +88,9 @@ impl IndicateAdapterBuilder {
             )),
             advisory_client,
             geiger_client,
+            code_stats_client: Rc::new(
+                self.code_stats_client.unwrap_or_default(),
+            ),
         }
     }
 
@@ -130,6 +133,14 @@ impl IndicateAdapterBuilder {
     /// adapter.
     pub fn geiger_client(mut self, geiger_client: GeigerClient) -> Self {
         self.geiger_client = Some(geiger_client);
+        self
+    }
+
+    pub fn code_stats_client(
+        mut self,
+        code_stats_client: CodeStatsClient,
+    ) -> Self {
+        self.code_stats_client = Some(code_stats_client);
         self
     }
 }

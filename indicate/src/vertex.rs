@@ -8,7 +8,10 @@ use octorust::types::{FullRepository, PublicUser};
 use rustsec::{advisory::affected::FunctionPath, Advisory, VersionReq};
 use trustfall::provider::TrustfallEnumVertex;
 
-use crate::geiger::{GeigerCategories, GeigerCount, GeigerUnsafety};
+use crate::{
+    code_stats::LanguageBlob,
+    geiger::{GeigerCategories, GeigerCount, GeigerUnsafety},
+};
 
 /// A node in the GraphQL schema as defined in the schema.
 ///
@@ -33,6 +36,8 @@ pub enum Vertex {
     GeigerUnsafety(GeigerUnsafety),
     GeigerCategories(GeigerCategories),
     GeigerCount(GeigerCount),
+    Language(Rc<tokei::Language>),
+    LanguageBlob(Rc<LanguageBlob>),
 }
 
 impl Vertex {

@@ -7,6 +7,7 @@ use std::{
 use tokei::Languages;
 
 /// Client providing mappings between paths and their reports
+#[derive(Debug)]
 pub struct CodeStatsClient {
     stats_cache: HashMap<PathBuf, tokei::Languages>,
     tokei_config: tokei::Config,
@@ -50,5 +51,41 @@ impl CodeStatsClient {
 impl Default for CodeStatsClient {
     fn default() -> Self {
         CodeStatsClient::new(tokei::Config::default(), vec![])
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LanguageBlob {
+    language: String,
+    stats: tokei::CodeStats,
+}
+impl LanguageBlob {
+    pub fn new(language: String, stats: tokei::CodeStats) -> Self {
+        Self { language, stats }
+    }
+
+    pub fn language(&self) -> &str {
+        &self.language
+    }
+
+    pub fn blanks(&self) -> usize {
+        self.stats.blanks
+    }
+
+    pub fn code(&self) -> usize {
+        self.stats.code
+    }
+
+    pub fn comments(&self) -> usize {
+        self.stats.comments
+    }
+
+    /// Retrieve the language blobs themselves inside this blob
+    pub fn blobs(&self) -> Vec<LanguageBlob> {
+        let mut b = Vec::with_capacity(self.stats.blobs.len());
+        for (lang_type, stats) in &self.stats.blobs {
+            b.push(LanguageBlob::new(lang_type.to_string(), stats.clone()));
+        }
+        b
     }
 }

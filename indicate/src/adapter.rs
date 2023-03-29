@@ -19,6 +19,7 @@ use trustfall::{
     FieldValue,
 };
 
+use crate::code_stats::CodeStatsClient;
 use crate::IndicateAdapterBuilder;
 use crate::{
     advisory::AdvisoryClient,
@@ -139,6 +140,7 @@ pub struct IndicateAdapter {
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
+    code_stats_client: Rc<CodeStatsClient>,
 }
 
 /// The functions here are essentially the fields on the RootQuery

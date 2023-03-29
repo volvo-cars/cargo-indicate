@@ -56,12 +56,49 @@ type Package {
     version: String!,
     license: String
     repository: Webpage
+    sourceInfo: [Language!]!
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
     advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
     geiger: GeigerUnsafety!
+}
+
+# Data from tokei, shared between `Language` and `CodeStats`
+interface CodeStats {
+    language: String!
+    # Total number of blank lines
+    blanks: Int!
+    # Total number of lines of code
+    code: Int!
+    # Number of lines of comments
+    comments: Int!
+}
+
+type Language implements CodeStats {
+    # From CodeStats
+    language: String!
+    blanks: Int!
+    code: Int!
+    comments: Int!
+    
+    # If this language had problem with parsing
+    innacurate: Boolean!
+
+    # Code contained in this
+    children: [LanguageBlob!]!
+}
+
+# `tokei::CodeStats`, but with added language and flattened
+type LanguageBlob implements CodeStats {
+    language: String!
+    blanks: Int!
+    code: Int!
+    comments: Int!
+
+    # Blobs of code contained within this one
+    blobs: LanguageBlob
 }
 
 # `used` refers to code used by the `RootPackage`

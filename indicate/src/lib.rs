@@ -22,6 +22,7 @@ use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
 pub mod adapter;
 pub mod advisory;
+pub mod code_stats;
 pub mod errors;
 pub mod geiger;
 pub mod manifest;
@@ -35,6 +36,7 @@ pub use cargo_metadata::CargoOpt;
 pub use rustsec::advisory::Severity;
 /// Valid platforms that can be provided to queries
 pub use rustsec::platforms;
+pub use tokei;
 
 pub use crate::adapter::adapter_builder::IndicateAdapterBuilder;
 pub use crate::adapter::IndicateAdapter;

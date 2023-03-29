@@ -4,8 +4,8 @@ use cargo_metadata::{CargoOpt, Metadata};
 use once_cell::unsync::OnceCell;
 
 use crate::{
-    advisory::AdvisoryClient, geiger::GeigerClient, repo::github::GitHubClient,
-    ManifestPath,
+    advisory::AdvisoryClient, code_stats::CodeStatsClient,
+    geiger::GeigerClient, repo::github::GitHubClient, ManifestPath,
 };
 
 use super::{parse_metadata, resolve_cargo_dirs, IndicateAdapter};
@@ -18,6 +18,7 @@ pub struct IndicateAdapterBuilder {
     github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
     geiger_client: Option<GeigerClient>,
+    code_stats_client: Option<CodeStatsClient>,
 }
 
 impl IndicateAdapterBuilder {
@@ -35,6 +36,7 @@ impl IndicateAdapterBuilder {
             github_client: None,
             advisory_client: None,
             geiger_client: None,
+            code_stats_client: None,
         }
     }
 

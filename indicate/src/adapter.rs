@@ -29,11 +29,13 @@ use crate::{
 
 pub mod adapter_builder;
 
+type NameVersion = (String, String);
 /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
-/// Maps the name of a dependency to its local path to source code
-type SourceMap = HashMap<String, PathBuf>;
+/// Maps the (name, version) tuple of a dependency to its local path to source
+/// code
+type SourceMap = HashMap<NameVersion, PathBuf>;
 
 /// Parse metadata to create maps over the packages and dependency
 /// relations in it
@@ -66,6 +68,11 @@ pub fn parse_metadata(
     (packages, direct_dependencies)
 }
 
+/// Resolves the path to where dependencies are stored, and map them to
+/// dependency (name, version)
+///
+/// This is done since internally, `cargo` and `cargo_metadata` are not required
+/// to use the same convention for `PackageId`.
 pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
     // This code is based on `cargo-local`, licensed under MIT, which is in
     // turn based on how `cargo` resolves registries.
@@ -108,7 +115,10 @@ pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
             let full_path = src_path.join(&dest);
 
             if full_path.exists() {
-                Some((pkgid.name().to_string(), full_path))
+                Some((
+                    (pkgid.name().to_string(), pkgid.version().to_string()),
+                    full_path,
+                ))
             } else {
                 None
             }

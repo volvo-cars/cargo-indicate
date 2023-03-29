@@ -1,11 +1,15 @@
-use std::{
-    cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Arc,
-};
-
+use cargo::core::Workspace as CargoWorkspace;
+use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
+use cargo::util::config::Config as CargoConfig;
+use cargo::util::{hex, CargoResult};
 use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
+use std::path::PathBuf;
+use std::{
+    cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,
+};
 use trustfall::{
     provider::{
         accessor_property, field_property, resolve_neighbors_with,
@@ -28,6 +32,8 @@ pub mod adapter_builder;
 /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
+/// Maps the name of a dependency to its local path to source code
+type SourceMap = HashMap<String, PathBuf>;
 
 /// Parse metadata to create maps over the packages and dependency
 /// relations in it
@@ -60,12 +66,65 @@ pub fn parse_metadata(
     (packages, direct_dependencies)
 }
 
+pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
+    // This code is based on `cargo-local`, licensed under MIT, which is in
+    // turn based on how `cargo` resolves registries.
+    // https://github.com/AndrewRadev/cargo-local/blob/0773ae40e7c6e293d95e087bb3e10c1b70d3c429/src/main.rs
+    let cargo_config = CargoConfig::default()
+        .expect("default cargo config could not be created");
+    let workspace = CargoWorkspace::new(manifest_path.as_path(), &cargo_config)
+        .expect("error when resolving workspace");
+
+    let resolved = match load_cargo_lockfile(&workspace)
+        .expect("could not load lockfile")
+    {
+        Some(r) => r,
+        None => return HashMap::new(),
+    };
+
+    // Build registry_source_path the same way cargo's Config does as of
+    // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
+    let cwd = env::current_dir().expect("could not retrieve current dir");
+    let cargo_home = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
+    let user_home = ::dirs::home_dir()
+        .map(|p| p.join(".cargo"))
+        .expect("user_home");
+    let home_path = cargo_home.unwrap_or(user_home);
+    let registry_source_path = home_path.join("registry").join("src");
+
+    let paths = resolved
+        .iter()
+        .flat_map(|pkgid| {
+            // Build src_path the same way cargo's RegistrySource does as of
+            // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L232-L238
+            let hash = hex::short_hash(&pkgid.source_id());
+            let ident = pkgid.source_id().url().host()?.to_string();
+            let part = format!("{}-{}", ident, hash);
+            let src_path = registry_source_path.join(&part);
+
+            // Build the crate's unpacked destination directory the same way cargo's RegistrySource does as
+            // of https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L357-L358
+            let dest = format!("{}-{}", pkgid.name(), pkgid.version());
+            let full_path = src_path.join(&dest);
+
+            if full_path.exists() {
+                Some((pkgid.name().to_string(), full_path))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    paths
+}
+
 pub struct IndicateAdapter {
     manifest_path: Rc<ManifestPath>,
     features: Vec<CargoOpt>,
     metadata: Rc<Metadata>,
     packages: Rc<PackageMap>,
     direct_dependencies: Rc<DirectDependencyMap>,
+    source_map: Rc<SourceMap>,
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
@@ -94,6 +153,8 @@ impl IndicateAdapter {
         });
 
         let (packages, direct_dependencies) = parse_metadata(&metadata);
+        let source_map = resolve_cargo_dirs(&manifest_path);
+        println!("{:#?}", source_map);
 
         Self {
             manifest_path: Rc::new(manifest_path),
@@ -101,6 +162,7 @@ impl IndicateAdapter {
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
+            source_map: Rc::new(source_map),
             gh_client: Rc::new(RefCell::new(GitHubClient::default())),
             advisory_client: OnceCell::new(),
             geiger_client: OnceCell::new(),

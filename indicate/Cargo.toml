@@ -25,6 +25,7 @@ chrono = "0.4.23"
 cargo_toml = "0.15.2"
 walkdir = "2"
 cargo = "0.69.0"
+dirs = "5.0.0"
 
 [dev-dependencies]
 test-case = "3.0.0"

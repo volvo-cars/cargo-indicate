@@ -19,6 +19,7 @@ use trustfall::{
     FieldValue,
 };
 
+use crate::IndicateAdapterBuilder;
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
@@ -157,26 +158,7 @@ impl IndicateAdapter {
     /// is to be used etc., consider using
     /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder).
     pub fn new(manifest_path: ManifestPath) -> Self {
-        // Providing no features will use defaults
-        let metadata = manifest_path.metadata(Vec::new()).unwrap_or_else(|e| {
-            panic!("could not parse metadata due to error {e}")
-        });
-
-        let (packages, direct_dependencies) = parse_metadata(&metadata);
-        let source_map = resolve_cargo_dirs(&manifest_path);
-        println!("{:#?}", source_map);
-
-        Self {
-            manifest_path: Rc::new(manifest_path),
-            features: Vec::new(),
-            metadata: Rc::new(metadata),
-            packages: Rc::new(packages),
-            direct_dependencies: Rc::new(direct_dependencies),
-            source_map: Rc::new(source_map),
-            gh_client: Rc::new(RefCell::new(GitHubClient::default())),
-            advisory_client: OnceCell::new(),
-            geiger_client: OnceCell::new(),
-        }
+        IndicateAdapterBuilder::new(manifest_path).build()
     }
 
     /// Retrieves a new counted reference to this adapters [`Metadata`]

@@ -56,7 +56,7 @@ type Package {
     version: String!,
     license: String
     repository: Webpage
-    sourceInfo: [Language!]!
+    codeStats: [Language!]!
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
@@ -84,7 +84,7 @@ type Language implements CodeStats {
     comments: Int!
     
     # If this language had problem with parsing
-    innacurate: Boolean!
+    inaccurate: Boolean!
 
     # Code contained in this
     children: [LanguageBlob!]!

@@ -547,6 +547,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     FieldValue::Float64(percentage)
                 })
             }
+            // ("Language", "language") => {
+            //     resolve_property_with(contexts, field_property!(as_language, l))
+            // }
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }

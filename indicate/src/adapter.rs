@@ -88,7 +88,7 @@ pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
     let cargo_home = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
     let user_home = ::dirs::home_dir()
         .map(|p| p.join(".cargo"))
-        .expect("user_home");
+        .expect("could not resolve uesr home directory");
     let home_path = cargo_home.unwrap_or(user_home);
     let registry_source_path = home_path.join("registry").join("src");
 

@@ -248,7 +248,8 @@ mod test {
     #[test_case("unsafe_crate", "geiger_advanced" => inconclusive["cargo-geiger --features flag broken, see https://github.com/rust-secure-code/cargo-geiger/issues/379"])]
     #[test_case("simple_deps", "dependencies_all_fields" ; "retrieve all fields of all dependencies")]
     #[test_case("simple_deps", "dependencies_all_fields_include_root" ; "retrieve all fields of all dependencies including root package")]
-    #[test_case("dev_deps", "dev_dependencies_excluded" ; "dev-dependencies excluded in dep resolution")]
+    #[test_case("dev_deps", "dev_dependencies_excluded" ; "dev-dependencies excluded in dep resolution when using Dependencies entry point")]
+    #[test_case("dev_deps", "dev_dependencies_excluded_w_root_package" ; "dev-dependencies excluded in dep resolution when using RootPackage entry point")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

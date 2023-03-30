@@ -51,6 +51,7 @@ Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 
 type RootQuery {
     RootPackage: Package!
+    Dependencies(includeRoot: Boolean!): [Package!]!
 }
 
 # See `cargo_metadata::Package`

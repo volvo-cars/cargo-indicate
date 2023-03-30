@@ -148,6 +148,46 @@ impl IndicateAdapter {
         let v = Vertex::Package(Rc::new(root.clone()));
         Box::new(std::iter::once(v))
     }
+
+    /// Retrieves an iterator over all dependencies, optionally including the
+    /// root package
+    fn dependencies(
+        &self,
+        include_root: bool,
+    ) -> VertexIterator<'static, Vertex> {
+        let packages = self.packages();
+        let packages =
+            packages.values().map(|p| Rc::clone(p)).collect::<Vec<_>>();
+        let packages = packages.iter();
+
+        // We must call `.collect()`, to ensure lifetimes by enforcing the
+        // `Rc::clone`. It will not affect the resolution or laziness, since
+        // this is a starting node
+        if !include_root {
+            let root_package =
+                self.metadata.root_package().expect("no root package found");
+            let packages = packages
+                .filter_map(|p| {
+                    if p.id != root_package.id {
+                        Some(Vertex::Package(Rc::clone(p)))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .into_iter();
+
+            Box::new(packages)
+        } else {
+            // Shadow to make Rust type system happy
+            let packages = packages
+                .map(|p| Vertex::Package(Rc::clone(p)))
+                .collect::<Vec<_>>()
+                .into_iter();
+
+            Box::new(packages)
+        }
+    }
 }
 
 /// Helper methods to resolve fields using the metadata
@@ -292,11 +332,18 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
     fn resolve_starting_vertices(
         &mut self,
         edge_name: &str,
-        _parameters: &EdgeParameters,
+        parameters: &EdgeParameters,
     ) -> VertexIterator<'a, Self::Vertex> {
         match edge_name {
             // These edge names should match 1:1 for `schema.trustfall.graphql`
             "RootPackage" => self.root_package(),
+            "Dependencies" => {
+                // The unwrap is OK since trustfall will verify the parimeters
+                // to match the schema
+                let include_root =
+                    parameters.get("includeRoot").unwrap().as_bool().unwrap();
+                self.dependencies(include_root)
+            }
             e => {
                 unreachable!("edge {e} has no resolution as a starting vertex")
             }

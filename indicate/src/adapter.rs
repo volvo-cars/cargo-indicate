@@ -41,6 +41,9 @@ type SourceMap = HashMap<NameVersion, PathBuf>;
 
 /// Parse metadata to create maps over the packages and dependency
 /// relations in it
+///
+/// `direct_dependencies` will only include 'normal' dependencies, i.e.
+/// not build nor test deps.
 pub fn parse_metadata(
     metadata: &Metadata,
 ) -> (PackageMap, DirectDependencyMap) {
@@ -63,8 +66,27 @@ pub fn parse_metadata(
         .iter()
     {
         let id = node.id.to_owned();
-        let deps = node.dependencies.to_owned();
-        direct_dependencies.insert(id, Rc::new(deps));
+
+        // Filter out dependencies that are not normal
+        let normal_deps = node
+            .deps
+            .iter()
+            .filter_map(|nd| {
+                if nd
+                    .dep_kinds
+                    .iter()
+                    .any(|dki| dki.kind == DependencyKind::Normal)
+                {
+                    // A dependency can have many kinds; We only care if it is
+                    // normal
+                    Some(nd.pkg.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        direct_dependencies.insert(id, Rc::new(normal_deps));
     }
 
     (packages, direct_dependencies)
@@ -197,9 +219,8 @@ impl IndicateAdapter {
             let root_id = dependency_graph
                 .root
                 .as_ref()
-                .expect("could not resolve root node")
-                .clone();
-            dependency_package_ids.push(root_id);
+                .expect("could not resolve root node");
+            dependency_package_ids.push(root_id.clone());
         }
 
         // For deterministic testing

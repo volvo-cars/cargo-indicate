@@ -1,12 +1,21 @@
 [
   {
+    "dep_name": "syn"
+  },
+  {
     "dep_name": "proc-macro2"
+  },
+  {
+    "dep_name": "unicode-ident"
   },
   {
     "dep_name": "quote"
   },
   {
-    "dep_name": "syn"
+    "dep_name": "proc-macro2"
+  },
+  {
+    "dep_name": "unicode-ident"
   },
   {
     "dep_name": "unicode-ident"

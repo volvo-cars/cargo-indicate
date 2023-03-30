@@ -49,7 +49,6 @@ use std::{
 };
 
 use cargo_metadata::CargoOpt;
-use rustsec::Version;
 use serde::Deserialize;
 
 use crate::{errors::GeigerError, ManifestPath, NameVersion};

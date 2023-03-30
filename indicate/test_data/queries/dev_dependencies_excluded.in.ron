@@ -1,0 +1,10 @@
+FullQuery(
+    query: r#"
+{
+    Dependencies(includeRoot: false) {
+        name @output(name: "dep_name")
+    }
+}
+    "#,
+    args: {}
+)

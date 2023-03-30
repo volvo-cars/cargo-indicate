@@ -1,12 +1,12 @@
 use cargo::core::Workspace as CargoWorkspace;
 use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
 use cargo::util::config::Config as CargoConfig;
-use cargo::util::{hex, CargoResult};
-use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
+use cargo::util::hex;
+use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::{
     cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,
@@ -152,6 +152,9 @@ impl IndicateAdapter {
 
     /// Retrieves an iterator over all dependencies, optionally including the
     /// root package
+    ///
+    /// Only returns dependencies that are of the 'normal' kind, i.e. no
+    /// dev or build dependencies.
     fn dependencies(
         &self,
         include_root: bool,
@@ -161,19 +164,42 @@ impl IndicateAdapter {
             .resolve
             .as_ref()
             .expect("could not resolve dependency graph");
+
+        // Retain only those that are listed as 'normal' `DependencyKind`
+        // somewhere in the tree
+        let mut normal_dependencies = HashSet::new();
+        for node in &dependency_graph.nodes {
+            for dep in &node.deps {
+                if dep
+                    .dep_kinds
+                    .iter()
+                    .any(|dki| dki.kind == DependencyKind::Normal)
+                {
+                    normal_dependencies.insert(&dep.pkg);
+                }
+            }
+        }
+
         let mut dependency_package_ids = dependency_graph
             .nodes
             .iter()
-            .map(|n| n.id.clone())
+            .filter_map(|n| {
+                if normal_dependencies.contains(&n.id) {
+                    Some(n.id.clone())
+                } else {
+                    None
+                }
+            })
             .collect::<Vec<_>>();
 
         // Remove root if requrested (is always included in dependency graph)
-        if !include_root {
+        if include_root {
             let root_id = dependency_graph
                 .root
                 .as_ref()
-                .expect("could not resolve root node");
-            dependency_package_ids.retain(|pid| pid != root_id);
+                .expect("could not resolve root node")
+                .clone();
+            dependency_package_ids.push(root_id);
         }
 
         // For deterministic testing

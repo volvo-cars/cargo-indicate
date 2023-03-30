@@ -1,0 +1,26 @@
+[
+  {
+    "name": "libc",
+    "version": "0.2.139"
+  },
+  {
+    "name": "proc-macro2",
+    "version": "1.0.51"
+  },
+  {
+    "name": "quote",
+    "version": "1.0.23"
+  },
+  {
+    "name": "simple_deps",
+    "version": "0.1.0"
+  },
+  {
+    "name": "syn",
+    "version": "1.0.107"
+  },
+  {
+    "name": "unicode-ident",
+    "version": "1.0.6"
+  }
+]

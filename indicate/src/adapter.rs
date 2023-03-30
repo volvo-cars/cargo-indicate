@@ -156,8 +156,15 @@ impl IndicateAdapter {
         include_root: bool,
     ) -> VertexIterator<'static, Vertex> {
         let packages = self.packages();
-        let packages =
+
+        #[allow(unused_mut)]
+        let mut packages =
             packages.values().map(|p| Rc::clone(p)).collect::<Vec<_>>();
+
+        // When running tests we need determenistic results
+        #[cfg(test)]
+        packages.sort_by_key(|p| p.id.clone());
+
         let packages = packages.iter();
 
         // We must call `.collect()`, to ensure lifetimes by enforcing the

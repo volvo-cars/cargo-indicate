@@ -17,6 +17,8 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::Arc};
 
 use once_cell::sync::Lazy;
 use query::FullQuery;
+use rustsec::Version;
+use serde::Deserialize;
 use tokio::runtime::Runtime;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
@@ -56,6 +58,22 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .build()
         .expect("could not create tokio runtime")
 });
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+pub struct NameVersion {
+    pub name: String,
+    pub version: Version,
+    // Other fields ignored, assume crates.io registry
+}
+
+impl From<(String, Version)> for NameVersion {
+    fn from(value: (String, Version)) -> Self {
+        Self {
+            name: value.0,
+            version: value.1,
+        }
+    }
+}
 
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`

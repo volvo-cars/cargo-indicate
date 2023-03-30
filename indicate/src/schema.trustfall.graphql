@@ -93,6 +93,9 @@ type CodeStats {
 type LanguageCodeStats implements CodeStats {
     language: String!
     stats: CodeStats!
+
+    # From `tokei::Language::summarize()`
+    summary: LanguageCodeStats!
     
     # If this language had problem with parsing
     inaccurate: Boolean!
@@ -105,6 +108,10 @@ type LanguageCodeStats implements CodeStats {
 type LanguageBlob implements CodeStats {
     language: String!
     stats: CodeStats!
+
+    # Merge this with all child blobs to create new `CodeStats`
+    # (`tokei::CodeStats::summarize()`)
+    summary: CodeStats!
 
     # Blobs of code contained within this one
     blobs: LanguageBlob

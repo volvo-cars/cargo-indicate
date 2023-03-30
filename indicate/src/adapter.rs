@@ -749,11 +749,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = vertex.as_package().unwrap();
                     let gid =
                         (package.name.clone(), package.version.clone()).into();
-                    let unsafety = geiger_client
-                            .unsafety(&gid).unwrap_or_else(|| {
-                                panic!("could not resolve unsafety for package {} (v. {})", package.name, package.version);
-                            });
-                    Box::new(std::iter::once(Vertex::GeigerUnsafety(unsafety)))
+                    let unsafety = geiger_client.unsafety(&gid);
+
+                    match unsafety {
+                        Some(u) => {
+                            Box::new(std::iter::once(Vertex::GeigerUnsafety(u)))
+                        }
+                        None => Box::new(std::iter::empty()),
+                    }
                 })
             }
             ("GitHubRepository", "owner") => {

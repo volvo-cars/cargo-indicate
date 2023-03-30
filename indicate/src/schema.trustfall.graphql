@@ -56,7 +56,7 @@ type Package {
     version: String!,
     license: String
     repository: Webpage
-    codeStats: [Language!]!
+    codeStats(ignorePaths: [String!]!, cfg: CodeStatsConfig): [LanguageCodeStats!]!
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
@@ -65,9 +65,22 @@ type Package {
     geiger: GeigerUnsafety!
 }
 
+# This is exactly the same as `tokei::Config`
+type CodeStatsConfig {
+    hidden: Boolean
+    noIgnore: Boolean
+    noIgnoreParent: Boolean
+    noIgnoreDot: Boolean
+    noIgnoreVcs: Boolean
+    treatDocStringsAsComments: Boolean
+    # Types of languages to be included in report
+    types: [String!]
+}
+
 # Data from tokei, shared between `Language` and `CodeStats`
-interface CodeStats {
-    language: String!
+type CodeStats {
+    # Total number of files
+    files: Int!
     # Total number of blank lines
     blanks: Int!
     # Total number of lines of code
@@ -76,12 +89,10 @@ interface CodeStats {
     comments: Int!
 }
 
-type Language implements CodeStats {
-    # From CodeStats
+# `tokei::Language`
+type LanguageCodeStats implements CodeStats {
     language: String!
-    blanks: Int!
-    code: Int!
-    comments: Int!
+    stats: CodeStats!
     
     # If this language had problem with parsing
     inaccurate: Boolean!
@@ -90,12 +101,10 @@ type Language implements CodeStats {
     children: [LanguageBlob!]!
 }
 
-# `tokei::CodeStats`, but with added language and flattened
+# `tokei::CodeStats.blobs`
 type LanguageBlob implements CodeStats {
     language: String!
-    blanks: Int!
-    code: Int!
-    comments: Int!
+    stats: CodeStats!
 
     # Blobs of code contained within this one
     blobs: LanguageBlob

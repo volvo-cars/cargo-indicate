@@ -115,11 +115,14 @@ impl GeigerClient {
             });
 
         if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(Box::new(GeigerError::NonZeroStatus(
-                output.status.code().unwrap_or(-1),
-                stderr.to_string(),
-            )));
+            // Geiger gives error codes even if its only errors codes...
+            // We let this explode somewhere else
+            println!("cargo-geiger exited with non-zero exit code, but it was ignored");
+            eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+            // return Err(Box::new(GeigerError::NonZeroStatus(
+            //     output.status.code().unwrap_or(-1),
+            //     stderr.to_string(),
+            // )));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);

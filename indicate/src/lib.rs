@@ -230,6 +230,8 @@ mod test {
     #[test_case("forbids_unsafe", "geiger_forbids_unsafe")]
     #[test_case("forbids_unsafe", "geiger_total_percentage")]
     #[test_case("unsafe_crate", "geiger_advanced" => inconclusive["cargo-geiger --features flag broken, see https://github.com/rust-secure-code/cargo-geiger/issues/379"])]
+    #[test_case("simple_deps", "dependencies_all_fields" ; "retrieve all fields of all dependencies")]
+    #[test_case("simple_deps", "dependencies_all_fields_include_root" ; "retrieve all fields of all dependencies including root package")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

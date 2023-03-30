@@ -755,7 +755,13 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         Some(u) => {
                             Box::new(std::iter::once(Vertex::GeigerUnsafety(u)))
                         }
-                        None => Box::new(std::iter::empty()),
+                        None => {
+                            eprintln!(
+                                "failed to resolve geiger unsafety for {} {}",
+                                package.name, package.version
+                            );
+                            Box::new(std::iter::empty())
+                        }
                     }
                 })
             }

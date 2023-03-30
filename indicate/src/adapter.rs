@@ -181,51 +181,29 @@ impl IndicateAdapter {
         &self,
         include_root: bool,
     ) -> VertexIterator<'static, Vertex> {
-        let dependency_graph = self
-            .metadata
-            .resolve
-            .as_ref()
-            .expect("could not resolve dependency graph");
-
-        // Retain only those that are listed as 'normal' `DependencyKind`
-        // somewhere in the tree
-        let mut normal_dependencies = HashSet::new();
-        for node in &dependency_graph.nodes {
-            for dep in &node.deps {
-                if dep
-                    .dep_kinds
-                    .iter()
-                    .any(|dki| dki.kind == DependencyKind::Normal)
-                {
-                    normal_dependencies.insert(&dep.pkg);
-                }
-            }
-        }
-
-        let mut dependency_package_ids = dependency_graph
-            .nodes
-            .iter()
-            .filter_map(|n| {
-                if normal_dependencies.contains(&n.id) {
-                    Some(n.id.clone())
-                } else {
-                    None
-                }
-            })
+        // Use the direct, normal dependencies we already resolved when
+        // parsing the metadata
+        let mut dependency_package_ids = self
+            .direct_dependencies
+            .values()
+            .map(|r| r.to_vec())
+            .flatten()
             .collect::<Vec<_>>();
 
         // Remove root if requrested (is always included in dependency graph)
         if include_root {
-            let root_id = dependency_graph
-                .root
-                .as_ref()
+            let root_package = self
+                .metadata
+                .root_package()
                 .expect("could not resolve root node");
-            dependency_package_ids.push(root_id.clone());
+            dependency_package_ids.push(root_package.id.clone());
         }
 
-        // For deterministic testing
-        #[cfg(test)]
+        // Sorting gives us same output every time, and allows for
+        // deduplicating. The duplicates are from multiple packages sharing the
+        // same direct dependency
         dependency_package_ids.sort();
+        dependency_package_ids.dedup();
 
         // We must call `.collect()`, to ensure lifetimes by enforcing the
         // `Rc::clone`. It will not affect the resolution or laziness, since

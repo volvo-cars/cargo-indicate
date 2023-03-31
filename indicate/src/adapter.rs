@@ -1,11 +1,12 @@
 use cargo::core::Workspace as CargoWorkspace;
 use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
 use cargo::util::config::Config as CargoConfig;
-use cargo::util::{hex, CargoResult};
-use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
+use cargo::util::hex;
+use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::{
     cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,
@@ -41,6 +42,9 @@ type SourceMap = HashMap<NameVersion, PathBuf>;
 
 /// Parse metadata to create maps over the packages and dependency
 /// relations in it
+///
+/// `direct_dependencies` will only include 'normal' dependencies, i.e.
+/// not build nor test deps.
 pub fn parse_metadata(
     metadata: &Metadata,
 ) -> (PackageMap, DirectDependencyMap) {
@@ -63,8 +67,27 @@ pub fn parse_metadata(
         .iter()
     {
         let id = node.id.to_owned();
-        let deps = node.dependencies.to_owned();
-        direct_dependencies.insert(id, Rc::new(deps));
+
+        // Filter out dependencies that are not normal
+        let normal_deps = node
+            .deps
+            .iter()
+            .filter_map(|nd| {
+                if nd
+                    .dep_kinds
+                    .iter()
+                    .any(|dki| dki.kind == DependencyKind::Normal)
+                {
+                    // A dependency can have many kinds; We only care if it is
+                    // normal
+                    Some(nd.pkg.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        direct_dependencies.insert(id, Rc::new(normal_deps));
     }
 
     (packages, direct_dependencies)
@@ -153,49 +176,50 @@ impl IndicateAdapter {
 
     /// Retrieves an iterator over all dependencies, optionally including the
     /// root package
+    ///
+    /// Only returns dependencies that are of the 'normal' kind, i.e. no
+    /// dev or build dependencies.
     fn dependencies(
         &self,
         include_root: bool,
     ) -> VertexIterator<'static, Vertex> {
-        let packages = self.packages();
+        // Use the direct, normal dependencies we already resolved when
+        // parsing the metadata
+        let mut dependency_package_ids = self
+            .direct_dependencies
+            .values()
+            .map(|r| r.to_vec())
+            .flatten()
+            .collect::<Vec<_>>();
 
-        #[allow(unused_mut)]
-        let mut packages =
-            packages.values().map(|p| Rc::clone(p)).collect::<Vec<_>>();
+        // Remove root if requrested (is always included in dependency graph)
+        if include_root {
+            let root_package = self
+                .metadata
+                .root_package()
+                .expect("could not resolve root node");
+            dependency_package_ids.push(root_package.id.clone());
+        }
 
-        // When running tests we need determenistic results
-        #[cfg(test)]
-        packages.sort_by_key(|p| p.id.clone());
-
-        let packages = packages.iter();
+        // Sorting gives us same output every time, and allows for
+        // deduplicating. The duplicates are from multiple packages sharing the
+        // same direct dependency
+        dependency_package_ids.sort();
+        dependency_package_ids.dedup();
 
         // We must call `.collect()`, to ensure lifetimes by enforcing the
         // `Rc::clone`. It will not affect the resolution or laziness, since
         // this is a starting node
-        if !include_root {
-            let root_package =
-                self.metadata.root_package().expect("no root package found");
-            let packages = packages
-                .filter_map(|p| {
-                    if p.id != root_package.id {
-                        Some(Vertex::Package(Rc::clone(p)))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-                .into_iter();
+        let dependencies = dependency_package_ids
+            .iter()
+            .map(|pid| {
+                // We must be able to find it, since packages is based on this
+                Vertex::Package(Rc::clone(self.packages().get(&pid).unwrap()))
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
 
-            Box::new(packages)
-        } else {
-            // Shadow to make Rust type system happy
-            let packages = packages
-                .map(|p| Vertex::Package(Rc::clone(p)))
-                .collect::<Vec<_>>()
-                .into_iter();
-
-            Box::new(packages)
-        }
+        Box::new(dependencies)
     }
 }
 
@@ -305,7 +329,13 @@ impl IndicateAdapter {
         if url.contains("github.com") {
             match GitUrl::parse(url) {
                 Ok(gurl) => {
-                    if matches!(gurl.host, Some(x) if x == "github.com") {
+                    if gurl.fullname != gurl.path.trim_matches('/') {
+                        // Points to something inside the repo rather than
+                        // the repo itself. For now just return webpage
+                        eprintln!("{url} points to something inside repository, set as webpage");
+                        Vertex::Webpage(String::from(url))
+                    } else if matches!(gurl.host, Some(x) if x == "github.com")
+                    {
                         // This is in fact a GitHub url, we attempt to retrieve it
                         let id = GitHubRepositoryId::new(
                             gurl.owner.unwrap_or_else(|| {
@@ -730,11 +760,20 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = vertex.as_package().unwrap();
                     let gid =
                         (package.name.clone(), package.version.clone()).into();
-                    let unsafety = geiger_client
-                            .unsafety(&gid).unwrap_or_else(|| {
-                                panic!("could not resolve unsafety for package {} (v. {})", package.name, package.version);
-                            });
-                    Box::new(std::iter::once(Vertex::GeigerUnsafety(unsafety)))
+                    let unsafety = geiger_client.unsafety(&gid);
+
+                    match unsafety {
+                        Some(u) => {
+                            Box::new(std::iter::once(Vertex::GeigerUnsafety(u)))
+                        }
+                        None => {
+                            eprintln!(
+                                "failed to resolve geiger unsafety for {} {}",
+                                package.name, package.version
+                            );
+                            Box::new(std::iter::empty())
+                        }
+                    }
                 })
             }
             ("GitHubRepository", "owner") => {

@@ -49,17 +49,16 @@ use std::{
 };
 
 use cargo_metadata::CargoOpt;
-use rustsec::Version;
 use serde::Deserialize;
 
-use crate::{errors::GeigerError, ManifestPath};
+use crate::{errors::GeigerError, ManifestPath, NameVersion};
 
 /// A client used to evaluate `cargo-geiger` information for some package
 /// and its dependencies
 #[derive(Debug)]
 pub struct GeigerClient {
     output: GeigerOutput,
-    unsafety: HashMap<GeigerId, GeigerUnsafety>,
+    unsafety: HashMap<NameVersion, GeigerUnsafety>,
 }
 
 impl GeigerClient {
@@ -115,24 +114,24 @@ impl GeigerClient {
             });
 
         if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(Box::new(GeigerError::NonZeroStatus(
-                output.status.code().unwrap_or(-1),
-                stderr.to_string(),
-            )));
+            // Geiger gives error codes even if its only errors codes...
+            // We let this explode somewhere else
+            println!("cargo-geiger exited with non-zero exit code, but it was ignored");
+            eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+            // return Err(Box::new(GeigerError::NonZeroStatus(
+            //     output.status.code().unwrap_or(-1),
+            //     stderr.to_string(),
+            // )));
         }
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let res = Self::from_json(&stdout);
         match res {
             Ok(s) => Ok(s),
-            Err(e) => {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                Err(Box::new(GeigerError::UnexpectedOutput(
-                    stderr.to_string(),
-                    e.to_string(),
-                )))
-            }
+            Err(e) => Err(Box::new(GeigerError::UnexpectedOutput(
+                e.to_string(),
+                stdout.to_string(),
+            ))),
         }
     }
 
@@ -143,7 +142,7 @@ impl GeigerClient {
         Ok(Self::from(output))
     }
 
-    pub fn unsafety(&self, gid: &GeigerId) -> Option<GeigerUnsafety> {
+    pub fn unsafety(&self, gid: &NameVersion) -> Option<GeigerUnsafety> {
         self.unsafety.get(gid).copied()
     }
 }
@@ -191,24 +190,8 @@ pub struct GeigerPackageOutput {
 /// A package in `cargo-geiger` used to identify what has been parsed
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeigerPackage {
-    pub id: GeigerId,
+    pub id: NameVersion,
     // Other fields ignored
-}
-
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
-pub struct GeigerId {
-    pub name: String,
-    pub version: Version,
-    // Other fields ignored, assume crates.io registry
-}
-
-impl From<(String, Version)> for GeigerId {
-    fn from(value: (String, Version)) -> Self {
-        Self {
-            name: value.0,
-            version: value.1,
-        }
-    }
 }
 
 /// The output of `cargo-geiger` for one package/dependency

@@ -1,0 +1,14 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            dependencies @recurse(depth: 10) {
+                name @output(name: "dep_name")
+            }
+        }
+    }
+}
+    "#,
+    args: {}
+)

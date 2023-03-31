@@ -17,6 +17,8 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::Arc};
 
 use once_cell::sync::Lazy;
 use query::FullQuery;
+use rustsec::Version;
+use serde::Deserialize;
 use tokio::runtime::Runtime;
 use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 
@@ -58,6 +60,22 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .build()
         .expect("could not create tokio runtime")
 });
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq, Hash)]
+pub struct NameVersion {
+    pub name: String,
+    pub version: Version,
+    // Other fields ignored, assume crates.io registry
+}
+
+impl From<(String, Version)> for NameVersion {
+    fn from(value: (String, Version)) -> Self {
+        Self {
+            name: value.0,
+            version: value.1,
+        }
+    }
+}
 
 /// Executes a Trustfall query at a defined path, using the schema
 /// provided by `indicate`
@@ -232,6 +250,8 @@ mod test {
     #[test_case("unsafe_crate", "geiger_advanced" => inconclusive["cargo-geiger --features flag broken, see https://github.com/rust-secure-code/cargo-geiger/issues/379"])]
     #[test_case("simple_deps", "dependencies_all_fields" ; "retrieve all fields of all dependencies")]
     #[test_case("simple_deps", "dependencies_all_fields_include_root" ; "retrieve all fields of all dependencies including root package")]
+    #[test_case("dev_deps", "dev_dependencies_excluded" ; "dev-dependencies excluded in dep resolution when using Dependencies entry point")]
+    #[test_case("dev_deps", "dev_dependencies_excluded_w_root_package" ; "dev-dependencies excluded in dep resolution when using RootPackage entry point")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

@@ -1,0 +1,12 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        dependencies {
+            name @output(name: "dep_name")
+        }
+    }
+}
+    "#,
+    args: {}
+)

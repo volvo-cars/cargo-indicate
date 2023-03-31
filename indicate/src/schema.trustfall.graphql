@@ -63,7 +63,7 @@ type Package {
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
     advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
-    geiger: GeigerUnsafety!
+    geiger: GeigerUnsafety
 }
 
 # This is exactly the same as `tokei::Config`

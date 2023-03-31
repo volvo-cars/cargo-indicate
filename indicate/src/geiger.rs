@@ -128,13 +128,10 @@ impl GeigerClient {
         let res = Self::from_json(&stdout);
         match res {
             Ok(s) => Ok(s),
-            Err(e) => {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                Err(Box::new(GeigerError::UnexpectedOutput(
-                    e.to_string(),
-                    stdout.to_string(),
-                )))
-            }
+            Err(e) => Err(Box::new(GeigerError::UnexpectedOutput(
+                e.to_string(),
+                stdout.to_string(),
+            ))),
         }
     }
 

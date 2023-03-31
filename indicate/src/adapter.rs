@@ -327,7 +327,13 @@ impl IndicateAdapter {
         if url.contains("github.com") {
             match GitUrl::parse(url) {
                 Ok(gurl) => {
-                    if matches!(gurl.host, Some(x) if x == "github.com") {
+                    if gurl.fullname != gurl.path.trim_matches('/') {
+                        // Points to something inside the repo rather than
+                        // the repo itself. For now just return webpage
+                        eprintln!("{url} points to something inside repository, set as webpage");
+                        Vertex::Webpage(String::from(url))
+                    } else if matches!(gurl.host, Some(x) if x == "github.com")
+                    {
                         // This is in fact a GitHub url, we attempt to retrieve it
                         let id = GitHubRepositoryId::new(
                             gurl.owner.unwrap_or_else(|| {

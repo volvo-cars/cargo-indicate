@@ -1,0 +1,14 @@
+[package]
+authors = ["Charlie Chaplin"]
+name = "transitive_deps"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+libc = "0.2.139" # Both direct and indirect dep
+simple_deps = { path = "../simple_deps" } # Only direct, but adds `libc` as transitive
+"ref_slice" = "1" # Has no deps of its own

@@ -6,7 +6,6 @@ use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::{
     cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,

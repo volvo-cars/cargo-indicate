@@ -1,0 +1,10 @@
+FullQuery(
+    query: r#"
+{
+    TransitiveDependencies {
+        name @output
+    }
+}
+    "#,
+    args: {}
+)

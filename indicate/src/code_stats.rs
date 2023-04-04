@@ -24,6 +24,9 @@ pub trait CodeStats {
     /// Retrieve the name of the language
     fn language(&self) -> &str;
 
+    /// Retrieve the number of files
+    fn files(&self) -> usize;
+
     /// Retrieve the number of blank lines
     fn blanks(&self) -> usize;
 
@@ -32,6 +35,9 @@ pub trait CodeStats {
 
     /// Retrieve the number of lines of comments
     fn comments(&self) -> usize;
+
+    /// Summarizes the code stats
+    fn summary(&self) -> Self;
 }
 
 #[derive(Debug, Clone)]
@@ -48,11 +54,6 @@ impl LanguageCodeStats {
         }
     }
 
-    /// Return a summary of the code stats for this language
-    pub fn summary(&self) -> LanguageCodeStats {
-        Self::new(self.language.to_owned(), self.stats.summarise())
-    }
-
     pub fn inaccurate(&self) -> bool {
         self.stats.inaccurate
     }
@@ -65,7 +66,11 @@ impl LanguageCodeStats {
             for r in reports {
                 stats += r.stats.clone();
             }
-            b.push(LanguageBlob::new(lang_type.to_string(), stats));
+            b.push(LanguageBlob::new(
+                lang_type.to_string(),
+                reports.len(),
+                stats,
+            ));
         }
         b
     }
@@ -76,6 +81,10 @@ impl CodeStats for LanguageCodeStats {
         &self.language
     }
 
+    fn files(&self) -> usize {
+        self.stats.reports.len()
+    }
+
     fn blanks(&self) -> usize {
         self.stats.blanks
     }
@@ -87,29 +96,41 @@ impl CodeStats for LanguageCodeStats {
     fn comments(&self) -> usize {
         self.stats.comments
     }
+
+    fn summary(&self) -> LanguageCodeStats {
+        Self::new(self.language.to_owned(), self.stats.summarise())
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct LanguageBlob {
     language: String,
+    files: usize,
     stats: tokei::CodeStats,
 }
 
 impl LanguageBlob {
-    pub fn new(language: String, stats: tokei::CodeStats) -> Self {
-        Self { language, stats }
-    }
-
-    /// Return a new language blob where all children blobs have been summarized
-    pub fn summary(&self) -> LanguageBlob {
-        Self::new(self.language.to_owned(), self.stats.summarise())
+    pub fn new(
+        language: String,
+        files: usize,
+        stats: tokei::CodeStats,
+    ) -> Self {
+        Self {
+            language,
+            files,
+            stats,
+        }
     }
 
     /// Retrieve the language blobs themselves inside this blob
     pub fn blobs(&self) -> Vec<LanguageBlob> {
         let mut b = Vec::with_capacity(self.stats.blobs.len());
         for (lang_type, stats) in &self.stats.blobs {
-            b.push(LanguageBlob::new(lang_type.to_string(), stats.clone()));
+            b.push(LanguageBlob::new(
+                lang_type.to_string(),
+                self.files,
+                stats.clone(),
+            ));
         }
         b
     }
@@ -120,6 +141,10 @@ impl CodeStats for LanguageBlob {
         &self.language
     }
 
+    fn files(&self) -> usize {
+        self.files
+    }
+
     fn blanks(&self) -> usize {
         self.stats.blanks
     }
@@ -130,5 +155,10 @@ impl CodeStats for LanguageBlob {
 
     fn comments(&self) -> usize {
         self.stats.comments
+    }
+
+    /// Return a new language blob where all children blobs have been summarized
+    fn summary(&self) -> LanguageBlob {
+        Self::new(self.language.to_owned(), self.files, self.stats.summarise())
     }
 }

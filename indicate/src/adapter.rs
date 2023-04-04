@@ -789,9 +789,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
-                let get_stat_bool_param = |pname| {
-                    parameters.get(pname).and_then(|p| p.as_bool())
-                };
+                let get_stat_bool_param =
+                    |pname| parameters.get(pname).and_then(|p| p.as_bool());
 
                 let config = tokei::Config {
                         columns: None, // Unused for library
@@ -950,12 +949,34 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     )))
                 })
             }
+            ("LanguageCodeStats", "children") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let lcs = vertex.as_language_code_stats().unwrap();
+                    let children = lcs.children();
+                    Box::new(
+                        children
+                            .into_iter()
+                            .map(|c| Vertex::LanguageBlob(Rc::new(c))),
+                    )
+                })
+            }
             ("LanguageBlob", "summary") => {
                 resolve_neighbors_with(contexts, |vertex| {
                     let lb = vertex.as_language_blob().unwrap();
                     Box::new(std::iter::once(Vertex::LanguageBlob(Rc::new(
                         lb.summary(),
                     ))))
+                })
+            }
+            ("LanguageCodeStats", "blobs") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let lb = vertex.as_language_blob().unwrap();
+                    let blobs = lb.blobs();
+                    Box::new(
+                        blobs
+                            .into_iter()
+                            .map(|b| Vertex::LanguageBlob(Rc::new(b))),
+                    )
                 })
             }
             (t, e) => {

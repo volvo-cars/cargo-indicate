@@ -13,8 +13,10 @@
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
 #![forbid(unsafe_code)]
+use std::ops::Deref;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::Arc};
 
+use cargo_metadata::Package;
 use once_cell::sync::Lazy;
 use query::FullQuery;
 use rustsec::Version;
@@ -68,12 +70,24 @@ pub struct NameVersion {
     // Other fields ignored, assume crates.io registry
 }
 
-impl From<(String, Version)> for NameVersion {
-    fn from(value: (String, Version)) -> Self {
-        Self {
-            name: value.0,
-            version: value.1,
+impl NameVersion {
+    pub fn new(name: String, version: Version) -> Self {
+        Self { name, version }
+    }
+}
+
+impl<T> From<T> for NameVersion
+where
+    T: AsRef<Package>,
+{
+    fn from(value: T) -> Self {
+        fn inner(package: &Package) -> NameVersion {
+            NameVersion {
+                name: package.name.to_owned(),
+                version: package.version.to_owned(),
+            }
         }
+        inner(value.as_ref())
     }
 }
 

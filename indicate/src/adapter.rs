@@ -19,7 +19,7 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::IndicateAdapterBuilder;
+use crate::code_stats::{get_code_stats, CodeStats};
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
@@ -27,10 +27,10 @@ use crate::{
     vertex::Vertex,
     ManifestPath,
 };
+use crate::{IndicateAdapterBuilder, NameVersion};
 
 pub mod adapter_builder;
 
-type NameVersion = (String, String);
 /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
@@ -139,7 +139,10 @@ pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
 
             if full_path.exists() {
                 Some((
-                    (pkgid.name().to_string(), pkgid.version().to_string()),
+                    NameVersion::new(
+                        pkgid.name().to_string(),
+                        pkgid.version().to_owned(),
+                    ),
                     full_path,
                 ))
             } else {
@@ -149,6 +152,21 @@ pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
         .collect();
 
     paths
+}
+
+macro_rules! resolve_code_stats {
+    ($getter:ident) => {
+        |v| {
+            let res = match v {
+                Vertex::LanguageCodeStats(c) => c.$getter(),
+                Vertex::LanguageBlob(c) => c.$getter(),
+                u => {
+                    unreachable!("cannot access files on vertex {u:?}")
+                }
+            };
+            FieldValue::Uint64(res as u64)
+        }
+    };
 }
 
 pub struct IndicateAdapter {
@@ -689,6 +707,18 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     FieldValue::Float64(percentage)
                 })
             }
+            ("LanguageCodeStats" | "LanguageBlob", "files") => {
+                resolve_property_with(contexts, resolve_code_stats!(files))
+            }
+            ("LanguageCodeStats" | "LanguageBlob", "blanks") => {
+                resolve_property_with(contexts, resolve_code_stats!(blanks))
+            }
+            ("LanguageCodeStats" | "LanguageBlob", "code") => {
+                resolve_property_with(contexts, resolve_code_stats!(code))
+            }
+            ("LanguageCodeStats" | "LanguageBlob", "comments") => {
+                resolve_property_with(contexts, resolve_code_stats!(comments))
+            }
             // ("Language", "language") => {
             //     resolve_property_with(contexts, field_property!(as_language, l))
             // }
@@ -816,8 +846,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let geiger_client = self.geiger_client();
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let gid =
-                        (package.name.clone(), package.version.clone()).into();
+                    let gid = package.into();
                     let unsafety = geiger_client.unsafety(&gid);
 
                     match unsafety {
@@ -832,6 +861,62 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                             Box::new(std::iter::empty())
                         }
                     }
+                })
+            }
+            ("Package", "codeStats") => {
+                let source_map = Rc::clone(&self.source_map);
+                // Parameters verified by `trustfall` and schema
+                let ignored_paths =
+                    parameters.get("ignoredPaths").unwrap().to_owned();
+
+                // Either they are passed and _must_ be a bool according to
+                // schema, or they are undefined
+                let get_stat_bool_param =
+                    |pname| parameters.get(pname).map(|p| p.as_bool().unwrap());
+
+                let config = tokei::Config {
+                        columns: None, // Unused for library
+                        hidden: get_stat_bool_param("hidden"),
+                        no_ignore: get_stat_bool_param("noIgnore"),
+                        no_ignore_parent: get_stat_bool_param("noIgnoreParent"),
+                        no_ignore_dot: get_stat_bool_param("noIgnoreDot"),
+                        no_ignore_vcs: get_stat_bool_param("noIgnoreVcs"),
+                        treat_doc_strings_as_comments: get_stat_bool_param(
+                            "treatDocStringsAsComments",
+                        ),
+                        types: parameters.get("types").map(|t| {
+                            t.as_vec(|i| {
+                                let language_str = i.as_str().unwrap();
+                                let lt = tokei::LanguageType::from_str(language_str).unwrap_or_else(|_| {
+                                    panic!("parameter error: {language_str} is not a valid language name");
+                                });
+                                Some(lt)
+                            })
+                            .unwrap()
+                        })
+                            .to_owned(),
+                        sort: None, // TODO: Not implemented
+                    };
+
+                resolve_neighbors_with(contexts, move |vertex| {
+                    let package = vertex.as_package().unwrap();
+                    let package_path = source_map.get(&package.into()).unwrap_or_else(|| {
+                        panic!("could not resolve local registry path to {package:?}");
+                    });
+
+                    let ignored_paths =
+                        ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
+                    let code_stats = get_code_stats(
+                        package_path,
+                        ignored_paths.as_slice(),
+                        &config,
+                    );
+
+                    Box::new(
+                        code_stats
+                            .into_iter()
+                            .map(|cs| Vertex::LanguageCodeStats(Rc::new(cs))),
+                    )
                 })
             }
             ("GitHubRepository", "owner") => {

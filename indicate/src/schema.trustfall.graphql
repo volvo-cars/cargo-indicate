@@ -62,25 +62,29 @@ type Package {
     version: String!,
     license: String
     repository: Webpage
-    codeStats(ignorePaths: [String!]!, cfg: CodeStatsConfig): [LanguageCodeStats!]!
+
+    # All parameters except `ignorePaths` is exactly the same as `tokei::Config`
+    codeStats(
+        ignorePaths: [String!]!,
+        hidden: Boolean,
+        noIgnore: Boolean,
+        noIgnoreParent: Boolean,
+        noIgnoreDot: Boolean,
+        noIgnoreVcs: Boolean,
+        treatDocStringsAsComments: Boolean,
+        types: [String!] # Types of languages to be included in report
+    ): [LanguageCodeStats!]!
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
-    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
+    advisoryHistory(
+        includeWithdrawn: Boolean!,
+        arch: String,
+        os: String,
+        minSeverity: String
+    ): [Advisory!]!
     geiger: GeigerUnsafety
-}
-
-# This is exactly the same as `tokei::Config`
-type CodeStatsConfig {
-    hidden: Boolean
-    noIgnore: Boolean
-    noIgnoreParent: Boolean
-    noIgnoreDot: Boolean
-    noIgnoreVcs: Boolean
-    treatDocStringsAsComments: Boolean
-    # Types of languages to be included in report
-    types: [String!]
 }
 
 # Data from tokei, shared between `Language` and `CodeStats`

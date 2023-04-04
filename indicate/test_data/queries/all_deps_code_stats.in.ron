@@ -1,0 +1,21 @@
+FullQuery(
+    query: r#"
+{
+        Dependencies(includeRoot: true) {
+            name @output
+            version @output
+            codeStats(ignoredPaths: []) {
+                language @output
+                files @output
+                lines @output
+                blanks @output
+                code @output
+                comments @output
+                commentsToCode @output
+                inaccurate @output
+            }
+        }
+}
+    "#,
+    args: {}
+)

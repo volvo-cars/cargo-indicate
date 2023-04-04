@@ -631,7 +631,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("LanguageCodeStats" | "LanguageBlob", "comments") => {
                 resolve_property_with(contexts, resolve_code_stats!(comments))
             }
-            ("LanguageCodeStats" | "LanguageBlob", "comments_to_code") => {
+            ("LanguageCodeStats" | "LanguageBlob", "commentsToCode") => {
                 resolve_property_with(
                     contexts,
                     resolve_code_stats!(comments_to_code, Float64),

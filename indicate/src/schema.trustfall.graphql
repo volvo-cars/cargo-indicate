@@ -104,7 +104,7 @@ interface CodeStats {
     # Number of lines of comments
     comments: Int!
     # Lines of comments / lines of code
-    comments_to_code: Float!
+    commentsToCode: Float!
 }
 
 # `tokei::Language`
@@ -116,7 +116,7 @@ type LanguageCodeStats implements CodeStats {
     blanks: Int!
     code: Int!
     comments: Int!
-    comments_to_code: Float!
+    commentsToCode: Float!
 
     # From `tokei::Languge::summarize()`
     summary: LanguageCodeStats!
@@ -137,7 +137,7 @@ type LanguageBlob implements CodeStats {
     blanks: Int!
     code: Int!
     comments: Int!
-    comments_to_code: Float!
+    commentsToCode: Float!
 
     # Merge this with all child blobs to create new `CodeStats`
     # (`tokei::CodeStats::summarize()`)

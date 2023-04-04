@@ -11,7 +11,7 @@ FullQuery(
             blanks @output
             code @output
             comments @output
-            comments_to_code @output
+            commentsToCode @output
         }
     }
 }

@@ -968,7 +968,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     ))))
                 })
             }
-            ("LanguageCodeStats", "blobs") => {
+            ("LanguageBlob", "blobs") => {
                 resolve_neighbors_with(contexts, |vertex| {
                     let lb = vertex.as_language_blob().unwrap();
                     let blobs = lb.blobs();

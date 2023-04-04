@@ -141,10 +141,10 @@ type LanguageBlob implements CodeStats {
 
     # Merge this with all child blobs to create new `CodeStats`
     # (`tokei::CodeStats::summarize()`)
-    summary: CodeStats!
+    summary: LanguageBlob!
 
     # Blobs of code contained within this one
-    blobs: LanguageBlob
+    blobs: [LanguageBlob!]!
 }
 
 # `used` refers to code used by the `RootPackage`

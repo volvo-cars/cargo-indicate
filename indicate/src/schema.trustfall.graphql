@@ -48,6 +48,11 @@ Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 type RootQuery {
     RootPackage: Package!
     Dependencies(includeRoot: Boolean!): [Package!]!
+
+    # Dependencies that are indirect dependencies of the root package;
+    # excluding direct dependencies that are _only_ direct dependencies, and
+    # appear nowhere else in the dependency tree
+    TransitiveDependencies: [Package!]!
 }
 
 # See `cargo_metadata::Package`

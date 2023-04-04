@@ -252,6 +252,7 @@ mod test {
     #[test_case("simple_deps", "dependencies_all_fields_include_root" ; "retrieve all fields of all dependencies including root package")]
     #[test_case("dev_deps", "dev_dependencies_excluded" ; "dev-dependencies excluded in dep resolution when using Dependencies entry point")]
     #[test_case("dev_deps", "dev_dependencies_excluded_w_root_package" ; "dev-dependencies excluded in dep resolution when using RootPackage entry point")]
+    #[test_case("transitive_deps", "list_transitive_dependencies" ; "list only transitive dependencies")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

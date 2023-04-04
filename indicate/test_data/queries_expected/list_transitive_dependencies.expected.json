@@ -1,0 +1,17 @@
+[
+  {
+    "name": "libc"
+  },
+  {
+    "name": "proc-macro2"
+  },
+  {
+    "name": "quote"
+  },
+  {
+    "name": "syn"
+  },
+  {
+    "name": "unicode-ident"
+  }
+]

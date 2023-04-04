@@ -6,7 +6,6 @@ use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::{
     cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,
@@ -174,15 +173,9 @@ impl IndicateAdapter {
         Box::new(std::iter::once(v))
     }
 
-    /// Retrieves an iterator over all dependencies, optionally including the
-    /// root package
-    ///
-    /// Only returns dependencies that are of the 'normal' kind, i.e. no
-    /// dev or build dependencies.
-    fn dependencies(
-        &self,
-        include_root: bool,
-    ) -> VertexIterator<'static, Vertex> {
+    /// Retrieves an iterator over all package IDs of normal dependencies
+    /// (transitive and direct)
+    fn dependency_ids(&self, include_root: bool) -> Vec<PackageId> {
         // Use the direct, normal dependencies we already resolved when
         // parsing the metadata
         let mut dependency_package_ids = self
@@ -206,7 +199,73 @@ impl IndicateAdapter {
         // same direct dependency
         dependency_package_ids.sort();
         dependency_package_ids.dedup();
+        dependency_package_ids
+    }
 
+    /// Retrieves an iterator over all dependencies, optionally including the
+    /// root package
+    ///
+    /// Only returns dependencies that are of the 'normal' kind, i.e. no
+    /// dev or build dependencies.
+    fn dependencies(
+        &self,
+        include_root: bool,
+    ) -> VertexIterator<'static, Vertex> {
+        let dependency_package_ids = self.dependency_ids(include_root);
+        // We must call `.collect()`, to ensure lifetimes by enforcing the
+        // `Rc::clone`. It will not affect the resolution or laziness, since
+        // this is a starting node
+        let dependencies = dependency_package_ids
+            .iter()
+            .map(|pid| {
+                // We must be able to find it, since packages is based on this
+                Vertex::Package(Rc::clone(self.packages().get(&pid).unwrap()))
+            })
+            .collect::<Vec<_>>()
+            .into_iter();
+
+        Box::new(dependencies)
+    }
+
+    /// Retrieves a vector of all transitive dependency IDs, i.e. dependencies
+    /// that are dependencies of direct dependencies
+    fn transitive_dependency_ids(&self) -> Vec<PackageId> {
+        // Transitive dependencies are those that are direct dependencies to
+        // anything but the root package
+        let root_package_id = self
+            .metadata
+            .root_package()
+            .expect("could not resolve root node")
+            .id
+            .clone();
+        let mut transitive_dependency_ids = self
+            .direct_dependencies
+            .iter()
+            .filter_map(|(p, dir_deps)| {
+                if *p != root_package_id {
+                    Some((*(*dir_deps)).clone())
+                } else {
+                    None
+                }
+            })
+            .flatten()
+            .collect::<Vec<_>>();
+
+        // Sorting gives us same output every time, and allows for
+        // deduplicating. The duplicates are from multiple packages sharing the
+        // same direct dependency
+        transitive_dependency_ids.sort();
+        transitive_dependency_ids.dedup();
+        transitive_dependency_ids
+    }
+
+    /// Retrieves an iterator over all transitive dependencies (dependencies
+    /// of direct dependencies to the root package)
+    ///
+    /// Only returns dependencies that are of the 'normal' kind, i.e. no
+    /// dev or build dependencies.
+    fn transitive_dependencies(&self) -> VertexIterator<'static, Vertex> {
+        let dependency_package_ids = self.transitive_dependency_ids();
         // We must call `.collect()`, to ensure lifetimes by enforcing the
         // `Rc::clone`. It will not affect the resolution or laziness, since
         // this is a starting node
@@ -383,6 +442,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("includeRoot").unwrap().as_bool().unwrap();
                 self.dependencies(include_root)
             }
+            "TransitiveDependencies" => self.transitive_dependencies(),
             e => {
                 unreachable!("edge {e} has no resolution as a starting vertex")
             }

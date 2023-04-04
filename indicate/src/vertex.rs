@@ -9,7 +9,7 @@ use rustsec::{advisory::affected::FunctionPath, Advisory, VersionReq};
 use trustfall::provider::TrustfallEnumVertex;
 
 use crate::{
-    code_stats::LanguageBlob,
+    code_stats::{LanguageBlob, LanguageCodeStats},
     geiger::{GeigerCategories, GeigerCount, GeigerUnsafety},
 };
 
@@ -36,7 +36,7 @@ pub enum Vertex {
     GeigerUnsafety(GeigerUnsafety),
     GeigerCategories(GeigerCategories),
     GeigerCount(GeigerCount),
-    Language(Rc<tokei::Language>),
+    LanguageCodeStats(Rc<LanguageCodeStats>),
     LanguageBlob(Rc<LanguageBlob>),
 }
 

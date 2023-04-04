@@ -1,60 +1,23 @@
 //! Client used to retrieve stats such as number of lines etc. for different
 //! Rust packages
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 
-/// Client providing mappings between paths and their reports
-#[derive(Debug)]
-pub struct CodeStatsClient {
-    stats_cache: HashMap<PathBuf, Vec<Language>>,
-    tokei_config: tokei::Config,
-    /// Ignored relative paths. Is passed to
-    /// [`tokei::Languages::get_statistics`]
-    ignored_paths: Vec<String>,
-}
-impl CodeStatsClient {
-    /// Creates a new client using the configuration provided
-    ///
-    /// Often [`CodeStatsClient::default()`] can be used instead.
-    pub fn new(
-        tokei_config: tokei::Config,
-        ignored_paths: Vec<String>,
-    ) -> Self {
-        Self {
-            stats_cache: HashMap::new(),
-            tokei_config,
-            ignored_paths,
-        }
+/// Retrieves code stats via `tokei` for a project
+///
+/// Ignored paths can be path-like, globs, etc. (see
+/// [`tokei::Languages::get_statistics`]), like `".git"`.
+pub(crate) fn get_code_stats(
+    root_path: &Path,
+    ignored_paths: &[&str],
+    config: &tokei::Config,
+) -> Vec<LanguageCodeStats> {
+    let mut ls = tokei::Languages::new();
+    ls.get_statistics(&[root_path], ignored_paths, config);
+    let mut res = Vec::with_capacity(ls.len());
+    for (lang_type, stats) in ls {
+        res.push(LanguageCodeStats::new(lang_type.to_string(), stats));
     }
-
-    /// Retrieves language information from a path, using a cached version
-    /// if available
-    pub fn get_languages_from_path(&mut self, path: &Path) -> &Vec<Language> {
-        self.stats_cache.entry(path.into()).or_insert_with(|| {
-            let mut ls = tokei::Languages::new();
-            ls.get_statistics(
-                &[path],
-                self.ignored_paths
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<_>>()
-                    .as_slice(),
-                &self.tokei_config,
-            );
-            let mut res = Vec::with_capacity(ls.len());
-            for (lang_type, stats) in ls {
-                res.push(Language::new(lang_type.to_string(), stats));
-            }
-            res
-        })
-    }
-}
-impl Default for CodeStatsClient {
-    fn default() -> Self {
-        CodeStatsClient::new(tokei::Config::default(), vec![])
-    }
+    res
 }
 
 pub trait CodeStats {
@@ -72,17 +35,22 @@ pub trait CodeStats {
 }
 
 #[derive(Debug, Clone)]
-pub struct Language {
+pub struct LanguageCodeStats {
     language: String,
     stats: tokei::Language,
 }
 
-impl Language {
+impl LanguageCodeStats {
     pub fn new(language_name: String, stats: tokei::Language) -> Self {
         Self {
             language: language_name,
             stats,
         }
+    }
+
+    /// Return a summary of the code stats for this language
+    pub fn summary(&self) -> LanguageCodeStats {
+        Self::new(self.language.to_owned(), self.stats.summarise())
     }
 
     pub fn inaccurate(&self) -> bool {
@@ -103,7 +71,7 @@ impl Language {
     }
 }
 
-impl CodeStats for Language {
+impl CodeStats for LanguageCodeStats {
     fn language(&self) -> &str {
         &self.language
     }
@@ -131,6 +99,12 @@ impl LanguageBlob {
     pub fn new(language: String, stats: tokei::CodeStats) -> Self {
         Self { language, stats }
     }
+
+    /// Return a new language blob where all children blobs have been summarized
+    pub fn summary(&self) -> LanguageBlob {
+        Self::new(self.language.to_owned(), self.stats.summarise())
+    }
+
     /// Retrieve the language blobs themselves inside this blob
     pub fn blobs(&self) -> Vec<LanguageBlob> {
         let mut b = Vec::with_capacity(self.stats.blobs.len());

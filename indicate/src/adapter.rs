@@ -620,6 +620,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("LanguageCodeStats" | "LanguageBlob", "files") => {
                 resolve_property_with(contexts, resolve_code_stats!(files))
             }
+            ("LanguageCodeStats" | "LanguageBlob", "lines") => {
+                resolve_property_with(contexts, resolve_code_stats!(lines))
+            }
             ("LanguageCodeStats" | "LanguageBlob", "blanks") => {
                 resolve_property_with(contexts, resolve_code_stats!(blanks))
             }
@@ -629,9 +632,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("LanguageCodeStats" | "LanguageBlob", "comments") => {
                 resolve_property_with(contexts, resolve_code_stats!(comments))
             }
-            // ("Language", "language") => {
-            //     resolve_property_with(contexts, field_property!(as_language, l))
-            // }
+            ("LanguageCodeStats" | "LanguageBlob", "comments_to_code") => {
+                resolve_property_with(
+                    contexts,
+                    resolve_code_stats!(comments_to_code, Float64),
+                )
+            }
+            ("LanguageCodeStats", "inaccurate") => resolve_property_with(
+                contexts,
+                accessor_property!(as_language_code_stats, inaccurate),
+            ),
             (t, p) => {
                 unreachable!("unreachable property combination: {t}, {p}")
             }

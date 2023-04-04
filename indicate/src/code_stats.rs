@@ -27,6 +27,9 @@ pub trait CodeStats {
     /// Retrieve the number of files
     fn files(&self) -> usize;
 
+    /// Retrieve the total number of lines
+    fn lines(&self) -> usize;
+
     /// Retrieve the number of blank lines
     fn blanks(&self) -> usize;
 
@@ -35,6 +38,11 @@ pub trait CodeStats {
 
     /// Retrieve the number of lines of comments
     fn comments(&self) -> usize;
+
+    /// Calculates `#lines of comments / #lines of code`
+    fn comments_to_code(&self) -> f64 {
+        self.comments() as f64 / self.code() as f64
+    }
 
     /// Summarizes the code stats
     fn summary(&self) -> Self;
@@ -83,6 +91,10 @@ impl CodeStats for LanguageCodeStats {
 
     fn files(&self) -> usize {
         self.stats.reports.len()
+    }
+
+    fn lines(&self) -> usize {
+        self.stats.lines()
     }
 
     fn blanks(&self) -> usize {
@@ -143,6 +155,10 @@ impl CodeStats for LanguageBlob {
 
     fn files(&self) -> usize {
         self.files
+    }
+
+    fn lines(&self) -> usize {
+        self.stats.lines()
     }
 
     fn blanks(&self) -> usize {

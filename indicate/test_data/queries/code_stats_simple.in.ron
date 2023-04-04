@@ -7,9 +7,11 @@ FullQuery(
         codeStats(ignoredPaths: [".git"]) {
             language @output
             files @output
+            lines @output
             blanks @output
             code @output
             comments @output
+            comments_to_code @output
         }
     }
 }

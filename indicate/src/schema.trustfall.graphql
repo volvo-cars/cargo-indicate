@@ -95,12 +95,16 @@ interface CodeStats {
     language: String!
     # Total number of files
     files: Int!
+    # Total number of lines
+    lines: Int!
     # Total number of blank lines
     blanks: Int!
     # Total number of lines of code
     code: Int!
     # Number of lines of comments
     comments: Int!
+    # Lines of comments / lines of code
+    comments_to_code: Float!
 }
 
 # `tokei::Language`
@@ -108,9 +112,11 @@ type LanguageCodeStats implements CodeStats {
     # From CodeStats
     language: String!
     files: Int!
+    lines: Int!
     blanks: Int!
     code: Int!
     comments: Int!
+    comments_to_code: Float!
 
     # From `tokei::Languge::summarize()`
     summary: LanguageCodeStats!
@@ -127,9 +133,11 @@ type LanguageBlob implements CodeStats {
     # From CodeStats
     language: String!
     files: Int!
+    lines: Int!
     blanks: Int!
     code: Int!
     comments: Int!
+    comments_to_code: Float!
 
     # Merge this with all child blobs to create new `CodeStats`
     # (`tokei::CodeStats::summarize()`)

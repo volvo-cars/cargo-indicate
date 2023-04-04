@@ -3,8 +3,10 @@
     "blanks": 0,
     "code": 1,
     "comments": 0,
+    "comments_to_code": 0.0,
     "files": 2,
     "language": "Rust",
+    "lines": 1,
     "name": "simple_deps",
     "version": "0.1.0"
   },
@@ -12,8 +14,10 @@
     "blanks": 3,
     "code": 9,
     "comments": 1,
+    "comments_to_code": 0.1111111111111111,
     "files": 1,
     "language": "TOML",
+    "lines": 13,
     "name": "simple_deps",
     "version": "0.1.0"
   }

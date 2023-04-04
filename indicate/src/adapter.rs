@@ -498,6 +498,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     None => FieldValue::Null,
                 }
             }),
+            ("Package", "manifestPath") => {
+                resolve_property_with(contexts, |v| {
+                    let package = v.as_package().unwrap();
+                    FieldValue::String(
+                        package.manifest_path.clone().into_string(),
+                    )
+                })
+            }
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
                     Some(url) => FieldValue::String(url.to_owned()),
@@ -871,8 +879,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
-                let get_stat_bool_param =
-                    |pname| parameters.get(pname).map(|p| p.as_bool().unwrap());
+                let get_stat_bool_param = |pname| {
+                    parameters.get(pname).map(|p| p.as_bool()).flatten()
+                };
 
                 let config = tokei::Config {
                         columns: None, // Unused for library
@@ -892,22 +901,34 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                 });
                                 Some(lt)
                             })
-                            .unwrap()
-                        })
+                        }).flatten()
                             .to_owned(),
                         sort: None, // TODO: Not implemented
                     };
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let package_path = source_map.get(&package.into()).unwrap_or_else(|| {
-                        panic!("could not resolve local registry path to {package:?}");
-                    });
+                    let package_path = source_map
+                        .get(&package.into())
+                        .cloned()
+                        .unwrap_or_else(|| {
+                            let mut mp = package
+                                .manifest_path
+                                .clone()
+                                .into_std_path_buf();
+
+                            // Remove `Cargo.toml`
+                            mp.pop();
+                            mp
+                        });
+                    // .unwrap_or_else(|| {
+                    //     panic!("could not resolve local registry path to {} {} ({}), {}", package.name, package.version, package.id, package.manifest_path);
+                    // });
 
                     let ignored_paths =
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
                     let code_stats = get_code_stats(
-                        package_path,
+                        &package_path,
                         ignored_paths.as_slice(),
                         &config,
                     );

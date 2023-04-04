@@ -52,8 +52,10 @@ pub const RAW_SCHEMA: &str = include_str!("schema.trustfall.graphql");
 /// ```graphql
 #[doc = include_str!("schema.trustfall.graphql")]
 /// ```
-static SCHEMA: Lazy<Schema> =
-    Lazy::new(|| Schema::parse(RAW_SCHEMA).expect("Could not parse schema!"));
+static SCHEMA: Lazy<Schema> = Lazy::new(|| {
+    Schema::parse(RAW_SCHEMA)
+        .unwrap_or_else(|e| panic!("Could not parse schema due to error: {e}"))
+});
 
 /// async tokio runtime to be able to resolve `async` API client libraries
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
@@ -129,8 +131,7 @@ pub fn execute_query_with_adapter(
     ) {
         Ok(res) => res.take(max_results.unwrap_or(usize::MAX)).collect(),
         Err(e) => panic!(
-            "Could not execute query due to error: {:#?}, query was: {:#?}",
-            e, query
+            "Could not execute query due to error: {e:#?}, query was: {query:#?}"
         ),
     };
     res
@@ -267,6 +268,7 @@ mod test {
     #[test_case("dev_deps", "dev_dependencies_excluded" ; "dev-dependencies excluded in dep resolution when using Dependencies entry point")]
     #[test_case("dev_deps", "dev_dependencies_excluded_w_root_package" ; "dev-dependencies excluded in dep resolution when using RootPackage entry point")]
     #[test_case("transitive_deps", "list_transitive_dependencies" ; "list only transitive dependencies")]
+    #[test_case("simple_deps", "code_stats_simple")]
     fn query_test(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);

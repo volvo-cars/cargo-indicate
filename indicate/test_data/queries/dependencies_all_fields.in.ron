@@ -4,6 +4,7 @@ FullQuery(
     Dependencies(includeRoot: false) {
         name @output
         version @output
+        manifestPath @output
     }
 }
 "#,

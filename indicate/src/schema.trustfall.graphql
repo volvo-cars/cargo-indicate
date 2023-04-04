@@ -61,11 +61,12 @@ type Package {
     name: String!,
     version: String!,
     license: String
+    manifestPath: String!
     repository: Webpage
 
     # All parameters except `ignorePaths` is exactly the same as `tokei::Config`
     codeStats(
-        ignorePaths: [String!]!,
+        ignoredPaths: [String!]!,
         hidden: Boolean,
         noIgnore: Boolean,
         noIgnoreParent: Boolean,
@@ -88,7 +89,9 @@ type Package {
 }
 
 # Data from tokei, shared between `Language` and `CodeStats`
-type CodeStats {
+interface CodeStats {
+    # Name of the language
+    language: String!
     # Total number of files
     files: Int!
     # Total number of blank lines
@@ -101,10 +104,14 @@ type CodeStats {
 
 # `tokei::Language`
 type LanguageCodeStats implements CodeStats {
+    # From CodeStats
     language: String!
-    stats: CodeStats!
+    files: Int!
+    blanks: Int!
+    code: Int!
+    comments: Int!
 
-    # From `tokei::Language::summarize()`
+    # From `tokei::Languge::summarize()`
     summary: LanguageCodeStats!
     
     # If this language had problem with parsing
@@ -116,8 +123,12 @@ type LanguageCodeStats implements CodeStats {
 
 # `tokei::CodeStats.blobs`
 type LanguageBlob implements CodeStats {
+    # From CodeStats
     language: String!
-    stats: CodeStats!
+    files: Int!
+    blanks: Int!
+    code: Int!
+    comments: Int!
 
     # Merge this with all child blobs to create new `CodeStats`
     # (`tokei::CodeStats::summarize()`)

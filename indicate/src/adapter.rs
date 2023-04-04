@@ -87,8 +87,7 @@ impl IndicateAdapter {
         let mut dependency_package_ids = self
             .direct_dependencies
             .values()
-            .map(|r| r.to_vec())
-            .flatten()
+            .flat_map(|r| r.to_vec())
             .collect::<Vec<_>>();
 
         // Remove root if requrested (is always included in dependency graph)
@@ -125,7 +124,7 @@ impl IndicateAdapter {
             .iter()
             .map(|pid| {
                 // We must be able to find it, since packages is based on this
-                Vertex::Package(Rc::clone(self.packages().get(&pid).unwrap()))
+                Vertex::Package(Rc::clone(self.packages().get(pid).unwrap()))
             })
             .collect::<Vec<_>>()
             .into_iter();
@@ -179,7 +178,7 @@ impl IndicateAdapter {
             .iter()
             .map(|pid| {
                 // We must be able to find it, since packages is based on this
-                Vertex::Package(Rc::clone(self.packages().get(&pid).unwrap()))
+                Vertex::Package(Rc::clone(self.packages().get(pid).unwrap()))
             })
             .collect::<Vec<_>>()
             .into_iter();
@@ -399,7 +398,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("Package", "sourcePath") => resolve_property_with(contexts, |v| {
                 let package = v.as_package().unwrap();
                 FieldValue::String(
-                    util::local_package_path(&package).to_string_lossy().into(),
+                    util::local_package_path(package).to_string_lossy().into(),
                 )
             }),
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
@@ -791,7 +790,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
                 let get_stat_bool_param = |pname| {
-                    parameters.get(pname).map(|p| p.as_bool()).flatten()
+                    parameters.get(pname).and_then(|p| p.as_bool())
                 };
 
                 let config = tokei::Config {
@@ -804,7 +803,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         treat_doc_strings_as_comments: get_stat_bool_param(
                             "treatDocStringsAsComments",
                         ),
-                        types: parameters.get("types").map(|t| {
+                        types: parameters.get("types").and_then(|t| {
                             t.as_vec(|i| {
                                 let language_str = i.as_str().unwrap();
                                 let lt = tokei::LanguageType::from_str(language_str).unwrap_or_else(|_| {
@@ -812,14 +811,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                 });
                                 Some(lt)
                             })
-                        }).flatten()
-                            .to_owned(),
+                        })
+                            ,
                         sort: None, // TODO: Not implemented
                     };
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let package_path = util::local_package_path(&package);
+                    let package_path = util::local_package_path(package);
                     let ignored_paths =
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
                     let code_stats = get_code_stats(
@@ -941,6 +940,22 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     Box::new(std::iter::once(Vertex::GeigerCount(
                         categories.total(),
                     )))
+                })
+            }
+            ("LanguageCodeStats", "summary") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let lcs = vertex.as_language_code_stats().unwrap();
+                    Box::new(std::iter::once(Vertex::LanguageCodeStats(
+                        Rc::new(lcs.summary()),
+                    )))
+                })
+            }
+            ("LanguageBlob", "summary") => {
+                resolve_neighbors_with(contexts, |vertex| {
+                    let lb = vertex.as_language_blob().unwrap();
+                    Box::new(std::iter::once(Vertex::LanguageBlob(Rc::new(
+                        lb.summary(),
+                    ))))
                 })
             }
             (t, e) => {

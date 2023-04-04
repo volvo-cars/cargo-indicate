@@ -94,7 +94,7 @@ impl ManifestPath {
         // equal to what we're looking for
         if ctf
             .package
-            .map_or(true, |p| !Self::equal_package_names(&p.name(), &name))
+            .map_or(true, |p| !Self::equal_package_names(p.name(), &name))
         {
             // It is probably a workspace, we'll have to find a `Cargo.toml`
             // file with matching name
@@ -119,7 +119,7 @@ impl ManifestPath {
                         if parsed_config_toml.package.is_some() =>
                     {
                         if Self::equal_package_names(
-                            &parsed_config_toml.package.unwrap().name(),
+                            parsed_config_toml.package.unwrap().name(),
                             &name,
                         ) {
                             return Self::new(manifest_path);

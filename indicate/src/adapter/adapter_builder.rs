@@ -79,7 +79,7 @@ impl IndicateAdapterBuilder {
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
             gh_client: Rc::new(RefCell::new(
-                self.github_client.unwrap_or_else(GitHubClient::default),
+                self.github_client.unwrap_or_default(),
             )),
             advisory_client,
             geiger_client,

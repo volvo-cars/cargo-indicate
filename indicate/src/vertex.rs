@@ -1,7 +1,7 @@
 //! Includes the tokens that correspond to the types and relationships
 //! defined by [`SCHEMA`](crate::SCHEMA).
 
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{rc::Rc, sync::Arc};
 
 use cargo_metadata::Package;
 use octorust::types::{FullRepository, PublicUser};

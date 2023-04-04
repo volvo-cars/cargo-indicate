@@ -1,10 +1,9 @@
-use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
+use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
-use std::path::PathBuf;
 use std::{
-    cell::RefCell, collections::HashMap, env, rc::Rc, str::FromStr, sync::Arc,
+    cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Arc,
 };
 use trustfall::{
     provider::{
@@ -15,7 +14,6 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::code_stats::{get_code_stats, CodeStats};
 use crate::IndicateAdapterBuilder;
 use crate::{
     advisory::AdvisoryClient,
@@ -24,74 +22,16 @@ use crate::{
     vertex::Vertex,
     ManifestPath,
 };
+use crate::{
+    code_stats::{get_code_stats, CodeStats},
+    util,
+};
 
 pub mod adapter_builder;
 
 /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
-type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
-type PackageMap = HashMap<PackageId, Rc<Package>>;
-
-/// Retrieves the path to a package downloaded locally
-pub fn local_package_path(package: &Package) -> PathBuf {
-    let mut p = package.manifest_path.to_owned().into_std_path_buf();
-
-    // Remove `Cargo.toml`
-    p.pop();
-    p
-}
-
-/// Parse metadata to create maps over the packages and dependency
-/// relations in it
-///
-/// `direct_dependencies` will only include 'normal' dependencies, i.e.
-/// not build nor test deps.
-pub fn parse_metadata(
-    metadata: &Metadata,
-) -> (PackageMap, DirectDependencyMap) {
-    let mut packages = HashMap::with_capacity(metadata.packages.len());
-
-    for p in &metadata.packages {
-        let id = p.id.to_owned();
-        let package = p.to_owned();
-        packages.insert(id, Rc::new(package));
-    }
-
-    let mut direct_dependencies =
-        HashMap::with_capacity(metadata.packages.len());
-
-    for node in metadata
-        .resolve
-        .as_ref()
-        .expect("No nodes found!")
-        .nodes
-        .iter()
-    {
-        let id = node.id.to_owned();
-
-        // Filter out dependencies that are not normal
-        let normal_deps = node
-            .deps
-            .iter()
-            .filter_map(|nd| {
-                if nd
-                    .dep_kinds
-                    .iter()
-                    .any(|dki| dki.kind == DependencyKind::Normal)
-                {
-                    // A dependency can have many kinds; We only care if it is
-                    // normal
-                    Some(nd.pkg.clone())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-
-        direct_dependencies.insert(id, Rc::new(normal_deps));
-    }
-
-    (packages, direct_dependencies)
-}
+pub(crate) type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
+pub(crate) type PackageMap = HashMap<PackageId, Rc<Package>>;
 
 macro_rules! resolve_code_stats {
     ($getter:ident) => {
@@ -459,7 +399,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("Package", "sourcePath") => resolve_property_with(contexts, |v| {
                 let package = v.as_package().unwrap();
                 FieldValue::String(
-                    local_package_path(&package).to_string_lossy().into(),
+                    util::local_package_path(&package).to_string_lossy().into(),
                 )
             }),
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
@@ -869,7 +809,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let package_path = local_package_path(&package);
+                    let package_path = util::local_package_path(&package);
                     let ignored_paths =
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
                     let code_stats = get_code_stats(

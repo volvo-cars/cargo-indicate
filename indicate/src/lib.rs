@@ -13,7 +13,6 @@
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
 #![forbid(unsafe_code)]
-use std::ops::Deref;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::Arc};
 
 use cargo_metadata::Package;

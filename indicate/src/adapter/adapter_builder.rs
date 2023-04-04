@@ -5,10 +5,10 @@ use once_cell::unsync::OnceCell;
 
 use crate::{
     advisory::AdvisoryClient, geiger::GeigerClient, repo::github::GitHubClient,
-    ManifestPath,
+    util, ManifestPath,
 };
 
-use super::{parse_metadata, IndicateAdapter};
+use super::IndicateAdapter;
 
 /// Builder for [`IndicateAdapter`]
 pub struct IndicateAdapterBuilder {
@@ -62,7 +62,7 @@ impl IndicateAdapterBuilder {
         };
 
         // unwrap OK, if-statement above guarantees self.metadata to exist
-        let (packages, direct_dependencies) = parse_metadata(&metadata);
+        let (packages, direct_dependencies) = util::parse_metadata(&metadata);
         let advisory_client = self
             .advisory_client
             .map(|ac| OnceCell::with_value(Rc::new(ac)))

@@ -8,7 +8,7 @@ use crate::{
     ManifestPath,
 };
 
-use super::{parse_metadata, resolve_cargo_dirs, IndicateAdapter};
+use super::{parse_metadata, IndicateAdapter};
 
 /// Builder for [`IndicateAdapter`]
 pub struct IndicateAdapterBuilder {
@@ -72,15 +72,12 @@ impl IndicateAdapterBuilder {
             .map(|gc| OnceCell::with_value(Rc::new(gc)))
             .unwrap_or_else(OnceCell::new);
 
-        let source_map = resolve_cargo_dirs(&self.manifest_path);
-
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),
             features: self.features,
             metadata: Rc::new(metadata),
             packages: Rc::new(packages),
             direct_dependencies: Rc::new(direct_dependencies),
-            source_map: Rc::new(source_map),
             gh_client: Rc::new(RefCell::new(
                 self.github_client.unwrap_or_else(GitHubClient::default),
             )),

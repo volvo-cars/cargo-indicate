@@ -1,7 +1,3 @@
-use cargo::core::Workspace as CargoWorkspace;
-use cargo::ops::load_pkg_lockfile as load_cargo_lockfile;
-use cargo::util::config::Config as CargoConfig;
-use cargo::util::hex;
 use cargo_metadata::{CargoOpt, DependencyKind, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
 use git_url_parse::GitUrl;
@@ -20,6 +16,7 @@ use trustfall::{
 };
 
 use crate::code_stats::{get_code_stats, CodeStats};
+use crate::IndicateAdapterBuilder;
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
@@ -27,16 +24,21 @@ use crate::{
     vertex::Vertex,
     ManifestPath,
 };
-use crate::{IndicateAdapterBuilder, NameVersion};
 
 pub mod adapter_builder;
 
 /// Direct dependencies to a package, i.e. _not_ dependencies to dependencies
 type DirectDependencyMap = HashMap<PackageId, Rc<Vec<PackageId>>>;
 type PackageMap = HashMap<PackageId, Rc<Package>>;
-/// Maps the (name, version) tuple of a dependency to its local path to source
-/// code
-type SourceMap = HashMap<NameVersion, PathBuf>;
+
+/// Retrieves the path to a package downloaded locally
+pub fn local_package_path(package: &Package) -> PathBuf {
+    let mut p = package.manifest_path.to_owned().into_std_path_buf();
+
+    // Remove `Cargo.toml`
+    p.pop();
+    p
+}
 
 /// Parse metadata to create maps over the packages and dependency
 /// relations in it
@@ -91,69 +93,6 @@ pub fn parse_metadata(
     (packages, direct_dependencies)
 }
 
-/// Resolves the path to where dependencies are stored, and map them to
-/// dependency (name, version)
-///
-/// This is done since internally, `cargo` and `cargo_metadata` are not required
-/// to use the same convention for `PackageId`.
-pub fn resolve_cargo_dirs(manifest_path: &ManifestPath) -> SourceMap {
-    // This code is based on `cargo-local`, licensed under MIT, which is in
-    // turn based on how `cargo` resolves registries.
-    // https://github.com/AndrewRadev/cargo-local/blob/0773ae40e7c6e293d95e087bb3e10c1b70d3c429/src/main.rs
-    let cargo_config = CargoConfig::default()
-        .expect("default cargo config could not be created");
-    let workspace = CargoWorkspace::new(manifest_path.as_path(), &cargo_config)
-        .expect("error when resolving workspace");
-
-    let resolved = match load_cargo_lockfile(&workspace)
-        .expect("could not load lockfile")
-    {
-        Some(r) => r,
-        None => return HashMap::new(),
-    };
-
-    // Build registry_source_path the same way cargo's Config does as of
-    // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/util/config.rs#L35-L80
-    let cwd = env::current_dir().expect("could not retrieve current dir");
-    let cargo_home = env::var_os("CARGO_HOME").map(|home| cwd.join(home));
-    let user_home = ::dirs::home_dir()
-        .map(|p| p.join(".cargo"))
-        .expect("could not resolve user home directory");
-    let home_path = cargo_home.unwrap_or(user_home);
-    let registry_source_path = home_path.join("registry").join("src");
-
-    let paths = resolved
-        .iter()
-        .flat_map(|pkgid| {
-            // Build src_path the same way cargo's RegistrySource does as of
-            // https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L232-L238
-            let hash = hex::short_hash(&pkgid.source_id());
-            let ident = pkgid.source_id().url().host()?.to_string();
-            let part = format!("{}-{}", ident, hash);
-            let src_path = registry_source_path.join(&part);
-
-            // Build the crate's unpacked destination directory the same way cargo's RegistrySource does as
-            // of https://github.com/rust-lang/cargo/blob/176b5c17906cf43445888e83a4031e411f56e7dc/src/cargo/sources/registry.rs#L357-L358
-            let dest = format!("{}-{}", pkgid.name(), pkgid.version());
-            let full_path = src_path.join(&dest);
-
-            if full_path.exists() {
-                Some((
-                    NameVersion::new(
-                        pkgid.name().to_string(),
-                        pkgid.version().to_owned(),
-                    ),
-                    full_path,
-                ))
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    paths
-}
-
 macro_rules! resolve_code_stats {
     ($getter:ident) => {
         |v| {
@@ -167,6 +106,18 @@ macro_rules! resolve_code_stats {
             FieldValue::Uint64(res as u64)
         }
     };
+    ($getter:ident, $variant:ident) => {
+        |v| {
+            let res = match v {
+                Vertex::LanguageCodeStats(c) => c.$getter(),
+                Vertex::LanguageBlob(c) => c.$getter(),
+                u => {
+                    unreachable!("cannot access files on vertex {u:?}")
+                }
+            };
+            FieldValue::$variant(res.into())
+        }
+    };
 }
 
 pub struct IndicateAdapter {
@@ -175,7 +126,6 @@ pub struct IndicateAdapter {
     metadata: Rc<Metadata>,
     packages: Rc<PackageMap>,
     direct_dependencies: Rc<DirectDependencyMap>,
-    source_map: Rc<SourceMap>,
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
@@ -506,6 +456,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     )
                 })
             }
+            ("Package", "sourcePath") => resolve_property_with(contexts, |v| {
+                let package = v.as_package().unwrap();
+                FieldValue::String(
+                    local_package_path(&package).to_string_lossy().into(),
+                )
+            }),
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
                     Some(url) => FieldValue::String(url.to_owned()),
@@ -715,6 +671,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     FieldValue::Float64(percentage)
                 })
             }
+            ("LanguageCodeStats" | "LanguageBlob", "language") => {
+                resolve_property_with(
+                    contexts,
+                    resolve_code_stats!(language, String),
+                )
+            }
             ("LanguageCodeStats" | "LanguageBlob", "files") => {
                 resolve_property_with(contexts, resolve_code_stats!(files))
             }
@@ -872,7 +834,6 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 })
             }
             ("Package", "codeStats") => {
-                let source_map = Rc::clone(&self.source_map);
                 // Parameters verified by `trustfall` and schema
                 let ignored_paths =
                     parameters.get("ignoredPaths").unwrap().to_owned();
@@ -908,23 +869,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
-                    let package_path = source_map
-                        .get(&package.into())
-                        .cloned()
-                        .unwrap_or_else(|| {
-                            let mut mp = package
-                                .manifest_path
-                                .clone()
-                                .into_std_path_buf();
-
-                            // Remove `Cargo.toml`
-                            mp.pop();
-                            mp
-                        });
-                    // .unwrap_or_else(|| {
-                    //     panic!("could not resolve local registry path to {} {} ({}), {}", package.name, package.version, package.id, package.manifest_path);
-                    // });
-
+                    let package_path = local_package_path(&package);
                     let ignored_paths =
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
                     let code_stats = get_code_stats(

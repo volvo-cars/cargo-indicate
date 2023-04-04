@@ -1,0 +1,20 @@
+[
+  {
+    "blanks": 0,
+    "code": 1,
+    "comments": 0,
+    "files": 2,
+    "language": "Rust",
+    "name": "simple_deps",
+    "version": "0.1.0"
+  },
+  {
+    "blanks": 3,
+    "code": 9,
+    "comments": 1,
+    "files": 1,
+    "language": "TOML",
+    "name": "simple_deps",
+    "version": "0.1.0"
+  }
+]

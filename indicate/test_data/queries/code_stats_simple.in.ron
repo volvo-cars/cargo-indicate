@@ -5,6 +5,7 @@ FullQuery(
         name @output
         version @output
         codeStats(ignoredPaths: [".git"]) {
+            language @output
             files @output
             blanks @output
             code @output

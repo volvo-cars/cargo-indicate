@@ -62,6 +62,7 @@ type Package {
     version: String!,
     license: String
     manifestPath: String!
+    sourcePath: String!
     repository: Webpage
 
     # All parameters except `ignorePaths` is exactly the same as `tokei::Config`

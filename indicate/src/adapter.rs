@@ -786,6 +786,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 // Parameters verified by `trustfall` and schema
                 let ignored_paths =
                     parameters.get("ignoredPaths").unwrap().to_owned();
+                let included_paths: Option<Vec<String>> = parameters
+                    .get("includedPaths")
+                    .and_then(|s| s.as_vec(|i| i.as_str()))
+                    .and_then(|v| {
+                        Some(
+                            v.into_iter()
+                                .map(String::from)
+                                .collect::<Vec<String>>(),
+                        )
+                    });
 
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
@@ -820,9 +830,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package_path = util::local_package_path(package);
                     let ignored_paths =
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
+                    let included_paths = included_paths
+                        .as_ref()
+                        .map(|v| v.into_iter().map(|s| s.as_str()).collect());
+
                     let code_stats = get_code_stats(
                         &package_path,
                         ignored_paths.as_slice(),
+                        included_paths,
                         &config,
                     );
 

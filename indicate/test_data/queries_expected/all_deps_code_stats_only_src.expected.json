@@ -1,0 +1,74 @@
+[
+  {
+    "blanks": 7536,
+    "code": 92896,
+    "comments": 1914,
+    "commentsToCode": 0.020603685842232173,
+    "files": 215,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 102346,
+    "name": "libc",
+    "version": "0.2.139"
+  },
+  {
+    "blanks": 488,
+    "code": 3345,
+    "comments": 84,
+    "commentsToCode": 0.025112107623318385,
+    "files": 8,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 3917,
+    "name": "proc-macro2",
+    "version": "1.0.51"
+  },
+  {
+    "blanks": 259,
+    "code": 1339,
+    "comments": 142,
+    "commentsToCode": 0.10604929051530994,
+    "files": 7,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 1740,
+    "name": "quote",
+    "version": "1.0.23"
+  },
+  {
+    "blanks": 0,
+    "code": 1,
+    "comments": 0,
+    "commentsToCode": 0.0,
+    "files": 2,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 1,
+    "name": "simple_deps",
+    "version": "0.1.0"
+  },
+  {
+    "blanks": 1954,
+    "code": 37355,
+    "comments": 418,
+    "commentsToCode": 0.011189934413063847,
+    "files": 52,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 39727,
+    "name": "syn",
+    "version": "1.0.107"
+  },
+  {
+    "blanks": 13,
+    "code": 655,
+    "comments": 5,
+    "commentsToCode": 0.007633587786259542,
+    "files": 2,
+    "inaccurate": false,
+    "language": "Rust",
+    "lines": 673,
+    "name": "unicode-ident",
+    "version": "1.0.6"
+  }
+]

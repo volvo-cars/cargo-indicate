@@ -6,13 +6,31 @@ use std::path::Path;
 ///
 /// Ignored paths can be path-like, globs, etc. (see
 /// [`tokei::Languages::get_statistics`]), like `".git"`.
+///
+/// If `included_paths` is provided, all except these paths are excluded, but
+/// `ignored_paths` is still applied.
 pub(crate) fn get_code_stats(
     root_path: &Path,
     ignored_paths: &[&str],
+    included_paths: Option<Vec<impl AsRef<str>>>,
     config: &tokei::Config,
 ) -> Vec<LanguageCodeStats> {
     let mut ls = tokei::Languages::new();
-    ls.get_statistics(&[root_path], ignored_paths, config);
+
+    if let Some(included_paths) = included_paths {
+        let target_paths = included_paths
+            .iter()
+            .map(|s| {
+                let mut p = root_path.to_path_buf();
+                p.push(s.as_ref());
+                p
+            })
+            .collect::<Vec<_>>();
+        ls.get_statistics(target_paths.as_slice(), ignored_paths, config)
+    } else {
+        ls.get_statistics(&[root_path], ignored_paths, config);
+    }
+
     let mut res = Vec::with_capacity(ls.len());
     for (lang_type, stats) in ls {
         res.push(LanguageCodeStats::new(lang_type.to_string(), stats));

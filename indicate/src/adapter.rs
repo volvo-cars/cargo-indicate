@@ -788,14 +788,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("ignoredPaths").unwrap().to_owned();
                 let included_paths: Option<Vec<String>> = parameters
                     .get("includedPaths")
-                    .and_then(|s| s.as_vec(|i| i.as_str()))
-                    .and_then(|v| {
-                        Some(
-                            v.into_iter()
+                    .and_then(|s| s.as_vec(|i| i.as_str())).map(|v| v.into_iter()
                                 .map(String::from)
-                                .collect::<Vec<String>>(),
-                        )
-                    });
+                                .collect::<Vec<String>>());
 
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
@@ -832,7 +827,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
                     let included_paths = included_paths
                         .as_ref()
-                        .map(|v| v.into_iter().map(|s| s.as_str()).collect());
+                        .map(|v| v.iter().map(|s| s.as_str()).collect());
 
                     let code_stats = get_code_stats(
                         &package_path,

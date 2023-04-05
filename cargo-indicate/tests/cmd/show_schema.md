@@ -52,6 +52,11 @@ Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 type RootQuery {
     RootPackage: Package!
     Dependencies(includeRoot: Boolean!): [Package!]!
+
+    # Dependencies that are indirect dependencies of the root package;
+    # excluding direct dependencies that are _only_ direct dependencies, and
+    # appear nowhere else in the dependency tree
+    TransitiveDependencies: [Package!]!
 }
 
 # See `cargo_metadata::Package`
@@ -60,13 +65,93 @@ type Package {
     name: String!,
     version: String!,
     license: String
+    manifestPath: String!
+    sourcePath: String!
     repository: Webpage
+
+    # All parameters except `ignorePaths` is exactly the same as `tokei::Config`
+    codeStats(
+        ignoredPaths: [String!]!,
+        # Optional, to target only some dirs. Defaults to all. If used,
+        # `ignoredPaths` is still applied
+        includedPaths: [String!],
+        hidden: Boolean,
+        noIgnore: Boolean,
+        noIgnoreParent: Boolean,
+        noIgnoreDot: Boolean,
+        noIgnoreVcs: Boolean,
+        treatDocStringsAsComments: Boolean,
+        types: [String!] # Types of languages to be included in report
+    ): [LanguageCodeStats!]!
     dependencies: [Package!]!
     
     # For arch and OS, see `platforms::target`
     # For severity, see `rustsec::advisory::Severity`
-    advisoryHistory(includeWithdrawn: Boolean!, arch: String, os: String, minSeverity: String): [Advisory!]!
-    geiger: GeigerUnsafety!
+    advisoryHistory(
+        includeWithdrawn: Boolean!,
+        arch: String,
+        os: String,
+        minSeverity: String
+    ): [Advisory!]!
+    geiger: GeigerUnsafety
+}
+
+# Data from tokei, shared between `Language` and `CodeStats`
+interface CodeStats {
+    # Name of the language
+    language: String!
+    # Total number of files
+    files: Int!
+    # Total number of lines
+    lines: Int!
+    # Total number of blank lines
+    blanks: Int!
+    # Total number of lines of code
+    code: Int!
+    # Number of lines of comments
+    comments: Int!
+    # Lines of comments / lines of code
+    commentsToCode: Float!
+}
+
+# `tokei::Language`
+type LanguageCodeStats implements CodeStats {
+    # From CodeStats
+    language: String!
+    files: Int!
+    lines: Int!
+    blanks: Int!
+    code: Int!
+    comments: Int!
+    commentsToCode: Float!
+
+    # From `tokei::Languge::summarize()`
+    summary: LanguageCodeStats!
+    
+    # If this language had problem with parsing
+    inaccurate: Boolean!
+
+    # Code contained in this
+    children: [LanguageBlob!]!
+}
+
+# `tokei::CodeStats.blobs`
+type LanguageBlob implements CodeStats {
+    # From CodeStats
+    language: String!
+    files: Int!
+    lines: Int!
+    blanks: Int!
+    code: Int!
+    comments: Int!
+    commentsToCode: Float!
+
+    # Merge this with all child blobs to create new `CodeStats`
+    # (`tokei::CodeStats::summarize()`)
+    summary: LanguageBlob!
+
+    # Blobs of code contained within this one
+    blobs: [LanguageBlob!]!
 }
 
 # `used` refers to code used by the `RootPackage`

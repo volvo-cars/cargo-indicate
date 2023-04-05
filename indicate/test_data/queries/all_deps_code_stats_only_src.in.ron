@@ -4,7 +4,7 @@ FullQuery(
         Dependencies(includeRoot: true) {
             name @output
             version @output
-            codeStats(ignoredPaths: [], includedPaths: ["src"]) {
+            codeStats(includedPaths: ["src"]) {
                 language @output
                 files @output
                 lines @output

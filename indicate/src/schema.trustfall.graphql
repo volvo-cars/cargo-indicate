@@ -67,8 +67,9 @@ type Package {
 
     # All parameters except `ignorePaths` is exactly the same as `tokei::Config`
     codeStats(
-        ignoredPaths: [String!]!,
-        # Optional, to target only some dirs. Defaults to all. If used,
+        # If any patterns should be ignored, defaults to an empty list.
+        ignoredPaths: [String!],
+        # To target only some patterns. Defaults to all. If used,
         # `ignoredPaths` is still applied
         includedPaths: [String!],
         hidden: Boolean,

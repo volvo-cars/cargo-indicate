@@ -788,9 +788,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("ignoredPaths").unwrap().to_owned();
                 let included_paths: Option<Vec<String>> = parameters
                     .get("includedPaths")
-                    .and_then(|s| s.as_vec(|i| i.as_str())).map(|v| v.into_iter()
-                                .map(String::from)
-                                .collect::<Vec<String>>());
+                    .and_then(|s| s.as_vec(|i| i.as_str()))
+                    .map(|v| {
+                        v.into_iter().map(String::from).collect::<Vec<String>>()
+                    });
 
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
@@ -823,8 +824,9 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
                     let package_path = util::local_package_path(package);
-                    let ignored_paths =
-                        ignored_paths.as_vec(|fv| fv.as_str()).unwrap();
+                    let ignored_paths = ignored_paths
+                        .as_vec(|fv| fv.as_str())
+                        .unwrap_or_default();
                     let included_paths = included_paths
                         .as_ref()
                         .map(|v| v.iter().map(|s| s.as_str()).collect());

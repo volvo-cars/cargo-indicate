@@ -387,6 +387,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     None => FieldValue::Null,
                 }
             }),
+            ("Package", "keywords") => resolve_property_with(
+                contexts,
+                field_property!(as_package, keywords),
+            ),
+            ("Package", "categories") => resolve_property_with(
+                contexts,
+                field_property!(as_package, categories),
+            ),
             ("Package", "manifestPath") => {
                 resolve_property_with(contexts, |v| {
                     let package = v.as_package().unwrap();

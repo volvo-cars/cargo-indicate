@@ -65,6 +65,8 @@ type Package {
     name: String!,
     version: String!,
     license: String
+    keywords: [String!]!
+    categories: [String!]!
     manifestPath: String!
     sourcePath: String!
     repository: Webpage

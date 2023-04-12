@@ -33,7 +33,7 @@ The `indicate` library comes with some test queries and can be used with any
 package. For example
 
 ```console
-$ cargo-indicate 
+$ cargo indicate 
 > -Q ../indicate/test_data/queries/count_dependencies.in.ron
 > --cached-advisory-db # Useful when running concurrent requests, like in tests
 > -- ../indicate/test_data/fake_crates/simple_deps
@@ -79,7 +79,7 @@ Using the local directory (containing no advisories) would succeed, but always
 return an empty list
 
 ```console
-$ cargo-indicate
+$ cargo indicate
 > --advisory-db-dir .
 > -Q ../indicate/test_data/queries/advisory_db_simple.in.ron
 > -- ../indicate/test_data/fake_crates/known_advisory_deps

@@ -5,22 +5,31 @@ use std::{
     rc::Rc,
 };
 
-use clap::{ArgGroup, CommandFactory, Parser};
+use clap::{builder::PossibleValue, ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
     query::FullQueryBuilder, repo::github::GitHubClient,
     util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath,
 };
 
-/// Program to query Rust dependencies
+/// Run GraphQL-like queries on Rust projects and their dependencies
 #[derive(Parser, Debug, Clone)]
-#[command(author, version, about, long_about = None)]
+#[command(author = "Emil Jonathan Eriksson", version, about, long_about = None)]
 #[command(group(
     ArgGroup::new("query_inputs")
         .multiple(true) // We can have `--query-dir` AND `--query-path`
         .required(true)
 ))]
 struct IndicateCli {
+    /// This is a dummy argument used to allow `cargo-indicate` to be installed
+    /// and called with `cargo indicate`
+    #[arg(
+        hide = true,
+        value_parser = [PossibleValue::new("indicate")],
+        default_value = "indicate"
+    )]
+    dummy: String,
+
     /// Indicate queries in a supported file format to be run in series
     ///
     /// These queries will run using the same Trustfall adapter, meaning there

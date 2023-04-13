@@ -17,7 +17,6 @@ octorust = { version = "0.3", features = ["httpcache", "rustls-tls"] }
 reqwest = "0.11.14"
 once_cell = "1.17.1"
 tokio = "1.25.0"
-git-url-parse = "0.4.4"
 rustsec = "0.26.4"
 cvss = "2.0.0"
 thiserror = "1.0.38"
@@ -25,6 +24,7 @@ chrono = "0.4.23"
 cargo_toml = "0.15.2"
 walkdir = "2"
 tokei = "12.1.2"
+url = "2.3.1"
 
 [dev-dependencies]
 test-case = "3.0.0"

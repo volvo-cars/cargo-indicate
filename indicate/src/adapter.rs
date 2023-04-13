@@ -1,6 +1,5 @@
 use cargo_metadata::{CargoOpt, Metadata, Package, PackageId};
 use chrono::{NaiveDate, NaiveDateTime};
-use git_url_parse::GitUrl;
 use once_cell::unsync::OnceCell;
 use std::{
     cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, sync::Arc,
@@ -18,7 +17,7 @@ use crate::IndicateAdapterBuilder;
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
-    repo::github::{GitHubClient, GitHubRepositoryId},
+    repo::{github::GitHubClient, RepoId},
     vertex::Vertex,
     ManifestPath,
 };
@@ -289,42 +288,18 @@ impl IndicateAdapter {
         url: &str,
         gh_client: Rc<RefCell<GitHubClient>>,
     ) -> Vertex {
-        // TODO: Better identification of repository URLs...
-        if url.contains("github.com") {
-            match GitUrl::parse(url) {
-                Ok(gurl) => {
-                    if gurl.fullname != gurl.path.trim_matches('/') {
-                        // Points to something inside the repo rather than
-                        // the repo itself. For now just return webpage
-                        eprintln!("{url} points to something inside repository, set as webpage");
-                        Vertex::Webpage(String::from(url))
-                    } else if matches!(gurl.host, Some(x) if x == "github.com")
-                    {
-                        // This is in fact a GitHub url, we attempt to retrieve it
-                        let id = GitHubRepositoryId::new(
-                            gurl.owner.unwrap_or_else(|| {
-                                panic!("repository {url} had no owner",)
-                            }),
-                            gurl.name,
-                        );
-
-                        if let Some(fr) =
-                            gh_client.borrow_mut().get_repository(&id)
-                        {
-                            Vertex::GitHubRepository(fr)
-                        } else {
-                            // We were unable to retrieve the repository
-                            Vertex::Repository(String::from(url))
-                        }
-                    } else {
-                        // The host is not github.com
-                        Vertex::Repository(String::from(url))
-                    }
-                }
-                Err(_) => Vertex::Repository(String::from(url)),
+        match RepoId::from(url) {
+            RepoId::GitHub(gh_id) => {
+                if let Some(fr) = gh_client.borrow_mut().get_repository(&gh_id)
+                {
+                    return Vertex::GitHubRepository(fr);
+                } else {
+                    // We were unable to retrieve the repository
+                    return Vertex::Repository(String::from(url));
+                };
             }
-        } else {
-            Vertex::Repository(String::from(url))
+            RepoId::GitLab(gl_url) => Vertex::Repository(String::from(gl_url)),
+            RepoId::Unknown(url) => Vertex::Webpage(String::from(url)),
         }
     }
 }

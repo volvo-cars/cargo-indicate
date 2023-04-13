@@ -28,7 +28,7 @@ struct IndicateCli {
         value_parser = [PossibleValue::new("indicate")],
         default_value = "indicate"
     )]
-    dummy: String,
+    _dummy: String,
 
     /// Indicate queries in a supported file format to be run in series
     ///

@@ -197,12 +197,6 @@ impl IndicateAdapter {
         IndicateAdapterBuilder::new(manifest_path).build()
     }
 
-    /// Retrieves a new counted reference to this adapters [`Metadata`]
-    #[must_use]
-    fn metadata(&self) -> Rc<Metadata> {
-        Rc::clone(&self.metadata)
-    }
-
     /// Retrieves a new counted reference to this adapters [`PackageMap`]
     #[must_use]
     fn packages(&self) -> Rc<PackageMap> {
@@ -292,11 +286,11 @@ impl IndicateAdapter {
             RepoId::GitHub(gh_id) => {
                 if let Some(fr) = gh_client.borrow_mut().get_repository(&gh_id)
                 {
-                    return Vertex::GitHubRepository(fr);
+                    Vertex::GitHubRepository(fr)
                 } else {
                     // We were unable to retrieve the repository
-                    return Vertex::Repository(String::from(url));
-                };
+                    Vertex::Repository(String::from(url))
+                }
             }
             RepoId::GitLab(gl_url) => Vertex::Repository(String::from(gl_url)),
             RepoId::Unknown(url) => Vertex::Webpage(String::from(url)),

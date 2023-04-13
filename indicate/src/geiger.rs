@@ -57,6 +57,7 @@ use crate::{errors::GeigerError, ManifestPath, NameVersion};
 /// and its dependencies
 #[derive(Debug)]
 pub struct GeigerClient {
+    #[cfg(test)]
     output: GeigerOutput,
     unsafety: HashMap<NameVersion, GeigerUnsafety>,
 }
@@ -154,6 +155,7 @@ impl From<GeigerOutput> for GeigerClient {
             unsafety.insert(p.package.id.to_owned(), p.unsafety);
         }
         Self {
+            #[cfg(test)]
             output: value,
             unsafety,
         }

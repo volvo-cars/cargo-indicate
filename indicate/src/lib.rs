@@ -13,7 +13,7 @@
 #![doc = include_str!("schema.trustfall.graphql")]
 //! ```
 #![forbid(unsafe_code)]
-use std::{cell::RefCell, collections::BTreeMap, rc::Rc, sync::Arc};
+use std::{collections::BTreeMap, rc::Rc, sync::Arc};
 
 use cargo_metadata::Package;
 use once_cell::sync::Lazy;
@@ -109,7 +109,7 @@ pub fn execute_query(
     let adapter = IndicateAdapter::new(manifest_path);
     execute_query_with_adapter(
         query,
-        Rc::new(RefCell::new(adapter)),
+        Rc::new(adapter),
         max_results,
     )
 }
@@ -120,7 +120,7 @@ pub fn execute_query(
 /// Use when the default configuration does not provide enough control.
 pub fn execute_query_with_adapter(
     query: &FullQuery,
-    adapter: Rc<RefCell<IndicateAdapter>>,
+    adapter: Rc<IndicateAdapter>,
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let res = match trustfall_execute_query(
@@ -143,7 +143,6 @@ mod test {
     use cargo_metadata::CargoOpt;
     use core::panic;
     use std::{
-        cell::RefCell,
         collections::BTreeMap,
         fs,
         path::{Path, PathBuf},
@@ -185,7 +184,7 @@ mod test {
     fn test_adapter(
         manifest_path: ManifestPath,
         features: Option<Vec<CargoOpt>>,
-    ) -> Rc<RefCell<IndicateAdapter>> {
+    ) -> Rc<IndicateAdapter> {
         let mut b = IndicateAdapterBuilder::new(manifest_path).advisory_client(
             AdvisoryClient::from_default_path()
                 .unwrap_or_else(|_| AdvisoryClient::new().unwrap()),
@@ -195,7 +194,7 @@ mod test {
             b = b.features(f);
         }
 
-        Rc::new(RefCell::new(b.build()))
+        Rc::new(b.build())
     }
 
     #[test]

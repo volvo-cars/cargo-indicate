@@ -308,7 +308,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
     type Vertex = Vertex;
 
     fn resolve_starting_vertices(
-        &mut self,
+        &self,
         edge_name: &str,
         parameters: &EdgeParameters,
     ) -> VertexIterator<'a, Self::Vertex> {
@@ -330,7 +330,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
     }
 
     fn resolve_property(
-        &mut self,
+        &self,
         contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         property_name: &str,
@@ -651,7 +651,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
     }
 
     fn resolve_neighbors(
-        &mut self,
+        &self,
         contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         edge_name: &str,
@@ -1001,7 +1001,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
     }
 
     fn resolve_coercion(
-        &mut self,
+        &self,
         contexts: ContextIterator<'a, Self::Vertex>,
         type_name: &str,
         coerce_to_type: &str,

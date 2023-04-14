@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![feature(path_file_prefix)]
 use std::{
-    cell::RefCell, collections::BTreeSet, ffi::OsString, fs, path::PathBuf,
+    collections::BTreeSet, ffi::OsString, fs, path::PathBuf,
     rc::Rc,
 };
 
@@ -365,7 +365,7 @@ fn main() {
     }
 
     // Reuse the same adapter for multiple queries
-    let adapter = Rc::new(RefCell::new(b.build()));
+    let adapter = Rc::new(b.build());
 
     let mut res_strings = Vec::with_capacity(fqs.len());
     for query in fqs {

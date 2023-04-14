@@ -66,8 +66,10 @@ type Package {
     manifestPath: String!
     sourcePath: String!
 
-    # This is expensive, due to crates.io crawler policy
-    cratesIoDownloads: Int
+    # These are expensive, due to crates.io crawler policy
+    totalCratesIoDownloads: Int
+    versionCratesIoDownloads: Int
+
     repository: Webpage
 
     # All parameters except `ignorePaths` is exactly the same as `tokei::Config`

@@ -68,7 +68,7 @@ pub struct IndicateAdapter {
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
-    crates_io_client: Rc<CratesIoClient>,
+    crates_io_client: Rc<RefCell<CratesIoClient>>,
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -252,6 +252,11 @@ impl IndicateAdapter {
         Rc::clone(sgc)
     }
 
+    #[must_use]
+    fn crates_io_client(&self) -> Rc<RefCell<CratesIoClient>> {
+        Rc::clone(&self.crates_io_client)
+    }
+
     fn get_dependencies(
         packages: Rc<PackageMap>,
         direct_dependencies: Rc<DirectDependencyMap>,
@@ -379,6 +384,26 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     util::local_package_path(package).to_string_lossy().into(),
                 )
             }),
+            ("Package", "totalCratesIoDownloads") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().total_downloads(&package.name) {
+                        Some(n) => FieldValue::Uint64(n),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
+            ("Package", "versionCratesIoDownloads") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().version_downloads(&package.into()) {
+                        Some(n) => FieldValue::Uint64(n),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
                     Some(url) => FieldValue::String(url.to_owned()),

@@ -86,7 +86,7 @@ impl IndicateAdapterBuilder {
             )),
             advisory_client,
             geiger_client,
-            crates_io_client: Rc::new(crates_io_client),
+            crates_io_client: Rc::new(RefCell::new(crates_io_client)),
         }
     }
 

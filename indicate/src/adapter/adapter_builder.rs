@@ -5,7 +5,7 @@ use once_cell::unsync::OnceCell;
 
 use crate::{
     advisory::AdvisoryClient, geiger::GeigerClient, repo::github::GitHubClient,
-    util, ManifestPath,
+    util, ManifestPath, crates_io::CratesIoClient,
 };
 
 use super::IndicateAdapter;
@@ -18,6 +18,7 @@ pub struct IndicateAdapterBuilder {
     github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
     geiger_client: Option<GeigerClient>,
+    crates_io_client: Option<CratesIoClient>
 }
 
 impl IndicateAdapterBuilder {
@@ -35,6 +36,7 @@ impl IndicateAdapterBuilder {
             github_client: None,
             advisory_client: None,
             geiger_client: None,
+            crates_io_client: None,
         }
     }
 
@@ -71,6 +73,7 @@ impl IndicateAdapterBuilder {
             .geiger_client
             .map(|gc| OnceCell::with_value(Rc::new(gc)))
             .unwrap_or_else(OnceCell::new);
+        let crates_io_client = self.crates_io_client.unwrap_or_default();
 
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),
@@ -83,6 +86,7 @@ impl IndicateAdapterBuilder {
             )),
             advisory_client,
             geiger_client,
+            crates_io_client: Rc::new(crates_io_client),
         }
     }
 

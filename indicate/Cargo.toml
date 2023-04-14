@@ -25,6 +25,7 @@ cargo_toml = "0.15.2"
 walkdir = "2"
 tokei = "12.1.2"
 url = "2.3.1"
+crates_io_api = { version = "0.8", default-features = false, features = ["rustls"] }
 
 [dev-dependencies]
 test-case = "3.0.0"

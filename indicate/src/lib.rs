@@ -32,6 +32,7 @@ pub mod manifest;
 pub mod query;
 pub mod repo;
 pub mod util;
+pub mod crates_io;
 mod vertex;
 
 /// Features to create metadata with

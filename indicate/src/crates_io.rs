@@ -67,7 +67,7 @@ impl CratesIoClient {
     /// # See also
     /// [`total_downloads`](CratesIoClient::total_downloads)
     pub fn version_downloads(&mut self, name_version: &NameVersion) -> Option<u64> {
-        self.full_crate(&name_version.name).map(|fc| {
+        self.full_crate(&name_version.name).and_then(|fc| {
             fc.versions.iter().find_map(|fv| {
                 match Version::parse(&fv.num) {
                     Ok(current_version) => {
@@ -83,7 +83,7 @@ impl CratesIoClient {
                     }
                 }
             })
-        }).flatten()
+        })
     }
 }
 

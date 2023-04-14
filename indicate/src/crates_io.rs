@@ -10,6 +10,7 @@
 use std::{collections::HashMap, time::Duration, rc::Rc};
 
 use crates_io_api::{SyncClient, FullCrate};
+use rustsec::Version;
 
 use crate::NameVersion;
 
@@ -53,10 +54,6 @@ impl CratesIoClient {
         }
     }
 
-    // pub fn full_version(&mut self, name_version: &NameVersion) -> Option<&FullVersion> {
-    //     todo!()
-    // }
-
     /// Retrieves the total amount of downloads for a crate, all versions
     ///
     /// # See also
@@ -71,15 +68,20 @@ impl CratesIoClient {
     /// [`total_downloads`](CratesIoClient::total_downloads)
     pub fn version_downloads(&mut self, name_version: &NameVersion) -> Option<u64> {
         self.full_crate(&name_version.name).map(|fc| {
-            fc.downloads.version_downloads.iter().find_map(|vd| {
-                // TODO: Fix this
-                println!("version is {}", vd.version);
-                None
-                // if vd.version.into() == name_version.version {
-                //     Some(vd.downloads)
-                // } else {
-                //     None
-                // }
+            fc.versions.iter().find_map(|fv| {
+                match Version::parse(&fv.num) {
+                    Ok(current_version) => {
+                        if current_version == name_version.version {
+                            Some(fv.downloads)
+                        } else {
+                            None
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("could not parse crate.io version for {name_version:?} due to error: {e}");
+                        None
+                    }
+                }
             })
         }).flatten()
     }

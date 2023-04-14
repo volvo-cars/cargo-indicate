@@ -1,0 +1,13 @@
+FullQuery(
+    query: r#"
+{
+    RootPackage {
+        name @output
+        version @output
+        totalCratesIoDownloads @output
+        versionCratesIoDownloads @output
+    }
+}
+"#,
+    args: {}
+)

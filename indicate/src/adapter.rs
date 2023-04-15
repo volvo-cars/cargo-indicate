@@ -68,7 +68,7 @@ pub struct IndicateAdapter {
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
-    crates_io_client: Rc<RefCell<CratesIoClient>>,
+    crates_io_client: OnceCell<Rc<RefCell<CratesIoClient>>>,
 }
 
 /// The functions here are essentially the fields on the RootQuery
@@ -252,9 +252,11 @@ impl IndicateAdapter {
         Rc::clone(sgc)
     }
 
+    /// Retrieves or creates a new default [`CratesIoClient`] if none is set
     #[must_use]
     fn crates_io_client(&self) -> Rc<RefCell<CratesIoClient>> {
-        Rc::clone(&self.crates_io_client)
+        let c = self.crates_io_client.get_or_init(|| Rc::new(RefCell::new(CratesIoClient::default())));
+        Rc::clone(c)
     }
 
     fn get_dependencies(

@@ -4,8 +4,8 @@ use cargo_metadata::{CargoOpt, Metadata};
 use once_cell::unsync::OnceCell;
 
 use crate::{
-    advisory::AdvisoryClient, geiger::GeigerClient, repo::github::GitHubClient,
-    util, ManifestPath, crates_io::CratesIoClient,
+    advisory::AdvisoryClient, crates_io::CratesIoClient, geiger::GeigerClient,
+    repo::github::GitHubClient, util, ManifestPath,
 };
 
 use super::IndicateAdapter;
@@ -18,7 +18,7 @@ pub struct IndicateAdapterBuilder {
     github_client: Option<GitHubClient>,
     advisory_client: Option<AdvisoryClient>,
     geiger_client: Option<GeigerClient>,
-    crates_io_client: Option<CratesIoClient>
+    crates_io_client: Option<CratesIoClient>,
 }
 
 impl IndicateAdapterBuilder {
@@ -73,7 +73,9 @@ impl IndicateAdapterBuilder {
             .geiger_client
             .map(|gc| OnceCell::with_value(Rc::new(gc)))
             .unwrap_or_else(OnceCell::new);
-        let crates_io_client = self.crates_io_client.unwrap_or_default();
+        let crates_io_client = self.crates_io_client
+            .map(|c| OnceCell::with_value(Rc::new(RefCell::new(c))))
+            .unwrap_or_else(OnceCell::new);
 
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),
@@ -86,7 +88,7 @@ impl IndicateAdapterBuilder {
             )),
             advisory_client,
             geiger_client,
-            crates_io_client: Rc::new(RefCell::new(crates_io_client)),
+            crates_io_client,
         }
     }
 
@@ -109,19 +111,19 @@ impl IndicateAdapterBuilder {
         self
     }
 
-    /// Manually sets the GitHub client used by the adapter
+    /// Manually sets the GitHub client to be used by the adapter
     pub fn github_client(mut self, github_client: GitHubClient) -> Self {
         self.github_client = Some(github_client);
         self
     }
 
-    /// Manually sets the `advisory-db` client used by the adapter
+    /// Manually sets the `advisory-db` client to be used by the adapter
     pub fn advisory_client(mut self, advisory_client: AdvisoryClient) -> Self {
         self.advisory_client = Some(advisory_client);
         self
     }
 
-    /// Manually sets the `cargo-geiger` client used by the adapter
+    /// Manually sets the `cargo-geiger` client to be used by the adapter
     ///
     /// This should generally not be done, since it is an expensive operation to
     /// run `cargo-geiger`; Instead set the desired `manifest_path` and features,
@@ -129,6 +131,15 @@ impl IndicateAdapterBuilder {
     /// adapter.
     pub fn geiger_client(mut self, geiger_client: GeigerClient) -> Self {
         self.geiger_client = Some(geiger_client);
+        self
+    }
+
+    /// Manually sets the crates.io client to be used by the adapter
+    pub fn crates_io_client(
+        mut self,
+        crates_io_client: CratesIoClient,
+    ) -> Self {
+        self.crates_io_client = Some(crates_io_client);
         self
     }
 }

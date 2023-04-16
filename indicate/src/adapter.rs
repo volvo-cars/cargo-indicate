@@ -396,6 +396,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
+            ("Package", "recentCratesIoDownloads") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().recent_downloads(&package.name) {
+                        Some(n) => FieldValue::Uint64(n),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
             ("Package", "versionCratesIoDownloads") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {

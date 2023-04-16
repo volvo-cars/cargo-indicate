@@ -55,17 +55,16 @@ impl CratesIoClient {
     }
 
     /// Retrieves the total amount of downloads for a crate, all versions
-    ///
-    /// # See also
-    /// [`version_downloads`](CratesIoClient::version_downloads)
     pub fn total_downloads(&mut self, crate_name: &str) -> Option<u64> {
         self.full_crate(crate_name).map(|fc| fc.total_downloads)
     }
 
+    /// Retrieves the total amount of downloads for a crate, all versions
+    pub fn recent_downloads(&mut self, crate_name: &str) -> Option<u64> {
+        self.full_crate(crate_name).and_then(|fc| fc.recent_downloads)
+    }
+
     /// Retrieves the total amount of downloads for a specific crate version
-    ///
-    /// # See also
-    /// [`total_downloads`](CratesIoClient::total_downloads)
     pub fn version_downloads(&mut self, name_version: &NameVersion) -> Option<u64> {
         self.full_crate(&name_version.name).and_then(|fc| {
             fc.versions.iter().find_map(|fv| {

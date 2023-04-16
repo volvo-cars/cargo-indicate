@@ -72,6 +72,7 @@ type Package {
 
     # These are expensive, due to crates.io crawler policy
     totalCratesIoDownloads: Int
+    recentCratesIoDownloads: Int
     versionCratesIoDownloads: Int
 
     repository: Webpage

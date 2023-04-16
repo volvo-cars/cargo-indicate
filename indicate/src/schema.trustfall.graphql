@@ -67,9 +67,12 @@ type Package {
     sourcePath: String!
 
     # These are expensive, due to crates.io crawler policy
-    totalCratesIoDownloads: Int
-    recentCratesIoDownloads: Int
-    versionCratesIoDownloads: Int
+    cratesIoTotalDownloads: Int
+    cratesIoRecentDownloads: Int
+    cratesIoVersionDownloads: Int
+    cratesIoYanked: Boolean # If this version is yanked from crates.io
+    cratesIoYankedVersions: [String!]
+    cratesIoYankedVersionsCount: Int
 
     repository: Webpage
 

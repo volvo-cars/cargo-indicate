@@ -386,7 +386,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     util::local_package_path(package).to_string_lossy().into(),
                 )
             }),
-            ("Package", "totalCratesIoDownloads") => {
+            ("Package", "cratesIoTotalDownloads") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let package = v.as_package().unwrap();
@@ -396,7 +396,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
-            ("Package", "recentCratesIoDownloads") => {
+            ("Package", "cratesIoRecentDownloads") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let package = v.as_package().unwrap();
@@ -406,7 +406,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
-            ("Package", "versionCratesIoDownloads") => {
+            ("Package", "cratesIoVersionDownloads") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let package = v.as_package().unwrap();

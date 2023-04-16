@@ -4,9 +4,10 @@ FullQuery(
     RootPackage {
         name @output
         version @output
-        totalCratesIoDownloads @output
-        recentCratesIoDownloads @output
-        versionCratesIoDownloads @output
+        cratesIoTotalDownloads @output
+        cratesIoRecentDownloads @output
+        cratesIoVersionDownloads @output
+        cratesIoYankedVersionsCount @output
     }
 }
 "#,

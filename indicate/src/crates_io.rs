@@ -84,6 +84,54 @@ impl CratesIoClient {
             })
         })
     }
+
+    /// Returns if this version is yanked from `crates.io`
+    pub fn yanked(&mut self, name_version: &NameVersion) -> Option<bool> {
+        self.full_crate(&name_version.name).and_then(|fc| {
+            fc.versions.iter().find_map(|fv| {
+                match Version::parse(&fv.num) {
+                    Ok(current_version) => {
+                        if current_version == name_version.version {
+                            Some(fv.yanked)
+                        } else {
+                            None
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("could not parse crate.io version for {name_version:?} due to error: {e}");
+                        None
+                    }
+                }
+            })
+        })
+    }
+
+    /// Retrieves all versions for a crate that has been marked as yanked
+    ///
+    /// If only the count of yanked versions is desired, use
+    /// [`yanked_versions_count`](Self::yanked_versions_count) instead.
+    pub fn yanked_versions(&mut self, crate_name: &str) -> Option<Vec<String>> {
+        self.full_crate(crate_name).map(|fc| {
+            fc.versions.iter().filter_map(|fv| {
+                if fv.yanked {
+                    // We do not parse version, as that may fail, leading
+                    // to odd results
+                    Some(fv.num.clone())
+                } else {
+                    None
+                }
+            }).collect()
+        })
+    }
+
+    /// Counts the number of versions marked as _yanked_ on `crates.io` for this
+    /// crate
+    pub fn yanked_versions_count(&mut self, crate_name: &str) -> Option<usize> {
+        // Do not rely on Self::yanked_version, as it is more expensive
+        self.full_crate(crate_name).map(|fc| {
+            fc.versions.iter().filter(|fv| fv.yanked).count()
+        })
+    }
 }
 
 impl Default for CratesIoClient {

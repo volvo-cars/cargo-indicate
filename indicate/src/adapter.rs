@@ -416,6 +416,36 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
+            ("Package", "cratesIoYanked") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().yanked(&package.into()) {
+                        Some(b) => b.into(),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
+            ("Package", "cratesIoYankedVersions") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().yanked_versions(&package.name) {
+                        Some(v) => v.into(),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
+            ("Package", "cratesIoYankedVersionsCount") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().yanked_versions_count(&package.name) {
+                        Some(n) => FieldValue::Uint64(n as u64),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
             ("Webpage" | "Repository" | "GitHubRepository", "url") => {
                 resolve_property_with(contexts, |v| match v.as_webpage() {
                     Some(url) => FieldValue::String(url.to_owned()),

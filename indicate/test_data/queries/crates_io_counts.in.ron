@@ -5,6 +5,7 @@ FullQuery(
         name @output
         version @output
         totalCratesIoDownloads @output
+        recentCratesIoDownloads @output
         versionCratesIoDownloads @output
     }
 }

@@ -77,7 +77,7 @@ impl CratesIoClient {
                         }
                     }
                     Err(e) => {
-                        eprintln!("could not parse crate.io version for {name_version:?} due to error: {e}");
+                        eprintln!("could not parse crates.io version for {name_version:?} due to error: {e}");
                         None
                     }
                 }
@@ -98,7 +98,7 @@ impl CratesIoClient {
                         }
                     }
                     Err(e) => {
-                        eprintln!("could not parse crate.io version for {name_version:?} due to error: {e}");
+                        eprintln!("could not parse crates.io version for {name_version:?} due to error: {e}");
                         None
                     }
                 }

@@ -24,8 +24,7 @@ cargo_toml = "0.15.2"
 walkdir = "2"
 tokei = "12.1.2"
 url = "2.3.1"
-# TODO: Change once crates.io version is bumped
-crates_io_api = { git = "https://github.com/theduke/crates-io-api.git", rev = "cb349c8", default-features = false, features = ["rustls"] }
+crates_io_api = { version = "0.8", default-features = false, features = ["rustls"] }
 
 [dev-dependencies]
 test-case = "3.0.0"

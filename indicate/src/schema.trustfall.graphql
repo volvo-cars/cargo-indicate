@@ -70,9 +70,11 @@ type Package {
     cratesIoTotalDownloads: Int
     cratesIoRecentDownloads: Int
     cratesIoVersionDownloads: Int
+    cratesIoVersionsCount: Int
     cratesIoYanked: Boolean # If this version is yanked from crates.io
     cratesIoYankedVersions: [String!]
     cratesIoYankedVersionsCount: Int
+    cratesIoYankedRatio: Float # yanked versions count / versions count
 
     repository: Webpage
 

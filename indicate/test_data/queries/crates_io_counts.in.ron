@@ -7,9 +7,11 @@ FullQuery(
         cratesIoTotalDownloads @output
         cratesIoRecentDownloads @output
         cratesIoVersionDownloads @output
+        cratesIoVersionsCount @output
         cratesIoYanked @output
         cratesIoYankedVersions @output
         cratesIoYankedVersionsCount @output
+        cratesIoYankedRatio @output
     }
 }
 "#,

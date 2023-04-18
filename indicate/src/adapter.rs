@@ -416,6 +416,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
+            ("Package", "cratesIoVersionsCount") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().versions_count(&package.name) {
+                        Some(n) => FieldValue::Uint64(n as u64),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
             ("Package", "cratesIoYanked") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
@@ -442,6 +452,16 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = v.as_package().unwrap();
                     match crates_io_client.borrow_mut().yanked_versions_count(&package.name) {
                         Some(n) => FieldValue::Uint64(n as u64),
+                        None => FieldValue::Null,
+                    }
+                })
+            }
+            ("Package", "cratesIoYankedRatio") => {
+                let crates_io_client = self.crates_io_client();
+                resolve_property_with(contexts, move |v| {
+                    let package = v.as_package().unwrap();
+                    match crates_io_client.borrow_mut().yanked_ratio(&package.name) {
+                        Some(n) => FieldValue::Float64(n),
                         None => FieldValue::Null,
                     }
                 })

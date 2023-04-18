@@ -63,6 +63,11 @@ impl CratesIoClient {
         self.crate_response(crate_name).map(|cr| &cr.versions)
     }
 
+    /// Returns the number of versions of a crate from the `crates.io` API
+    pub fn versions_count(&mut self, crate_name: &str) -> Option<usize> {
+        self.versions(crate_name).map(|v| v.len())
+    }
+
     /// Retrieves the total amount of downloads for a crate, all versions
     pub fn total_downloads(&mut self, crate_name: &str) -> Option<u64> {
         self.crate_data(crate_name).map(|c| c.downloads)
@@ -138,6 +143,14 @@ impl CratesIoClient {
         self.versions(crate_name).map(|versions| {
             versions.iter().filter(|v| v.yanked).count()
         })
+    }
+
+    /// Calculates the ratio of yanked versions to all crate versions
+    pub fn yanked_ratio(&mut self, crate_name: &str) -> Option<f64> {
+        self.yanked_versions_count(crate_name).and_then(|y| {
+           self.versions_count(crate_name).map(|v| y as f64 / v as f64)    
+        }
+)
     }
 }
 

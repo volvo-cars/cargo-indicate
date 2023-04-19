@@ -488,6 +488,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 contexts,
                 field_property!(as_git_hub_repository, open_issues_count),
             ),
+            ("GitHubRepository", "watchersCount") => resolve_property_with(
+                contexts,
+                field_property!(as_git_hub_repository, watchers_count),
+            ),
             ("GitHubRepository", "hasIssues") => resolve_property_with(
                 contexts,
                 field_property!(as_git_hub_repository, has_issues),

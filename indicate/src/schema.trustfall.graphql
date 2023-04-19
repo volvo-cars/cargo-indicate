@@ -212,6 +212,7 @@ type GitHubRepository implements Repository & Webpage {
     starsCount: Int!
     forksCount: Int!
     openIssuesCount: Int!
+    watchersCount: Int!
     
     # If the issues page is available for this repository
     hasIssues: Boolean!

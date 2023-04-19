@@ -71,9 +71,14 @@ type Package {
     sourcePath: String!
 
     # These are expensive, due to crates.io crawler policy
-    totalCratesIoDownloads: Int
-    recentCratesIoDownloads: Int
-    versionCratesIoDownloads: Int
+    cratesIoTotalDownloads: Int
+    cratesIoRecentDownloads: Int
+    cratesIoVersionDownloads: Int
+    cratesIoVersionsCount: Int
+    cratesIoYanked: Boolean # If this version is yanked from crates.io
+    cratesIoYankedVersions: [String!]
+    cratesIoYankedVersionsCount: Int
+    cratesIoYankedRatio: Float # yanked versions count / versions count
 
     repository: Webpage
 
@@ -211,6 +216,7 @@ type GitHubRepository implements Repository & Webpage {
     starsCount: Int!
     forksCount: Int!
     openIssuesCount: Int!
+    watchersCount: Int!
     
     # If the issues page is available for this repository
     hasIssues: Boolean!

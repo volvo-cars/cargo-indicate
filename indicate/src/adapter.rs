@@ -13,7 +13,7 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::{IndicateAdapterBuilder, crates_io::CratesIoClient};
+use crate::{IndicateAdapterBuilder, crates_io::CratesIoClient, geiger::GeigerOutput};
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
@@ -244,7 +244,8 @@ impl IndicateAdapter {
                 self.features.to_owned(),
             )
             .unwrap_or_else(|e| {
-                panic!("failed to create geiger data due to error: {e}")
+                eprintln!("failed to create geiger data due to error: {e}\nrunning query without");
+                GeigerClient::from(GeigerOutput::default())
             });
             Rc::new(gc)
         });

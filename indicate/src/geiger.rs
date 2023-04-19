@@ -183,6 +183,14 @@ pub struct GeigerOutput {
     pub packages: Vec<GeigerPackageOutput>,
 }
 
+impl Default for GeigerOutput {
+    fn default() -> Self {
+        Self {
+            packages: Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeigerPackageOutput {
     pub package: GeigerPackage,

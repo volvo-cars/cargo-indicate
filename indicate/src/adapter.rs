@@ -857,7 +857,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("ignoredPaths").unwrap().to_owned();
                 let included_paths: Option<Vec<String>> = parameters
                     .get("includedPaths")
-                    .and_then(|s| s.as_vec(|i| i.as_str()))
+                    .and_then(|s| s.as_vec_with(|i| i.as_str()))
                     .map(|v| {
                         v.into_iter().map(String::from).collect::<Vec<String>>()
                     });
@@ -878,7 +878,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                             "treatDocStringsAsComments",
                         ),
                         types: parameters.get("types").and_then(|t| {
-                            t.as_vec(|i| {
+                            t.as_vec_with(|i| {
                                 let language_str = i.as_str().unwrap();
                                 let lt = tokei::LanguageType::from_str(language_str).unwrap_or_else(|_| {
                                     panic!("parameter error: {language_str} is not a valid language name");
@@ -894,7 +894,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = vertex.as_package().unwrap();
                     let package_path = util::local_package_path(package);
                     let ignored_paths = ignored_paths
-                        .as_vec(|fv| fv.as_str())
+                        .as_vec_with(|fv| fv.as_str())
                         .unwrap_or_default();
                     let included_paths = included_paths
                         .as_ref()

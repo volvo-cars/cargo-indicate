@@ -2970,8 +2970,8 @@ dependencies = [
 
 [[package]]
 name = "trustfall"
-version = "0.4.0-beta.1"
-source = "git+https://github.com/ginger51011/trustfall?rev=2cece7a#2cece7a663bdbe12e55416743cbfbcdcabbb10da"
+version = "0.4.0-beta.2"
+source = "git+https://github.com/ginger51011/trustfall?rev=67accf3#67accf369949eb1eaf95b79dc029b69d7753b23a"
 dependencies = [
  "anyhow",
  "trustfall_core",
@@ -2980,8 +2980,8 @@ dependencies = [
 
 [[package]]
 name = "trustfall_core"
-version = "0.4.0-beta.1"
-source = "git+https://github.com/ginger51011/trustfall?rev=2cece7a#2cece7a663bdbe12e55416743cbfbcdcabbb10da"
+version = "0.4.0-beta.2"
+source = "git+https://github.com/ginger51011/trustfall?rev=67accf3#67accf369949eb1eaf95b79dc029b69d7753b23a"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
@@ -2999,7 +2999,7 @@ dependencies = [
 [[package]]
 name = "trustfall_derive"
 version = "0.3.0"
-source = "git+https://github.com/ginger51011/trustfall?rev=2cece7a#2cece7a663bdbe12e55416743cbfbcdcabbb10da"
+source = "git+https://github.com/ginger51011/trustfall?rev=67accf3#67accf369949eb1eaf95b79dc029b69d7753b23a"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -181,7 +181,7 @@ type GeigerCategories {
     item_traits: GeigerCount!
     methods: GeigerCount!
 
-    # (functions.safe + exprs.safe + ...) and (functions.unsafe + ...)
+    # (functions.safe + exprs.safe + ...), (functions.unsafe + ...)
     total: GeigerCount!
 }
 

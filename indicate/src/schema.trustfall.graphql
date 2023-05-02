@@ -164,8 +164,8 @@ type LanguageBlob implements CodeStats {
     blobs: [LanguageBlob!]!
 }
 
-# `used` refers to code used by the `RootPackage`
 type GeigerUnsafety {
+    # `used` refers to code used by the `RootPackage`
     used: GeigerCategories!
     unused: GeigerCategories!
 

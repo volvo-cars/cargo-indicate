@@ -2,11 +2,11 @@
 ```console
 $ cargo-indicate --show-schema
 ? success
-# This is not truly a GraphQL file; Instead it is a GraphQL representation of the
-# types provided by indicator.
+# This is not truly a GraphQL file; Instead it is a GraphQL representation of
+# the types provided by `indicate`.
 
-# _This is the single source of truth for `indicator`. Any deviation from it is to
-# be considered a bug._
+# _This is the single source of truth for `indicate`. Any deviation from it is
+# to be considered a bug._
 
 # This is the currently supported Trustfall directives. They are handled by the
 # Trustfall engine.
@@ -14,24 +14,32 @@ schema {
     query: RootQuery
 }
 directive @filter(
-    """Name of the filter operation to perform."""
+    """
+    Name of the filter operation to perform.
+    """
     op: String!
-    """List of string operands for the operator."""
+    """
+    List of string operands for the operator.
+    """
     value: [String!]
 ) on FIELD | INLINE_FRAGMENT
 directive @tag(
-    """Name to apply to the given property field."""
+    """
+    Name to apply to the given property field.
+    """
     name: String
 ) on FIELD
 directive @output(
-    """What to designate the output field generated from this property field."""
+    """
+    What to designate the output field generated from this property field.
+    """
     name: String
 ) on FIELD
 directive @optional on FIELD
 directive @recurse(
     """
-    Recurse up to this many times on this edge. A depth of 1 produces the current
-    vertex and its immediate neighbors along the given edge.
+    Recurse up to this many times on this edge. A depth of 1 produces the
+    current vertex and its immediate neighbors along the given edge.
     """
     depth: Int!
 ) on FIELD
@@ -45,17 +53,17 @@ directive @transform(
 
 """
 This is the actual types that can be used to create queries.
-
-Note that each GraphQL type corresponds to one `Token` variant (see `token.rs`)
 """
 
 type RootQuery {
     RootPackage: Package!
     Dependencies(includeRoot: Boolean!): [Package!]!
 
-    # Dependencies that are indirect dependencies of the root package;
-    # excluding direct dependencies that are _only_ direct dependencies, and
-    # appear nowhere else in the dependency tree
+    """
+    Dependencies that are indirect dependencies of the root package;
+    excluding direct dependencies that are _only_ direct dependencies, and
+    appear nowhere else in the dependency tree
+    """
     TransitiveDependencies: [Package!]!
 }
 
@@ -274,7 +282,7 @@ $ cargo-indicate --show-schema -q ''
 ? failed
 error: the argument '--show-schema' cannot be used with one or more of the other specified arguments
 
-Usage: cargo-indicate [OPTIONS] <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...|--show-schema> [-- <PACKAGE>]
+Usage: cargo-indicate [..]
 
 For more information, try '--help'.
 

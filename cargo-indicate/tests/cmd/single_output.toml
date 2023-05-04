@@ -4,7 +4,7 @@ args = [
   "queries",
   "-x",
   ".keep", # Used by test harness
-  "--query-path",
+  "--query-with-args",
   "./query.in.ron", # We have a duplicate!
   "--output",
   "results/query.out.json", # Write all results to single file

@@ -5,26 +5,26 @@ $ cargo-indicate -q '' --output-dir test_target/will_fail
 ? failed
 error: the argument '--query <QUERY>...' cannot be used with '--output-dir <DIR>'
 
-Usage: cargo-indicate <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...|--show-schema> -- <PACKAGE>
+Usage: cargo-indicate <--query <QUERY>...|--query-with-args <FILE>...|--query-dir <DIR>|--show-schema> -- <PACKAGE>
 
 For more information, try '--help'.
 
 ```
 
-## Can output `--query-path` single result in directory
+## Can output `--query-with-args` single result in directory
 ```console
 $ cargo-indicate
-> --query-path ../indicate/test_data/queries/direct_dependencies.in.ron
+> --query-with-args ../indicate/test_data/queries/direct_dependencies.in.ron
 > --output-dir test_target
 > -- ../indicate/test_data/fake_crates/simple_deps
 ? success
 ```
 
-## Can output `--query-path` multiple results in directory
+## Can output `--query-with-args` multiple results in directory
 
 ```console
 $ cargo-indicate
-> --query-path ../indicate/test_data/queries/direct_dependencies.in.ron ../indicate/test_data/queries/count_dependencies.in.ron
+> --query-with-args ../indicate/test_data/queries/direct_dependencies.in.ron ../indicate/test_data/queries/count_dependencies.in.ron
 > --output-dir test_target
 > -- ../indicate/test_data/fake_crates/simple_deps
 ? success

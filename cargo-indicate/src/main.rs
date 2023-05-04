@@ -1,7 +1,7 @@
 #![forbid(unsafe_code)]
 #![feature(path_file_prefix)]
 use std::{
-    collections::BTreeSet, ffi::OsString, fs, path::PathBuf,
+    collections::BTreeSet, ffi::OsString, fs, path::{PathBuf, Path},
     rc::Rc,
 };
 
@@ -30,7 +30,34 @@ struct IndicateCli {
     )]
     _dummy: String,
 
-    /// Indicate queries in a supported file format to be run in series
+    /// Indicate queries, without arguments, to be run in series; Will attempt
+    /// to read file if a string is a valid filename
+    ///
+    /// This can be used to accept GraphQL files, passing eventual arguments
+    /// using the `-a`/`--args` flag.
+    ///
+    /// These queries will run using the same Trustfall adapter, meaning there
+    /// is a performance gain versus multiple separate `cargo-indicate` calls.
+    #[arg(
+        short, long,
+        num_args = 1..,
+        group = "query_inputs", 
+        conflicts_with_all = ["query_with_args", "query_dir"]
+    )]
+    query: Option<Vec<String>>,
+
+    /// Indicate arguments including arguments in plain text, in a JSON format
+    ///
+    /// If more than one query was provided, the args will be mapped to the
+    /// queries in the same order. If the number of args _n_ is less than the number
+    /// of queries, empty args will be used for all queries _m > n_.
+    #[arg(short, long, num_args = 0.., requires = "query_inputs")]
+    args: Option<Vec<String>>,
+
+    /// Indicate queries in a supported file format to be run in series,
+    /// containing arguments
+    ///
+    /// Used for complex queries with arguments, for example in a `.ron` format.
     ///
     /// These queries will run using the same Trustfall adapter, meaning there
     /// is a performance gain versus multiple separate `cargo-indicate` calls.
@@ -42,9 +69,12 @@ struct IndicateCli {
         value_name = "FILE",
         value_hint = clap::ValueHint::FilePath
     )]
-    query_path: Option<Vec<PathBuf>>,
+    query_with_args: Option<Vec<PathBuf>>,
 
-    /// A directory containing indicate queries in a supported file format
+    /// A directory containing indicate queries in a supported file format,
+    /// containing arguments
+    ///
+    /// Essentially `-Q`/`--query-with-args` for a directory.
     ///
     /// Will create file names depending on the names of the input query files;
     /// if there are duplicate query names, a number will be appended to avoid
@@ -65,26 +95,6 @@ struct IndicateCli {
     #[arg(short = 'x', num_args = 0.., long, requires = "query_dir")]
     exclude: Vec<String>,
 
-    /// Indicate queries in plain text, without arguments, to be run in series
-    ///
-    /// These queries will run using the same Trustfall adapter, meaning there
-    /// is a performance gain versus multiple separate `cargo-indicate` calls.
-    #[arg(
-        short, long,
-        num_args = 1..,
-        group = "query_inputs", 
-        conflicts_with_all = ["query_path", "query_dir"]
-    )]
-    query: Option<Vec<String>>,
-
-    /// Indicate arguments including arguments in plain text, without query in a
-    /// JSON format
-    ///
-    /// If more than one query was provided, the args will be mapped to the
-    /// queries in the same order. If the number of args _n_ is less than the number
-    /// of queries, empty args will be used for all queries _m > n_.
-    #[arg(short, long, num_args = 0.., requires = "query_inputs")]
-    args: Option<Vec<String>>,
 
     /// Path to a Cargo.toml file, or a directory containing one
     #[arg(
@@ -194,12 +204,12 @@ fn main() {
     }
 
     // Aggregate query paths from `--query-path` and `--query-dir` flags
-    let query_paths: Option<Vec<PathBuf>> = if cli.query_path.is_some()
+    let query_paths: Option<Vec<PathBuf>> = if cli.query_with_args.is_some()
         || cli.query_dir.is_some()
     {
         let mut q = Vec::new();
 
-        if let Some(query_paths) = cli.query_path {
+        if let Some(query_paths) = cli.query_with_args {
             q.extend(query_paths);
         }
 
@@ -253,19 +263,9 @@ fn main() {
     };
 
     let mut fqs: Vec<FullQuery>;
-    if let Some(query_paths) = &query_paths {
-        fqs = Vec::with_capacity(query_paths.len());
-        for path in query_paths {
-            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
-                panic!(
-                    "could not parse query file {} due to error: {e}",
-                    path.to_string_lossy()
-                );
-            }));
-        }
-    } else if let Some(query_strs) = cli.query {
+     if let Some(queries) = cli.query {
         if let Some(args) = &cli.args {
-            if args.len() > query_strs.len() {
+            if args.len() > queries.len() {
                 cmd.error(
                     clap::error::ErrorKind::TooManyValues,
                     "more arguments provided than queries",
@@ -274,12 +274,23 @@ fn main() {
             }
         }
 
-        fqs = Vec::with_capacity(query_strs.len());
+        fqs = Vec::with_capacity(queries.len());
         let mut args = cli.args.iter().flatten();
 
         // Queries with index over the amount of arguments get no arguments
-        for query_str in query_strs {
-            let mut fqb = FullQueryBuilder::new(query_str);
+        for q in queries {
+            // Check if this seems to be a file
+            let path = Path::new(&q);
+
+            let mut fqb = if path.is_file() {
+                let file_content = fs::read_to_string(path).unwrap_or_else(|e| {
+                    let msg = format!("the query {q} was assumed to be file, but could not be read due to error: {e}");
+                    cmd.error(clap::error::ErrorKind::ValueValidation, msg).exit();
+                });
+                FullQueryBuilder::new(file_content)
+            } else {
+                FullQueryBuilder::new(q)
+            };
 
             if let Some(args) = args.next() {
                 fqb =
@@ -293,6 +304,16 @@ fn main() {
             }
 
             fqs.push(fqb.build());
+        }
+    } else if let Some(query_paths) = &query_paths {
+        fqs = Vec::with_capacity(query_paths.len());
+        for path in query_paths {
+            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
+                panic!(
+                    "could not parse query file {} due to error: {e}",
+                    path.to_string_lossy()
+                );
+            }));
         }
     } else {
         unreachable!("no query provided");

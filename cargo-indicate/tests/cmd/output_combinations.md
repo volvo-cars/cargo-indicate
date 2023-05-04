@@ -5,7 +5,7 @@ $ cargo-indicate --output test_target/output.out.json --output-dir test_target/w
 ? failed
 error: the argument '--output <FILE>...' cannot be used with '--output-dir <DIR>'
 
-Usage: cargo-indicate --output <FILE>... <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...|--show-schema> [-- <PACKAGE>]
+Usage: cargo-indicate --output <FILE>... <--query <QUERY>...|--query-with-args <FILE>...|--query-dir <DIR>|--show-schema> [-- <PACKAGE>]
 
 For more information, try '--help'.
 
@@ -22,7 +22,7 @@ $ cargo-indicate
 ? failed
 error: if more than one output path is defined, it must match the amount of queries
 
-Usage: cargo-indicate [OPTIONS] <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...|--show-schema> [-- <PACKAGE>]
+Usage: cargo-indicate [OPTIONS] <--query <QUERY>...|--query-with-args <FILE>...|--query-dir <DIR>|--show-schema> [-- <PACKAGE>]
 
 For more information, try '--help'.
 
@@ -41,7 +41,7 @@ $ cargo-indicate
 ? failed
 error: if more than one output path is defined, it must match the amount of queries
 
-Usage: cargo-indicate [OPTIONS] <--query-path <FILE>...|--query-dir <DIR>|--query <QUERY>...|--show-schema> [-- <PACKAGE>]
+Usage: cargo-indicate [OPTIONS] <--query <QUERY>...|--query-with-args <FILE>...|--query-dir <DIR>|--show-schema> [-- <PACKAGE>]
 
 For more information, try '--help'.
 

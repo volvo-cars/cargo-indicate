@@ -168,8 +168,8 @@ type LanguageBlob implements CodeStats {
     blobs: [LanguageBlob!]!
 }
 
-# `used` refers to code used by the `RootPackage`
 type GeigerUnsafety {
+    # `used` refers to code used by the `RootPackage`
     used: GeigerCategories!
     unused: GeigerCategories!
 
@@ -185,7 +185,7 @@ type GeigerCategories {
     item_traits: GeigerCount!
     methods: GeigerCount!
 
-    # (functions.safe + exprs.safe + ...) and (functions.unsafe + ...)
+    # (functions.safe + exprs.safe + ...), (functions.unsafe + ...)
     total: GeigerCount!
 }
 
@@ -264,82 +264,6 @@ type AffectedFunctionVersions {
     versions: [String!]!
 }
 
-
-# `rustsec::advisory::Severity`
-# enum Severity {
-#     NONE,
-#     LOW,
-#     MEDIUM,
-#     HIGH,
-#     CRITICAL,
-# }
-
-# `cvss::v3::base::Base`
-# type CvssBase {
-#     minorVersion: Int!
-#     attackVector: attackVector
-#     attackComplexity: AttackComplexity
-#     privilegesRequired: PrivilegesRequired
-#     userInteraction: UserInteraction
-#     scope: Scope
-#     confidentiality: Confidentiality
-#     integrity: Integrity
-#     availability: Availability
-# }
-
-# # `cvss::v3::base::AttackVector`
-# enum AttackVector {
-#     PHYSICAL
-#     LOCAL
-#     ADJACENT
-#     NETWORK
-# }
-
-# # `cvss::v3::base::AttackComplexity`
-# enum AttackComplexity {
-#     HIGH
-#     LOW
-# }
-
-# # `cvss::v3::base::PrivilegesRequired`
-# enum PrivilegesRequired {
-#     HIGH
-#     LOW
-#     NONE
-# }
-
-# # `cvss::v3::base::UserInteraction`
-# enum UserInteraction {
-#     REQUIRED
-#     NONE
-# }
-
-# # `cvss::v3::base::Scope`
-# enum Scope {
-#     UNCHANGED
-#     CHANGED
-# }
-
-# # `cvss::v3::base::Confidentiality`
-# enum Confidentiality {
-#     NONE
-#     LOW
-#     HIGH
-# }
-
-# # `cvss::v3::base::Integrity`
-# enum Integrity {
-#     NONE
-#     LOW
-#     HIGH
-# }
-
-# # `cvss::v3::base::Availability`
-# enum Availability {
-#     NONE
-#     LOW
-#     HIGH
-# }
 
 ```
 

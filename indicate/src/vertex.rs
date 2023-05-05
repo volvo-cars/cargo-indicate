@@ -10,7 +10,7 @@ use trustfall::provider::TrustfallEnumVertex;
 
 use crate::{
     code_stats::{LanguageBlob, LanguageCodeStats},
-    geiger::{GeigerCategories, GeigerCount, GeigerUnsafety},
+    geiger::{GeigerCategories, GeigerCount, GeigerUnsafety}, NameVersion,
 };
 
 /// A node in the GraphQL schema as defined in the schema.
@@ -20,6 +20,8 @@ use crate::{
 #[derive(Debug, Clone, TrustfallEnumVertex)]
 pub enum Vertex {
     Package(Rc<Package>),
+
+    CratesIoStats(NameVersion),
 
     #[trustfall(skip_conversion)]
     Webpage(String),

@@ -75,14 +75,7 @@ type Package {
     sourcePath: String!
 
     # These are expensive, due to crates.io crawler policy
-    cratesIoTotalDownloads: Int
-    cratesIoRecentDownloads: Int
-    cratesIoVersionDownloads: Int
-    cratesIoVersionsCount: Int
-    cratesIoYanked: Boolean # If this version is yanked from crates.io
-    cratesIoYankedVersions: [String!]
-    cratesIoYankedVersionsCount: Int
-    cratesIoYankedRatio: Float # yanked versions count / versions count
+    cratesIo: CratesIoStats!
 
     repository: Webpage
 
@@ -112,6 +105,17 @@ type Package {
         minSeverity: String
     ): [Advisory!]!
     geiger: GeigerUnsafety
+}
+
+type CratesIoStats {
+    totalDownloads: Int
+    recentDownloads: Int
+    versionDownloads: Int
+    versionsCount: Int
+    yanked: Boolean # If this version is yanked from crates.io
+    yankedVersions: [String!]
+    yankedVersionsCount: Int
+    yankedRatio: Float # yanked versions count / versions count
 }
 
 # Data from tokei, shared between `Language` and `CodeStats`

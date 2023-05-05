@@ -178,17 +178,9 @@ pub(crate) fn two_digit_percentage(part: u32, total: u32) -> f64 {
 }
 
 /// The full output of `cargo-geiger`
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct GeigerOutput {
     pub packages: Vec<GeigerPackageOutput>,
-}
-
-impl Default for GeigerOutput {
-    fn default() -> Self {
-        Self {
-            packages: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

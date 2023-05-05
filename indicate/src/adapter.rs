@@ -13,7 +13,6 @@ use trustfall::{
     FieldValue,
 };
 
-use crate::{IndicateAdapterBuilder, crates_io::CratesIoClient, geiger::GeigerOutput, NameVersion};
 use crate::{
     advisory::AdvisoryClient,
     geiger::GeigerClient,
@@ -24,6 +23,10 @@ use crate::{
 use crate::{
     code_stats::{get_code_stats, CodeStats},
     util,
+};
+use crate::{
+    crates_io::CratesIoClient, geiger::GeigerOutput, IndicateAdapterBuilder,
+    NameVersion,
 };
 
 pub mod adapter_builder;
@@ -256,7 +259,9 @@ impl IndicateAdapter {
     /// Retrieves or creates a new default [`CratesIoClient`] if none is set
     #[must_use]
     fn crates_io_client(&self) -> Rc<RefCell<CratesIoClient>> {
-        let c = self.crates_io_client.get_or_init(|| Rc::new(RefCell::new(CratesIoClient::default())));
+        let c = self
+            .crates_io_client
+            .get_or_init(|| Rc::new(RefCell::new(CratesIoClient::default())));
         Rc::clone(c)
     }
 
@@ -391,7 +396,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().total_downloads(&nv.name) {
+                    match crates_io_client
+                        .borrow_mut()
+                        .total_downloads(&nv.name)
+                    {
                         Some(n) => FieldValue::Uint64(n),
                         None => FieldValue::Null,
                     }
@@ -401,7 +409,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().recent_downloads(&nv.name) {
+                    match crates_io_client
+                        .borrow_mut()
+                        .recent_downloads(&nv.name)
+                    {
                         Some(n) => FieldValue::Uint64(n),
                         None => FieldValue::Null,
                     }
@@ -411,7 +422,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().version_downloads(&nv) {
+                    match crates_io_client.borrow_mut().version_downloads(nv) {
                         Some(n) => FieldValue::Uint64(n),
                         None => FieldValue::Null,
                     }
@@ -421,7 +432,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().versions_count(&nv.name) {
+                    match crates_io_client.borrow_mut().versions_count(&nv.name)
+                    {
                         Some(n) => FieldValue::Uint64(n as u64),
                         None => FieldValue::Null,
                     }
@@ -431,7 +443,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().yanked(&nv) {
+                    match crates_io_client.borrow_mut().yanked(nv) {
                         Some(b) => b.into(),
                         None => FieldValue::Null,
                     }
@@ -441,7 +453,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().yanked_versions(&nv.name) {
+                    match crates_io_client
+                        .borrow_mut()
+                        .yanked_versions(&nv.name)
+                    {
                         Some(v) => v.into(),
                         None => FieldValue::Null,
                     }
@@ -451,7 +466,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
                     let nv = v.as_crates_io_stats().unwrap();
-                    match crates_io_client.borrow_mut().yanked_versions_count(&nv.name) {
+                    match crates_io_client
+                        .borrow_mut()
+                        .yanked_versions_count(&nv.name)
+                    {
                         Some(n) => FieldValue::Uint64(n as u64),
                         None => FieldValue::Null,
                     }
@@ -748,14 +766,12 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     )
                 })
             }
-            ("Package", "cratesIo") => {
-                resolve_neighbors_with(contexts, |v| {
-                    let package = v.as_package().unwrap();
-                    Box::new(std::iter::once(
-                        Vertex::CratesIoStats(NameVersion::from(package))
-                    ))
-                })
-            }
+            ("Package", "cratesIo") => resolve_neighbors_with(contexts, |v| {
+                let package = v.as_package().unwrap();
+                Box::new(std::iter::once(Vertex::CratesIoStats(
+                    NameVersion::from(package),
+                )))
+            }),
             ("Package", "repository") => {
                 let gh_client = self.gh_client();
                 resolve_neighbors_with(contexts, move |v| {

@@ -58,6 +58,32 @@ $ cargo indicate
 ]
 ```
 
+## Running Queries
+
+There are currently two ways of running queries, with different pros and cons.
+The simlest way is to pass a GraphQL matching the `cargo-indicate` schema (use `--show-schema` to see it),
+and then pass eventual arguments in a JSON format. For example,
+
+```console
+$ cargo indicate
+> --query '{ RootPackage { name @output @filter(op: "=", value: ["$target"]) } }'
+> --args '{ "target": "cargo-indicate" }'
+> -- .
+[
+  {
+    "name": "cargo-indicate",
+  }
+]
+```
+
+Both the `-q`/`--query` and `-a`/`--args` also take file paths. You can pass
+multiple queries and sets of args, and they will be paired.
+
+If you instead want predefined query/arguments pairs, you can use the `-Q`/
+`--query-with-args` and `d`/`--query-dir` flags to pass files in a supported
+file format (`.ron` files are recommended, see [the test queries](/indicate/
+indicate/test_data/queries) for examples).
+
 ## Targeting Workspaces
 
 There are two ways to handle workspaces when using `cargo-indicate`:

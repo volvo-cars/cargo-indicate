@@ -275,13 +275,12 @@ fn main() {
         }
 
         fqs = Vec::with_capacity(queries.len());
-        let mut args = cli.args.iter().flatten();
+        let mut args = cli.args.into_iter().flatten();
 
         // Queries with index over the amount of arguments get no arguments
         for q in queries {
             // Check if this seems to be a file
             let path = Path::new(&q);
-
             let mut fqb = if path.is_file() {
                 let file_content = fs::read_to_string(path).unwrap_or_else(|e| {
                     let msg = format!("the query {q} was assumed to be file, but could not be read due to error: {e}");
@@ -294,8 +293,19 @@ fn main() {
 
             // Add arguments to this query if we have some defined
             if let Some(args) = args.next() {
+                // Check if it seems to be a file
+                let path = Path::new(&args);
+                let args = if path.is_file() {
+                    fs::read_to_string(path).unwrap_or_else(|e| {
+                        let msg = format!("the argument(s) {args} was assumed to be file, but could not be read due to error: {e}");
+                        cmd.error(clap::error::ErrorKind::ValueValidation, msg).exit();
+                    })
+                } else {
+                    args
+                };
+                
                 fqb =
-                    fqb.args(serde_json::from_str(args).unwrap_or_else(|e| {
+                    fqb.args(serde_json::from_str(&args).unwrap_or_else(|e| {
                         let msg = format!(
                             "could not parse args argument due to error: {e}"
                         );

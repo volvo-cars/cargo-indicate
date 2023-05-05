@@ -1,7 +1,10 @@
 #![forbid(unsafe_code)]
 #![feature(path_file_prefix)]
 use std::{
-    collections::BTreeSet, ffi::OsString, fs, path::{PathBuf, Path},
+    collections::BTreeSet,
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
     rc::Rc,
 };
 
@@ -11,6 +14,7 @@ use indicate::{
     query::FullQueryBuilder, repo::github::GitHubClient,
     util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath,
 };
+mod util;
 
 /// Run GraphQL-like queries on Rust projects and their dependencies
 #[derive(Parser, Debug, Clone)]
@@ -94,7 +98,6 @@ struct IndicateCli {
     /// Exclude files containing this substring when using `--query-dir`
     #[arg(short = 'x', num_args = 0.., long, requires = "query_dir")]
     exclude: Vec<String>,
-
 
     /// Path to a Cargo.toml file, or a directory containing one
     #[arg(
@@ -263,7 +266,17 @@ fn main() {
     };
 
     let mut fqs: Vec<FullQuery>;
-     if let Some(queries) = cli.query {
+    if let Some(query_paths) = &query_paths {
+        fqs = Vec::with_capacity(query_paths.len());
+        for path in query_paths {
+            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
+                panic!(
+                    "could not parse query file {} due to error: {e}",
+                    path.to_string_lossy()
+                );
+            }));
+        }
+    } else if let Some(queries) = cli.query {
         if let Some(args) = &cli.args {
             if args.len() > queries.len() {
                 cmd.error(
@@ -303,7 +316,7 @@ fn main() {
                 } else {
                     args
                 };
-                
+
                 fqb =
                     fqb.args(serde_json::from_str(&args).unwrap_or_else(|e| {
                         let msg = format!(
@@ -315,16 +328,6 @@ fn main() {
             }
 
             fqs.push(fqb.build());
-        }
-    } else if let Some(query_paths) = &query_paths {
-        fqs = Vec::with_capacity(query_paths.len());
-        for path in query_paths {
-            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
-                panic!(
-                    "could not parse query file {} due to error: {e}",
-                    path.to_string_lossy()
-                );
-            }));
         }
     } else {
         unreachable!("no query provided");
@@ -494,25 +497,36 @@ fn main() {
     if let Some(output_paths) = output_paths {
         match output_paths {
             single_path if output_paths.len() == 1 => {
+                let path = single_path[0].as_path();
+
                 // Write all queries to a single file
                 let concat_res = res_strings.join("\n");
 
+                util::ensure_parents_exist(path).unwrap_or_else(|e| {
+                    panic!("could not create parent directories for {} due to error: {e}", path.to_string_lossy())
+                });
                 fs::write(
-                    single_path[0].as_path(),
+                    path,
                     concat_res
                 ).unwrap_or_else(|e| {
                     panic!(
                         "could not write output to {} due to error: {e}",
-                        single_path[0].to_string_lossy()
+                        path.to_string_lossy()
                     )
                 });
             },
             multiple_paths if output_paths.len() > 1 => {
                 // We would have panicked already if these are not equal
                 for (res, path) in res_strings.iter().zip(multiple_paths.iter()) {
+                    // It's quite wasteful to throw out all other results, so
+                    // skip this one if it fails
+                    if let Err(e) = util::ensure_parents_exist(path) {
+                        eprintln!("could not write some output to {} due to error: {e}, skipping", path.to_string_lossy());
+                        continue;
+                    }
+                    
                     fs::write(path.as_path(), res).unwrap_or_else(|e| {
-                        panic!(
-                            "could not write output to {} due to error: {e}",
+                        eprintln!("could not write output to {} due to error: {e}, skipping",
                             path.to_string_lossy())
                     });
                 }

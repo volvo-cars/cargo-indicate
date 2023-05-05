@@ -17,7 +17,7 @@ use indicate::{
 #[command(author = "Emil Jonathan Eriksson", version, about, long_about = None)]
 #[command(group(
     ArgGroup::new("query_inputs")
-        .multiple(true) // We can have `--query-dir` AND `--query-path`
+        .multiple(true) // We can have `--query-dir` AND `--query-with-args`
         .required(true)
 ))]
 struct IndicateCli {
@@ -203,7 +203,7 @@ fn main() {
         return;
     }
 
-    // Aggregate query paths from `--query-path` and `--query-dir` flags
+    // Aggregate query paths from `--query-with-args` and `--query-dir` flags
     let query_paths: Option<Vec<PathBuf>> = if cli.query_with_args.is_some()
         || cli.query_dir.is_some()
     {
@@ -292,6 +292,7 @@ fn main() {
                 FullQueryBuilder::new(q)
             };
 
+            // Add arguments to this query if we have some defined
             if let Some(args) = args.next() {
                 fqb =
                     fqb.args(serde_json::from_str(args).unwrap_or_else(|e| {

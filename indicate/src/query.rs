@@ -3,7 +3,7 @@ use std::{
 };
 
 use serde::Deserialize;
-use trustfall::FieldValue;
+use trustfall::TransparentValue;
 
 use crate::errors::FileParseError;
 
@@ -14,7 +14,7 @@ use crate::errors::FileParseError;
 ///     "value": true,
 /// }
 /// ```
-type QueryArgs = BTreeMap<Arc<str>, FieldValue>;
+type QueryArgs = BTreeMap<Arc<str>, TransparentValue>;
 
 /// A full Trustfall query, with both query and arguments to be used
 #[derive(Debug, Clone, Deserialize)]

@@ -20,7 +20,6 @@ use crate::{
 #[derive(Debug, Clone, TrustfallEnumVertex)]
 pub enum Vertex {
     Package(Rc<Package>),
-
     CratesIoStats(NameVersion),
 
     #[trustfall(skip_conversion)]

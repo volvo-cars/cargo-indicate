@@ -4,14 +4,16 @@ FullQuery(
     RootPackage {
         name @output
         version @output
-        cratesIoTotalDownloads @output
-        cratesIoRecentDownloads @output
-        cratesIoVersionDownloads @output
-        cratesIoVersionsCount @output
-        cratesIoYanked @output
-        cratesIoYankedVersions @output
-        cratesIoYankedVersionsCount @output
-        cratesIoYankedRatio @output
+        cratesIo {
+            totalDownloads @output
+            recentDownloads @output
+            versionDownloads @output
+            versionsCount @output
+            yanked @output
+            yankedVersions @output
+            yankedVersionsCount @output
+            yankedRatio @output
+        }
     }
 }
 "#,

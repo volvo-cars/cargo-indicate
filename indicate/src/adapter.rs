@@ -437,31 +437,31 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     }
                 })
             }
-            ("CratesIoStats", "cratesIoYankedVersions") => {
+            ("CratesIoStats", "yankedVersions") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
-                    let package = v.as_package().unwrap();
-                    match crates_io_client.borrow_mut().yanked_versions(&package.name) {
+                    let nv = v.as_crates_io_stats().unwrap();
+                    match crates_io_client.borrow_mut().yanked_versions(&nv.name) {
                         Some(v) => v.into(),
                         None => FieldValue::Null,
                     }
                 })
             }
-            ("CratesIoStats", "cratesIoYankedVersionsCount") => {
+            ("CratesIoStats", "yankedVersionsCount") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
-                    let package = v.as_package().unwrap();
-                    match crates_io_client.borrow_mut().yanked_versions_count(&package.name) {
+                    let nv = v.as_crates_io_stats().unwrap();
+                    match crates_io_client.borrow_mut().yanked_versions_count(&nv.name) {
                         Some(n) => FieldValue::Uint64(n as u64),
                         None => FieldValue::Null,
                     }
                 })
             }
-            ("CratesIoStats", "cratesIoYankedRatio") => {
+            ("CratesIoStats", "yankedRatio") => {
                 let crates_io_client = self.crates_io_client();
                 resolve_property_with(contexts, move |v| {
-                    let package = v.as_package().unwrap();
-                    match crates_io_client.borrow_mut().yanked_ratio(&package.name) {
+                    let nv = v.as_crates_io_stats().unwrap();
+                    match crates_io_client.borrow_mut().yanked_ratio(&nv.name) {
                         Some(n) => FieldValue::Float64(n),
                         None => FieldValue::Null,
                     }

@@ -78,7 +78,7 @@ type Package {
     manifestPath: String!
     sourcePath: String!
 
-    # These are expensive, due to crates.io crawler policy
+    # This is expensive, due to crates.io crawler policy
     cratesIo: CratesIoStats!
 
     repository: Webpage

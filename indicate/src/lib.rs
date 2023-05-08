@@ -26,13 +26,13 @@ use trustfall::{execute_query as trustfall_execute_query, FieldValue, Schema};
 pub mod adapter;
 pub mod advisory;
 pub mod code_stats;
+pub mod crates_io;
 pub mod errors;
 pub mod geiger;
 pub mod manifest;
 pub mod query;
 pub mod repo;
 pub mod util;
-pub mod crates_io;
 mod vertex;
 
 /// Features to create metadata with
@@ -109,11 +109,7 @@ pub fn execute_query(
     max_results: Option<usize>,
 ) -> Vec<BTreeMap<Arc<str>, FieldValue>> {
     let adapter = IndicateAdapter::new(manifest_path);
-    execute_query_with_adapter(
-        query,
-        Rc::new(adapter),
-        max_results,
-    )
+    execute_query_with_adapter(query, Rc::new(adapter), max_results)
 }
 
 /// Executes a Trustfall query with a dedicated [`IndicateAdapter`], that may
@@ -122,7 +118,7 @@ pub fn execute_query(
 /// Use when the default configuration does not provide enough control.
 ///
 /// # Panics
-/// 
+///
 /// Panics if the query could not be executed.
 pub fn execute_query_with_adapter(
     query: &FullQuery,

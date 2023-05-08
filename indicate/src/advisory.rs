@@ -61,6 +61,11 @@ impl AdvisoryClient {
 
     /// Create a client from the default local path in `CARGO_HOME` directory
     /// (`~./cargo/advisory-db`)
+    ///
+    /// # Errors
+    ///
+    /// If an advisory database is not available in the default path, such as if
+    /// has never been fetched, an error variant will be returned.
     pub fn from_default_path() -> Result<Self, rustsec::Error> {
         let default = format!("{}/advisory-db", env!("CARGO_HOME"));
         Self::from_path(Path::new(default.as_str()))

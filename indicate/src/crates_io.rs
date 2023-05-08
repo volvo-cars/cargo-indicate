@@ -4,13 +4,13 @@
 //! can be made is limited. [`CratesIoClient`] attempts to make this less
 //! noticeable with caching and doing large fetches, but please keep this in
 //! mind.
-//! 
+//!
 //! See [the crates.io crawler policy](https://crates.io/policies#crawlers) for
 //! more information.
 
 use std::{collections::HashMap, time::Duration};
 
-use crates_io_api::{SyncClient, Crate, CrateResponse, Version};
+use crates_io_api::{Crate, CrateResponse, SyncClient, Version};
 
 use crate::NameVersion;
 
@@ -34,9 +34,10 @@ impl CratesIoClient {
     /// Panics if the given agent parameters are invalid.
     #[must_use]
     pub fn new(user_agent: &str, rate_limit: Duration) -> Self {
-        let client = SyncClient::new(user_agent, rate_limit).unwrap_or_else(|e| {
-            panic!("could not create CratesIoClient due to error: {e}");
-        });
+        let client =
+            SyncClient::new(user_agent, rate_limit).unwrap_or_else(|e| {
+                panic!("could not create CratesIoClient due to error: {e}");
+            });
 
         Self {
             client,
@@ -48,7 +49,10 @@ impl CratesIoClient {
     ///
     /// Will return `None` if the request fails, and will cache this crate as
     /// such.
-    pub fn crate_response(&mut self, crate_name: &str) -> Option<&mut CrateResponse> {
+    pub fn crate_response(
+        &mut self,
+        crate_name: &str,
+    ) -> Option<&mut CrateResponse> {
         self.cache.entry(crate_name.to_string()).or_insert_with(|| {
            match self.client.get_crate(crate_name)  {
                 Ok(cr) => Some(cr),
@@ -58,7 +62,7 @@ impl CratesIoClient {
                 }
             }
         }).as_mut()
-       }
+    }
 
     /// Retrieve data about a crate from the `crates.io` API
     pub fn crate_data(&mut self, crate_name: &str) -> Option<&Crate> {
@@ -86,7 +90,10 @@ impl CratesIoClient {
     }
 
     /// Retrieves the total amount of downloads for a specific crate version
-    pub fn version_downloads(&mut self, name_version: &NameVersion) -> Option<u64> {
+    pub fn version_downloads(
+        &mut self,
+        name_version: &NameVersion,
+    ) -> Option<u64> {
         self.versions(&name_version.name).and_then(|versions| {
             versions.iter().find_map(|v| {
             match rustsec::Version::parse(&v.num) {
@@ -131,15 +138,18 @@ impl CratesIoClient {
     /// [`yanked_versions_count`](Self::yanked_versions_count) instead.
     pub fn yanked_versions(&mut self, crate_name: &str) -> Option<Vec<String>> {
         self.versions(crate_name).map(|versions| {
-            versions.iter().filter_map(|fv| {
-                if fv.yanked {
-                    // We do not parse version, as that may fail, leading
-                    // to odd results
-                    Some(fv.num.clone())
-                } else {
-                    None
-                }
-            }).collect()
+            versions
+                .iter()
+                .filter_map(|fv| {
+                    if fv.yanked {
+                        // We do not parse version, as that may fail, leading
+                        // to odd results
+                        Some(fv.num.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect()
         })
     }
 
@@ -147,17 +157,15 @@ impl CratesIoClient {
     /// crate
     pub fn yanked_versions_count(&mut self, crate_name: &str) -> Option<usize> {
         // Do not rely on Self::yanked_version, as it is more expensive
-        self.versions(crate_name).map(|versions| {
-            versions.iter().filter(|v| v.yanked).count()
-        })
+        self.versions(crate_name)
+            .map(|versions| versions.iter().filter(|v| v.yanked).count())
     }
 
     /// Calculates the ratio of yanked versions to all crate versions
     pub fn yanked_ratio(&mut self, crate_name: &str) -> Option<f64> {
         self.yanked_versions_count(crate_name).and_then(|y| {
-           self.versions_count(crate_name).map(|v| y as f64 / v as f64)    
-        }
-)
+            self.versions_count(crate_name).map(|v| y as f64 / v as f64)
+        })
     }
 }
 

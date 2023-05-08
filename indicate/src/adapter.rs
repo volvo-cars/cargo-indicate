@@ -150,10 +150,11 @@ impl IndicateAdapter {
             .direct_dependencies()
             .iter()
             .filter_map(|(p, dir_deps)| {
-                if *p != root_package_id {
-                    Some((*(*dir_deps)).clone())
-                } else {
+                // Filter out the root package
+                if *p == root_package_id {
                     None
+                } else {
+                    Some((*(*dir_deps)).clone())
                 }
             })
             .flatten()
@@ -218,7 +219,8 @@ impl IndicateAdapter {
     #[must_use]
     fn direct_dependencies(&self) -> Rc<DirectDependencyMap> {
         let dd = self.direct_dependencies.get_or_init(|| {
-            let direct_dependencies = util::get_direct_dependencies(&self.metadata);
+            let direct_dependencies =
+                util::get_direct_dependencies(&self.metadata);
             Rc::new(direct_dependencies)
         });
         Rc::clone(dd)
@@ -805,8 +807,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     parameters.get("includeWithdrawn").cloned();
                 let arch = parameters.get("arch").cloned();
                 let os = parameters.get("os").cloned();
-                let min_severity =
-                    parameters.get("minSeverity").cloned();
+                let min_severity = parameters.get("minSeverity").cloned();
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
@@ -873,17 +874,14 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let gid = package.into();
                     let unsafety = geiger_client.unsafety(&gid);
 
-                    match unsafety {
-                        Some(u) => {
-                            Box::new(std::iter::once(Vertex::GeigerUnsafety(u)))
-                        }
-                        None => {
-                            eprintln!(
-                                "failed to resolve geiger unsafety for {} {}",
-                                package.name, package.version
-                            );
-                            Box::new(std::iter::empty())
-                        }
+                    if let Some(u) = unsafety {
+                        Box::new(std::iter::once(Vertex::GeigerUnsafety(u)))
+                    } else {
+                        eprintln!(
+                            "failed to resolve geiger unsafety for {} {}",
+                            package.name, package.version
+                        );
+                        Box::new(std::iter::empty())
                     }
                 })
             }

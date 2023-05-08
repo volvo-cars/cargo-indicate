@@ -25,18 +25,18 @@ impl ManifestPath {
             manifest_path.push("Cargo.toml");
         }
 
-        manifest_path = if !manifest_path.is_absolute() {
-            fs::canonicalize(manifest_path)?
-        } else {
+        manifest_path = if manifest_path.is_absolute() {
             manifest_path
+        } else {
+            fs::canonicalize(manifest_path)?
         };
 
-        if !manifest_path.exists() {
+        if manifest_path.exists() {
+            Ok(manifest_path)
+        } else {
             Err(Box::new(ManifestPathError::CouldNotCreateValidPath(
                 manifest_path.to_string_lossy().into_owned(),
             )))
-        } else {
-            Ok(manifest_path)
         }
     }
 
@@ -95,7 +95,7 @@ impl ManifestPath {
     ///   file with the provided package name exists
     #[must_use]
     pub fn with_package_name(path: &Path, name: &str) -> Self {
-        let mut s = Self::new(&path);
+        let mut s = Self::new(path);
 
         let ctf = cargo_toml::Manifest::from_path(&s.0).unwrap_or_else(|e| {
             panic!(

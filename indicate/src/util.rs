@@ -45,12 +45,7 @@ pub fn get_direct_dependencies(metadata: &Metadata) -> DirectDependencyMap {
     let mut direct_dependencies =
         HashMap::with_capacity(metadata.packages.len());
 
-    for node in &metadata
-        .resolve
-        .as_ref()
-        .expect("No nodes found!")
-        .nodes
-    {
+    for node in &metadata.resolve.as_ref().expect("No nodes found!").nodes {
         let id = node.id.clone();
 
         // Filter out dependencies that are not normal
@@ -80,9 +75,7 @@ pub fn get_direct_dependencies(metadata: &Metadata) -> DirectDependencyMap {
 
 /// Parse metadata to create a map over packages
 #[must_use]
-pub fn get_packages(
-    metadata: &Metadata,
-) -> PackageMap {
+pub fn get_packages(metadata: &Metadata) -> PackageMap {
     let mut packages = HashMap::with_capacity(metadata.packages.len());
 
     for p in &metadata.packages {

@@ -167,8 +167,8 @@ impl GeigerClient {
 impl From<GeigerOutput> for GeigerClient {
     fn from(value: GeigerOutput) -> Self {
         let mut unsafety = HashMap::with_capacity(value.packages.len());
-        for p in value.packages.iter() {
-            unsafety.insert(p.package.id.to_owned(), p.unsafety);
+        for p in &value.packages {
+            unsafety.insert(p.package.id.clone(), p.unsafety);
         }
         Self {
             #[cfg(test)]

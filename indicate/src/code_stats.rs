@@ -132,7 +132,7 @@ impl CodeStats for LanguageCodeStats {
     }
 
     fn summary(&self) -> LanguageCodeStats {
-        Self::new(self.language.to_owned(), self.stats.summarise())
+        Self::new(self.language.clone(), self.stats.summarise())
     }
 }
 
@@ -158,6 +158,7 @@ impl LanguageBlob {
     }
 
     /// Retrieve the language blobs themselves inside this blob
+    #[must_use]
     pub fn blobs(&self) -> Vec<LanguageBlob> {
         let mut b = Vec::with_capacity(self.stats.blobs.len());
         for (lang_type, stats) in &self.stats.blobs {

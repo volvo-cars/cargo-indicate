@@ -51,9 +51,10 @@ impl IndicateAdapterBuilder {
     /// Panics if both features and metadata have been set manually.
     #[must_use]
     pub fn build(self) -> IndicateAdapter {
-        assert!(!(!self.features.is_empty() && self.metadata.is_some()),
-                "features and metadata both set explicitly at the same time"
-            );
+        assert!(
+            self.features.is_empty() || self.metadata.is_none(),
+            "features and metadata both set explicitly at the same time"
+        );
 
         let metadata = match self.metadata {
             Some(m) => m,
@@ -66,14 +67,18 @@ impl IndicateAdapterBuilder {
         };
 
         // unwrap OK, if-statement above guarantees self.metadata to exist
-        let advisory_client = self
-            .advisory_client
-            .map_or_else(OnceCell::default, |ac| OnceCell::with_value(Rc::new(ac)));
-        let geiger_client = self
-            .geiger_client
-            .map_or_else(OnceCell::default, |gc| OnceCell::with_value(Rc::new(gc)));
-        let crates_io_client = self.crates_io_client
-            .map_or_else(OnceCell::default, |c| OnceCell::with_value(Rc::new(RefCell::new(c))));
+        let advisory_client =
+            self.advisory_client.map_or_else(OnceCell::default, |ac| {
+                OnceCell::with_value(Rc::new(ac))
+            });
+        let geiger_client =
+            self.geiger_client.map_or_else(OnceCell::default, |gc| {
+                OnceCell::with_value(Rc::new(gc))
+            });
+        let crates_io_client =
+            self.crates_io_client.map_or_else(OnceCell::default, |c| {
+                OnceCell::with_value(Rc::new(RefCell::new(c)))
+            });
 
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),

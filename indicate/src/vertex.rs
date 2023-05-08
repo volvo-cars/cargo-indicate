@@ -10,7 +10,8 @@ use trustfall::provider::TrustfallEnumVertex;
 
 use crate::{
     code_stats::{LanguageBlob, LanguageCodeStats},
-    geiger::{GeigerCategories, GeigerCount, GeigerUnsafety}, NameVersion,
+    geiger::{GeigerCategories, GeigerCount, GeigerUnsafety},
+    NameVersion,
 };
 
 /// A node in the GraphQL schema as defined in the schema.
@@ -45,7 +46,9 @@ pub enum Vertex {
 impl Vertex {
     pub fn as_webpage(&self) -> Option<&str> {
         match self {
-            Vertex::Webpage(url) | Vertex::Repository(url) => Some(url.as_ref()),
+            Vertex::Webpage(url) | Vertex::Repository(url) => {
+                Some(url.as_ref())
+            }
             Vertex::GitHubRepository(r) => Some(&r.html_url),
             _ => None,
         }

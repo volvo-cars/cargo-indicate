@@ -121,11 +121,11 @@ impl GitHubClient {
     /// This will perform a `GET` request, and should be held at a low (even if
     /// this request itself does not affect the quota).
     ///
-    /// Will panic if `Self` is set to not await quota.
+    /// # Panics
+    ///
+    /// Panics if `Self` is set to not await quota.
     fn await_new_quota(&self) -> AwaitQuotaResult {
-        if !self.await_quota {
-            panic!("client tried awaiating a new GitHub quota, but was marked to not do so");
-        } else {
+        if self.await_quota {
             let future = GITHUB_RATE_LIMIT_CLIENT.get();
             match RUNTIME.block_on(future) {
                 Ok(r) => {
@@ -164,6 +164,8 @@ impl GitHubClient {
                     AwaitQuotaResult::CouldNotCheck
                 }
             }
+        } else {
+            panic!("client tried awaiating a new GitHub quota, but was marked to not do so");
         }
     }
 
@@ -176,47 +178,46 @@ impl GitHubClient {
         &mut self,
         id: &GitHubRepositoryId,
     ) -> Option<Arc<FullRepository>> {
-        match self.repo_cache.get(id) {
-            Some(r) => Some(Arc::clone(r)),
-            None => {
-                let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
+        if let Some(r) = self.repo_cache.get(id) {
+            Some(Arc::clone(r))
+        } else {
+            let future = GITHUB_REPOS_CLIENT.get(&id.owner, &id.repo);
 
-                // println!("Get {:?}", id);
+            // println!("Get {:?}", id);
 
-                #[cfg(test)]
-                {
-                    GH_API_CALL_COUNTER.inc();
+            #[cfg(test)]
+            {
+                GH_API_CALL_COUNTER.inc();
+            }
+
+            // We just block until this resolves for now
+            match RUNTIME.block_on(future) {
+                Ok(r) => {
+                    // Insert into the cache
+                    let arcr = Arc::new(r);
+                    self.repo_cache.insert(id.clone(), Arc::clone(&arcr));
+                    Some(arcr)
                 }
-
-                // We just block until this resolves for now
-                match RUNTIME.block_on(future) {
-                    Ok(r) => {
-                        // Insert into the cache
-                        let arcr = Arc::new(r);
-                        self.repo_cache.insert(id.clone(), Arc::clone(&arcr));
-                        Some(arcr)
-                    }
-                    Err(e) => {
-                        if self.await_quota {
-                            // It is possible that we have reached a rate limit
-                            match self.await_new_quota() {
-                                AwaitQuotaResult::QuotaAwaited {
-                                    success: true,
-                                } => {
-                                    // The quota was reached by this request, try again!
-                                    return self.get_repository(id);
-                                }
-                                AwaitQuotaResult::QuotaAwaited {
-                                    success: false,
-                                } => {
-                                    eprintln!("GitHub quota reached, but new could not be awaited");
-                                }
-                                _ => {}
+                Err(e) => {
+                    if self.await_quota {
+                        // It is possible that we have reached a rate limit
+                        match self.await_new_quota() {
+                            AwaitQuotaResult::QuotaAwaited {
+                                success: true,
+                            } => {
+                                // The quota was reached by this request, try again!
+                                return self.get_repository(id);
                             }
+                            AwaitQuotaResult::QuotaAwaited {
+                                success: false,
+                            } => {
+                                eprintln!("GitHub quota reached, but new could not be awaited");
+                            }
+                            _ => {}
                         }
-                        eprintln!("Failed to resolve GitHub repository {}/{} due to error: {e}", id.owner, id.repo);
-                        None
                     }
+                    eprintln!("Failed to resolve GitHub repository {}/{} due to error: {e}", id.owner, id.repo);
+                    None
                 }
             }
         }
@@ -231,50 +232,52 @@ impl GitHubClient {
         &mut self,
         username: &str,
     ) -> Option<Arc<PublicUser>> {
-        match self.user_cache.get(username) {
-            Some(r) => Some(Arc::clone(r)),
-            None => {
-                let future = GITHUB_USERS_CLIENT.get_by_username(username);
+        if let Some(r) = self.user_cache.get(username) {
+            Some(Arc::clone(r))
+        } else {
+            let future = GITHUB_USERS_CLIENT.get_by_username(username);
 
-                #[cfg(test)]
-                {
-                    GH_API_CALL_COUNTER.inc();
-                }
+            #[cfg(test)]
+            {
+                GH_API_CALL_COUNTER.inc();
+            }
 
-                // We just block until this resolves for now
-                match RUNTIME.block_on(future) {
-                    Ok(u) => {
-                        // Insert into the cache
-                        let u = u.public_user().expect(
+            // We just block until this resolves for now
+            match RUNTIME.block_on(future) {
+                Ok(u) => {
+                    // Insert into the cache
+                    let u = u
+                        .public_user()
+                        .expect(
                             "could not convert user response to public user",
-                        ).clone();
+                        )
+                        .clone();
 
-                        let arc_pubu = Arc::new(u);
-                        self.user_cache
-                            .insert(username.into(), Arc::clone(&arc_pubu));
-                        Some(arc_pubu)
-                    }
-                    Err(e) => {
-                        if self.await_quota {
-                            // It is possible that we have reached a rate limit
-                            match self.await_new_quota() {
-                                AwaitQuotaResult::QuotaAwaited {
-                                    success: true,
-                                } => {
-                                    // The quota was reached by this request, try again!
-                                    return self.get_public_user(username);
-                                }
-                                AwaitQuotaResult::QuotaAwaited {
-                                    success: false,
-                                } => {
-                                    eprintln!("GitHub quota reached, but new could not be awaited");
-                                }
-                                _ => {}
+                    let arc_pubu = Arc::new(u);
+                    self.user_cache
+                        .insert(username.into(), Arc::clone(&arc_pubu));
+                    Some(arc_pubu)
+                }
+                Err(e) => {
+                    if self.await_quota {
+                        // It is possible that we have reached a rate limit
+                        match self.await_new_quota() {
+                            AwaitQuotaResult::QuotaAwaited {
+                                success: true,
+                            } => {
+                                // The quota was reached by this request, try again!
+                                return self.get_public_user(username);
                             }
+                            AwaitQuotaResult::QuotaAwaited {
+                                success: false,
+                            } => {
+                                eprintln!("GitHub quota reached, but new could not be awaited");
+                            }
+                            _ => {}
                         }
-                        eprintln!("Failed to resolve GitHub user {username} due to error: {e}");
-                        None
                     }
+                    eprintln!("Failed to resolve GitHub user {username} due to error: {e}");
+                    None
                 }
             }
         }

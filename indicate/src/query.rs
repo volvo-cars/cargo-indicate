@@ -25,6 +25,15 @@ pub struct FullQuery {
 
 impl FullQuery {
     /// Extracts a query from a file
+    ///
+    /// # Errors
+    ///
+    /// Will return an error variant if
+    ///
+    /// - The path cannot be read for some reason, or
+    /// - The file has a supported file extension, but failed to deserialize, or
+    /// - The file is of an unsupported file extension, or
+    /// - The file is of an unknown file extension
     pub fn from_path(path: &Path) -> Result<FullQuery, Box<dyn Error>> {
         if !path.exists() {
             Err(Box::new(FileParseError::NotFound(

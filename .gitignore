@@ -11,3 +11,8 @@
 # If someone spends a lot of money to pollute repos
 .DS_Store
 /**/.env
+
+# Performance data
+/**/perf.data
+/**/perf.data.*
+/**/flamegraph.svg

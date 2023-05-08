@@ -5,7 +5,7 @@ use once_cell::unsync::OnceCell;
 
 use crate::{
     advisory::AdvisoryClient, crates_io::CratesIoClient, geiger::GeigerClient,
-    repo::github::GitHubClient, util, ManifestPath,
+    repo::github::GitHubClient, ManifestPath,
 };
 
 use super::IndicateAdapter;
@@ -64,7 +64,6 @@ impl IndicateAdapterBuilder {
         };
 
         // unwrap OK, if-statement above guarantees self.metadata to exist
-        let (packages, direct_dependencies) = util::parse_metadata(&metadata);
         let advisory_client = self
             .advisory_client
             .map(|ac| OnceCell::with_value(Rc::new(ac)))
@@ -81,8 +80,8 @@ impl IndicateAdapterBuilder {
             manifest_path: Rc::new(self.manifest_path),
             features: self.features,
             metadata: Rc::new(metadata),
-            packages: Rc::new(packages),
-            direct_dependencies: Rc::new(direct_dependencies),
+            packages: OnceCell::new(),
+            direct_dependencies: OnceCell::new(),
             gh_client: Rc::new(RefCell::new(
                 self.github_client.unwrap_or_default(),
             )),

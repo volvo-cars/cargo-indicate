@@ -66,8 +66,8 @@ pub struct IndicateAdapter {
     manifest_path: Rc<ManifestPath>,
     features: Vec<CargoOpt>,
     metadata: Rc<Metadata>,
-    packages: Rc<PackageMap>,
-    direct_dependencies: Rc<DirectDependencyMap>,
+    packages: OnceCell<Rc<PackageMap>>,
+    direct_dependencies: OnceCell<Rc<DirectDependencyMap>>,
     gh_client: Rc<RefCell<GitHubClient>>,
     advisory_client: OnceCell<Rc<AdvisoryClient>>,
     geiger_client: OnceCell<Rc<GeigerClient>>,
@@ -88,7 +88,7 @@ impl IndicateAdapter {
         // Use the direct, normal dependencies we already resolved when
         // parsing the metadata
         let mut dependency_package_ids = self
-            .direct_dependencies
+            .direct_dependencies()
             .values()
             .flat_map(|r| r.to_vec())
             .collect::<Vec<_>>();
@@ -147,7 +147,7 @@ impl IndicateAdapter {
             .id
             .clone();
         let mut transitive_dependency_ids = self
-            .direct_dependencies
+            .direct_dependencies()
             .iter()
             .filter_map(|(p, dir_deps)| {
                 if *p != root_package_id {
@@ -201,16 +201,26 @@ impl IndicateAdapter {
         IndicateAdapterBuilder::new(manifest_path).build()
     }
 
-    /// Retrieves a new counted reference to this adapters [`PackageMap`]
+    /// Retrieves a new counted reference to this adapters [`PackageMap`], or
+    /// retrieves it from metadata if it does not exist
     #[must_use]
     fn packages(&self) -> Rc<PackageMap> {
-        Rc::clone(&self.packages)
+        let p = self.packages.get_or_init(|| {
+            let packages = util::get_packages(&self.metadata);
+            Rc::new(packages)
+        });
+        Rc::clone(&p)
     }
 
-    /// Retrieves a new counted reference to this adapters [`PackageMap`]
+    /// Retrieves a new counted reference to this adapters [`PackageMap`], or
+    /// retrieves it from metadata if it does not exist
     #[must_use]
     fn direct_dependencies(&self) -> Rc<DirectDependencyMap> {
-        Rc::clone(&self.direct_dependencies)
+        let dd = self.direct_dependencies.get_or_init(|| {
+            let direct_dependencies = util::get_direct_dependencies(&self.metadata);
+            Rc::new(direct_dependencies)
+        });
+        Rc::clone(&dd)
     }
 
     /// Retrieves a new counted reference to this adapters [`GitHubClient`]

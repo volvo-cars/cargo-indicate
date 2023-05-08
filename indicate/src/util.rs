@@ -30,22 +30,15 @@ pub fn local_package_path(package: &Package) -> PathBuf {
     p.pop();
     p
 }
-/// Parse metadata to create maps over the packages and dependency
-/// relations in it
+
+/// Parse metadata to create a map over direct dependencies for all packages
 ///
-/// `direct_dependencies` will only include 'normal' dependencies, i.e.
+/// Direct dependencies will only include 'normal' dependencies, i.e.
 /// not build nor test deps.
-pub fn parse_metadata(
-    metadata: &Metadata,
-) -> (PackageMap, DirectDependencyMap) {
-    let mut packages = HashMap::with_capacity(metadata.packages.len());
-
-    for p in &metadata.packages {
-        let id = p.id.to_owned();
-        let package = p.to_owned();
-        packages.insert(id, Rc::new(package));
-    }
-
+///
+/// _Note_: This operation is quite expensive as it must traverse the dependency
+/// tree. Avoid if not required.
+pub fn get_direct_dependencies(metadata: &Metadata) -> DirectDependencyMap {
     let mut direct_dependencies =
         HashMap::with_capacity(metadata.packages.len());
 
@@ -80,5 +73,20 @@ pub fn parse_metadata(
         direct_dependencies.insert(id, Rc::new(normal_deps));
     }
 
-    (packages, direct_dependencies)
+    direct_dependencies
+}
+
+/// Parse metadata to create a map over packages
+pub fn get_packages(
+    metadata: &Metadata,
+) -> PackageMap {
+    let mut packages = HashMap::with_capacity(metadata.packages.len());
+
+    for p in &metadata.packages {
+        let id = p.id.to_owned();
+        let package = p.to_owned();
+        packages.insert(id, Rc::new(package));
+    }
+
+    packages
 }

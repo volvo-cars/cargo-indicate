@@ -1,0 +1,8 @@
+{
+    Dependencies(includeRoot: true) {
+        name @output
+        codeStats(includedPaths: ["src"]) {
+            lines @filter(op: "<=", value: ["$maxLines"])
+        }
+    }
+}

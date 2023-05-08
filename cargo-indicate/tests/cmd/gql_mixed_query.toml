@@ -1,0 +1,17 @@
+bin.name ="cargo-indicate"
+args = [
+  "--query",
+  "queries/query.graphql",
+  "--args",
+  "{ \"maxLines\": 4 }",
+  "--query",
+  "{ RootPackage { version @output } }",
+  "--output",
+  "results/query.out.json", # Write all results to single file
+  "--package", # Test that package name just works (TM)
+  "dummy_crate",
+  "--",
+  "dummy_crate"
+]
+
+fs.sandbox = true

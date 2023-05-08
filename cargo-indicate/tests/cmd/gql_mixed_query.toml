@@ -7,7 +7,9 @@ args = [
   "--query",
   "{ RootPackage { version @output } }",
   "--output",
-  "results/query.out.json", # Write all results to single file
+  "results/query.out.json",
+  "--output",
+  "results/query2.out.json",
   "--package", # Test that package name just works (TM)
   "dummy_crate",
   "--",

@@ -63,20 +63,24 @@ pub struct FullQueryBuilder {
 }
 
 impl FullQueryBuilder {
+    #[must_use]
     pub fn new(query: String) -> Self {
         Self { query, args: None }
     }
 
+    #[must_use]
     pub fn query(mut self, query: String) -> Self {
         self.query = query;
         self
     }
 
+    #[must_use]
     pub fn args(mut self, args: QueryArgs) -> Self {
         self.args = Some(args);
         self
     }
 
+    #[must_use]
     pub fn build(self) -> FullQuery {
         FullQuery {
             query: self.query,

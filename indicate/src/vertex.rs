@@ -45,8 +45,7 @@ pub enum Vertex {
 impl Vertex {
     pub fn as_webpage(&self) -> Option<&str> {
         match self {
-            Vertex::Webpage(url) => Some(url.as_ref()),
-            Vertex::Repository(url) => Some(url.as_ref()),
+            Vertex::Webpage(url) | Vertex::Repository(url) => Some(url.as_ref()),
             Vertex::GitHubRepository(r) => Some(&r.html_url),
             _ => None,
         }

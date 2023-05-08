@@ -65,10 +65,9 @@ pub struct GeigerClient {
 impl GeigerClient {
     /// Creates a new client from the path one would pass to `cargo-geiger`
     ///
-    /// Requires that `cargo-geiger` is installed on the system, and will panic
-    /// if it is not. The caller must also check that `features` is a valid
-    /// combination, otherwise `cargo-geiger` may fail. An empty vector will
-    /// be handled as default features.
+    /// Requires that `cargo-geiger` is installed on the system. The caller must
+    /// also check that `features` is a valid combination, otherwise `cargo-
+    /// geiger` may fail. An empty vector will be handled as default features.
     ///
     /// Will create an absolute path of `manifest_path`.
     ///
@@ -77,6 +76,17 @@ impl GeigerClient {
     /// in a [`Lazy`](once_cell::sync::Lazy)).
     ///
     /// Will redirect both `stdout` and `stderr` internally.
+    ///
+    /// # Errors
+    ///
+    /// If `cargo-geiger` fails in a way that is not due to it not being
+    /// installed, an error variant will be returned. Possible faults may be
+    /// compilation errors, missing libraries for compilation, erroneous
+    /// feature combinations etc.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `cargo-geiger` is not installed and available in `$PATH`
     pub fn new(
         manifest_path: &ManifestPath,
         features: Vec<CargoOpt>,
@@ -138,11 +148,17 @@ impl GeigerClient {
 
     /// Parse [`GeigerOutput`] from a JSON string (i.e. the output of
     /// `cargo-geiger` when run with `--output-format Json`)
+    ///
+    /// # Errors
+    ///
+    /// If the `cargo-geiger` output cannot be deserialized, an error variant
+    /// will be returned containing the information from `serde`.
     pub fn from_json(geiger_output: &str) -> Result<Self, serde_json::Error> {
         let output = serde_json::from_str::<GeigerOutput>(geiger_output)?;
         Ok(Self::from(output))
     }
 
+    #[must_use]
     pub fn unsafety(&self, gid: &NameVersion) -> Option<GeigerUnsafety> {
         self.unsafety.get(gid).copied()
     }
@@ -167,6 +183,7 @@ impl From<GeigerOutput> for GeigerClient {
 ///
 /// This function will handle `0 / 0` to be equal to `0.0` (all code is safe,
 /// there is no code).
+#[must_use]
 pub(crate) fn two_digit_percentage(part: u32, total: u32) -> f64 {
     let res = f64::from(part) / f64::from(total);
     if res.is_finite() {
@@ -212,6 +229,7 @@ pub struct GeigerUnsafety {
 impl GeigerUnsafety {
     /// Retrieves the total geiger count for all targets, i.e. total for used
     /// and unused code
+    #[must_use]
     pub fn total(&self) -> GeigerCategories {
         GeigerCategories {
             functions: self.used.functions + self.unused.functions,
@@ -222,26 +240,32 @@ impl GeigerUnsafety {
         }
     }
 
+    #[must_use]
     pub fn used_safe(&self) -> u32 {
         self.used.total_safe()
     }
 
+    #[must_use]
     pub fn used_unsafe(&self) -> u32 {
         self.used.total_unsafe()
     }
 
+    #[must_use]
     pub fn unused_safe(&self) -> u32 {
         self.unused.total_safe()
     }
 
+    #[must_use]
     pub fn unused_unsafe(&self) -> u32 {
         self.unused.total_unsafe()
     }
 
+    #[must_use]
     pub fn total_safe(&self) -> u32 {
         self.used_safe() + self.unused_safe()
     }
 
+    #[must_use]
     pub fn total_unsafe(&self) -> u32 {
         self.used_unsafe() + self.unused_unsafe()
     }
@@ -250,6 +274,7 @@ impl GeigerUnsafety {
     /// points
     ///
     /// Uses the total unsafe and total safe code as basis.
+    #[must_use]
     pub fn percentage_unsafe(&self) -> f64 {
         two_digit_percentage(
             self.total_unsafe(),
@@ -271,6 +296,7 @@ pub struct GeigerCategories {
 impl GeigerCategories {
     /// Aggregates all [`GeigerCount`] for all categories, returning one with
     /// total safe and total unsafe for all categories
+    #[must_use]
     pub fn total(&self) -> GeigerCount {
         self.functions
             + self.exprs
@@ -279,6 +305,7 @@ impl GeigerCategories {
             + self.methods
     }
 
+    #[must_use]
     pub fn total_safe(&self) -> u32 {
         self.functions.safe
             + self.exprs.safe
@@ -287,6 +314,7 @@ impl GeigerCategories {
             + self.methods.safe
     }
 
+    #[must_use]
     pub fn total_unsafe(&self) -> u32 {
         self.functions.unsafe_
             + self.exprs.unsafe_
@@ -320,12 +348,14 @@ pub struct GeigerCount {
 
 impl GeigerCount {
     /// The total amount of counts made by Geiger
+    #[must_use]
     pub fn total(&self) -> u32 {
         self.safe + self.unsafe_
     }
 
     /// Calculate the percentage of the count that is unsafe to two digits
     /// precisions
+    #[must_use]
     pub fn percentage_unsafe(&self) -> f64 {
         two_digit_percentage(self.unsafe_, self.total())
     }

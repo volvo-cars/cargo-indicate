@@ -74,7 +74,7 @@ pub struct IndicateAdapter {
     crates_io_client: OnceCell<Rc<RefCell<CratesIoClient>>>,
 }
 
-/// The functions here are essentially the fields on the RootQuery
+/// The functions here are essentially the fields on the `RootQuery`
 impl IndicateAdapter {
     fn root_package(&self) -> VertexIterator<'static, Vertex> {
         let root = self.metadata.root_package().expect("no root package found");
@@ -197,6 +197,7 @@ impl IndicateAdapter {
     /// If control over what GitHub client is used, if a cached `advisory-db`
     /// is to be used etc., consider using
     /// [`IndicateAdapterBuilder`](adapter_builder::IndicateAdapterBuilder).
+    #[must_use]
     pub fn new(manifest_path: ManifestPath) -> Self {
         IndicateAdapterBuilder::new(manifest_path).build()
     }
@@ -209,7 +210,7 @@ impl IndicateAdapter {
             let packages = util::get_packages(&self.metadata);
             Rc::new(packages)
         });
-        Rc::clone(&p)
+        Rc::clone(p)
     }
 
     /// Retrieves a new counted reference to this adapters [`PackageMap`], or
@@ -220,7 +221,7 @@ impl IndicateAdapter {
             let direct_dependencies = util::get_direct_dependencies(&self.metadata);
             Rc::new(direct_dependencies)
         });
-        Rc::clone(&dd)
+        Rc::clone(dd)
     }
 
     /// Retrieves a new counted reference to this adapters [`GitHubClient`]
@@ -254,7 +255,7 @@ impl IndicateAdapter {
         let sgc = self.geiger_client.get_or_init(|| {
             let gc = GeigerClient::new(
                 &self.manifest_path,
-                self.features.to_owned(),
+                self.features.clone(),
             )
             .unwrap_or_else(|e| {
                 eprintln!("failed to create geiger data due to error: {e}\nrunning query without");
@@ -277,10 +278,10 @@ impl IndicateAdapter {
 
     fn get_dependencies(
         packages: Rc<PackageMap>,
-        direct_dependencies: Rc<DirectDependencyMap>,
+        direct_dependencies: &Rc<DirectDependencyMap>,
         package_id: &PackageId,
     ) -> VertexIterator<'static, Vertex> {
-        let dd = Rc::clone(&direct_dependencies);
+        let dd = Rc::clone(direct_dependencies);
         let dependency_ids = dd.get(package_id).unwrap_or_else(|| {
             panic!(
                 "Could not extract dependency IDs for package {}",
@@ -304,7 +305,7 @@ impl IndicateAdapter {
     /// `schema.trustfall.graphql` `repository` interface
     fn get_repository_from_url(
         url: &str,
-        gh_client: Rc<RefCell<GitHubClient>>,
+        gh_client: &Rc<RefCell<GitHubClient>>,
     ) -> Vertex {
         match RepoId::from(url) {
             RepoId::GitHub(gh_id) => {
@@ -607,7 +608,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         Some(aff) => aff
                             .arch
                             .iter()
-                            .map(|a| a.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<String>>()
                             .into(),
                         None => FieldValue::Null,
@@ -621,7 +622,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         Some(aff) => aff
                             .os
                             .iter()
-                            .map(|a| a.to_string())
+                            .map(ToString::to_string)
                             .collect::<Vec<String>>()
                             .into(),
                         None => FieldValue::Null,
@@ -634,7 +635,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     versions
                         .patched()
                         .iter()
-                        .map(|vr| vr.to_string())
+                        .map(ToString::to_string)
                         .collect::<Vec<String>>()
                         .into()
                 }),
@@ -645,7 +646,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     versions
                         .unaffected()
                         .iter()
-                        .map(|vr| vr.to_string())
+                        .map(ToString::to_string)
                         .collect::<Vec<String>>()
                         .into()
                 }),
@@ -679,7 +680,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let afv = vertex.as_affected_function_versions().unwrap();
                     afv.1
                         .iter()
-                        .map(|v| v.to_string())
+                        .map(ToString::to_string)
                         .collect::<Vec<String>>()
                         .into()
                 })
@@ -771,7 +772,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = vertex.as_package().unwrap();
                     Self::get_dependencies(
                         Rc::clone(&packages),
-                        Rc::clone(&direct_dependencies),
+                        &Rc::clone(&direct_dependencies),
                         &package.id,
                     )
                 })
@@ -791,7 +792,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                         Some(url) => Box::new(std::iter::once(
                             Self::get_repository_from_url(
                                 url,
-                                Rc::clone(&gh_client),
+                                &Rc::clone(&gh_client),
                             ),
                         )),
                         None => Box::new(std::iter::empty()),
@@ -801,22 +802,22 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("Package", "advisoryHistory") => {
                 let advisory_client = self.advisory_client();
                 let include_withdrawn =
-                    parameters.get("includeWithdrawn").map(|p| p.to_owned());
-                let arch = parameters.get("arch").map(|p| p.to_owned());
-                let os = parameters.get("os").map(|p| p.to_owned());
+                    parameters.get("includeWithdrawn").cloned();
+                let arch = parameters.get("arch").cloned();
+                let os = parameters.get("os").cloned();
                 let min_severity =
-                    parameters.get("minSeverity").map(|p| p.to_owned());
+                    parameters.get("minSeverity").cloned();
 
                 resolve_neighbors_with(contexts, move |vertex| {
                     let package = vertex.as_package().unwrap();
                     let include_withdrawn = include_withdrawn
-                        .to_owned()
+                        .clone()
                         .expect("includeWithdrawn parameter required but not provided")
                         .as_bool().expect("includeWithdrawn must be a boolean");
 
                     // Handle using Strings in the Schema as Rust enums
                     let arch = arch
-                        .to_owned()
+                        .clone()
                         .and_then(|fv| {
                             fv.as_str().and_then(|s| s.to_string().into())
                         })
@@ -827,7 +828,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                 })
                         });
                     let os = os
-                        .to_owned()
+                        .clone()
                         .and_then(|fv| {
                             fv.as_str().and_then(|s| s.to_string().into())
                         })
@@ -838,7 +839,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                                 })
                         });
                     let min_severity = min_severity
-                        .to_owned()
+                        .clone()
                         .and_then(|fv| {
                             fv.as_str().and_then(|s| s.to_string().into())
                         })
@@ -889,10 +890,10 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             ("Package", "codeStats") => {
                 // Parameters verified by `trustfall` and schema
                 let ignored_paths =
-                    parameters.get("ignoredPaths").unwrap().to_owned();
+                    parameters.get("ignoredPaths").unwrap().clone();
                 let included_paths: Option<Vec<String>> = parameters
                     .get("includedPaths")
-                    .and_then(|s| s.as_vec_with(|i| i.as_str()))
+                    .and_then(|s| s.as_vec_with(FieldValue::as_str))
                     .map(|v| {
                         v.into_iter().map(String::from).collect::<Vec<String>>()
                     });
@@ -900,7 +901,7 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                 // Either they are passed and _must_ be a bool according to
                 // schema, or they are undefined
                 let get_stat_bool_param =
-                    |pname| parameters.get(pname).and_then(|p| p.as_bool());
+                    |pname| parameters.get(pname).and_then(FieldValue::as_bool);
 
                 let config = tokei::Config {
                         columns: None, // Unused for library
@@ -929,11 +930,11 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
                     let package = vertex.as_package().unwrap();
                     let package_path = util::local_package_path(package);
                     let ignored_paths = ignored_paths
-                        .as_vec_with(|fv| fv.as_str())
+                        .as_vec_with(FieldValue::as_str)
                         .unwrap_or_default();
                     let included_paths = included_paths
                         .as_ref()
-                        .map(|v| v.iter().map(|s| s.as_str()).collect());
+                        .map(|v| v.iter().map(String::as_str).collect());
 
                     let code_stats = get_code_stats(
                         &package_path,
@@ -1114,9 +1115,8 @@ impl<'a> BasicAdapter<'a> for IndicateAdapter {
             contexts
                 .map(move |ctx| {
                     let current_vertex = &ctx.active_vertex();
-                    let current_vertex = match current_vertex {
-                        Some(v) => v,
-                        None => return (ctx, false),
+                    let Some(current_vertex) = current_vertex else {
+                        return (ctx, false);
                     };
 
                     let can_coerce = match (

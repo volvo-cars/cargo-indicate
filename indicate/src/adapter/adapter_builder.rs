@@ -28,6 +28,7 @@ impl IndicateAdapterBuilder {
     /// will produce the same adapter as [`IndicateAdapter::new`]. This means
     /// that default features will be used when parsing metadata, if features
     /// are not set using [`IndicateAdapterBuilder::features`].
+    #[must_use]
     pub fn new(manifest_path: ManifestPath) -> IndicateAdapterBuilder {
         Self {
             manifest_path,
@@ -45,13 +46,14 @@ impl IndicateAdapterBuilder {
     /// If metadata is not explicitly set, one will be generated using the
     /// features provided (or if none, default features).
     ///
-    /// Will panic if both features and metadata have been set manually.
+    /// # Panics
+    ///
+    /// Panics if both features and metadata have been set manually.
+    #[must_use]
     pub fn build(self) -> IndicateAdapter {
-        if !self.features.is_empty() && self.metadata.is_some() {
-            panic!(
+        assert!(!(!self.features.is_empty() && self.metadata.is_some()),
                 "features and metadata both set explicitly at the same time"
             );
-        }
 
         let metadata = match self.metadata {
             Some(m) => m,
@@ -66,15 +68,12 @@ impl IndicateAdapterBuilder {
         // unwrap OK, if-statement above guarantees self.metadata to exist
         let advisory_client = self
             .advisory_client
-            .map(|ac| OnceCell::with_value(Rc::new(ac)))
-            .unwrap_or_else(OnceCell::new);
+            .map_or_else(OnceCell::default, |ac| OnceCell::with_value(Rc::new(ac)));
         let geiger_client = self
             .geiger_client
-            .map(|gc| OnceCell::with_value(Rc::new(gc)))
-            .unwrap_or_else(OnceCell::new);
+            .map_or_else(OnceCell::default, |gc| OnceCell::with_value(Rc::new(gc)));
         let crates_io_client = self.crates_io_client
-            .map(|c| OnceCell::with_value(Rc::new(RefCell::new(c))))
-            .unwrap_or_else(OnceCell::new);
+            .map_or_else(OnceCell::default, |c| OnceCell::with_value(Rc::new(RefCell::new(c))));
 
         IndicateAdapter {
             manifest_path: Rc::new(self.manifest_path),
@@ -95,6 +94,7 @@ impl IndicateAdapterBuilder {
     ///
     /// Cannot be set explicitly at the same time as metadata, and will
     /// cause a panic when built.
+    #[must_use]
     pub fn features(mut self, features: Vec<CargoOpt>) -> Self {
         self.features = features;
         self
@@ -105,18 +105,21 @@ impl IndicateAdapterBuilder {
     /// Note that this metadata will prevent one from being generated using
     /// [`IndicateAdapterBuilder::features`], causing a panic if both are set
     /// when [`IndicateAdapterBuilder::build`] is called.
+    #[must_use]
     pub fn metadata(mut self, metadata: Metadata) -> Self {
         self.metadata = Some(metadata);
         self
     }
 
     /// Manually sets the GitHub client to be used by the adapter
+    #[must_use]
     pub fn github_client(mut self, github_client: GitHubClient) -> Self {
         self.github_client = Some(github_client);
         self
     }
 
     /// Manually sets the `advisory-db` client to be used by the adapter
+    #[must_use]
     pub fn advisory_client(mut self, advisory_client: AdvisoryClient) -> Self {
         self.advisory_client = Some(advisory_client);
         self
@@ -128,12 +131,14 @@ impl IndicateAdapterBuilder {
     /// run `cargo-geiger`; Instead set the desired `manifest_path` and features,
     /// which will make a lazily evaluated [`GeigerClient`] be available to the
     /// adapter.
+    #[must_use]
     pub fn geiger_client(mut self, geiger_client: GeigerClient) -> Self {
         self.geiger_client = Some(geiger_client);
         self
     }
 
     /// Manually sets the crates.io client to be used by the adapter
+    #[must_use]
     pub fn crates_io_client(
         mut self,
         crates_io_client: CratesIoClient,

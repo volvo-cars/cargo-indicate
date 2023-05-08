@@ -73,6 +73,7 @@ pub struct NameVersion {
 }
 
 impl NameVersion {
+    #[must_use]
     pub fn new(name: String, version: Version) -> Self {
         Self { name, version }
     }
@@ -85,8 +86,8 @@ where
     fn from(value: T) -> Self {
         fn inner(package: &Package) -> NameVersion {
             NameVersion {
-                name: package.name.to_owned(),
-                version: package.version.to_owned(),
+                name: package.name.clone(),
+                version: package.version.clone(),
             }
         }
         inner(value.as_ref())
@@ -101,6 +102,7 @@ where
 ///
 /// If multiple queries are to be resolved using the same adapter,
 /// [`execute_query_with_adapter`] can be used instead.
+#[must_use]
 pub fn execute_query(
     query: &FullQuery,
     manifest_path: ManifestPath,
@@ -118,6 +120,10 @@ pub fn execute_query(
 /// be reused
 ///
 /// Use when the default configuration does not provide enough control.
+///
+/// # Panics
+/// 
+/// Panics if the query could not be executed.
 pub fn execute_query_with_adapter(
     query: &FullQuery,
     adapter: Rc<IndicateAdapter>,
@@ -246,7 +252,7 @@ mod test {
     fn query_sanity_check(fake_crate_name: &str, query_name: &str) {
         let (cargo_toml_path, query_path) =
             get_paths(fake_crate_name, query_name);
-        let manifest_path = ManifestPath::new(cargo_toml_path);
+        let manifest_path = ManifestPath::new(&cargo_toml_path);
         execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
             test_adapter(manifest_path, None),
@@ -280,7 +286,7 @@ mod test {
         // We use `TransparentValue for neater JSON serialization
         let res = transparent_results(execute_query_with_adapter(
             &FullQuery::from_path(query_path.as_path()).unwrap(),
-            test_adapter(ManifestPath::new(cargo_toml_path), None),
+            test_adapter(ManifestPath::new(&cargo_toml_path), None),
             None,
         ));
 
@@ -323,7 +329,7 @@ mod test {
             features.push(CargoOpt::NoDefaultFeatures);
         }
 
-        let manifest_path = ManifestPath::new(cargo_toml_path);
+        let manifest_path = ManifestPath::new(&cargo_toml_path);
 
         let mut raw_expected_result_name = format!(
             "test_data/queries_expected/{query_name}-{default_features}"

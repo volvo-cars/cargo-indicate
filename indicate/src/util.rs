@@ -12,6 +12,7 @@ use crate::adapter::{DirectDependencyMap, PackageMap};
 
 /// Transform a result from [`execute_query`](trustfall::execute_query) to one where the fields can easily
 /// be serialized to JSON using [`TransparentValue`].
+#[must_use]
 pub fn transparent_results(
     res: Vec<BTreeMap<Arc<str>, FieldValue>>,
 ) -> Vec<BTreeMap<Arc<str>, TransparentValue>> {
@@ -23,8 +24,9 @@ pub fn transparent_results(
 /// Retrieves the path to a package downloaded locally
 ///
 /// Most likely in the `~/.cargo/registry/` directory.
+#[must_use]
 pub fn local_package_path(package: &Package) -> PathBuf {
-    let mut p = package.manifest_path.to_owned().into_std_path_buf();
+    let mut p = package.manifest_path.clone().into_std_path_buf();
 
     // Remove `Cargo.toml`
     p.pop();
@@ -38,18 +40,18 @@ pub fn local_package_path(package: &Package) -> PathBuf {
 ///
 /// _Note_: This operation is quite expensive as it must traverse the dependency
 /// tree. Avoid if not required.
+#[must_use]
 pub fn get_direct_dependencies(metadata: &Metadata) -> DirectDependencyMap {
     let mut direct_dependencies =
         HashMap::with_capacity(metadata.packages.len());
 
-    for node in metadata
+    for node in &metadata
         .resolve
         .as_ref()
         .expect("No nodes found!")
         .nodes
-        .iter()
     {
-        let id = node.id.to_owned();
+        let id = node.id.clone();
 
         // Filter out dependencies that are not normal
         let normal_deps = node
@@ -77,14 +79,15 @@ pub fn get_direct_dependencies(metadata: &Metadata) -> DirectDependencyMap {
 }
 
 /// Parse metadata to create a map over packages
+#[must_use]
 pub fn get_packages(
     metadata: &Metadata,
 ) -> PackageMap {
     let mut packages = HashMap::with_capacity(metadata.packages.len());
 
     for p in &metadata.packages {
-        let id = p.id.to_owned();
-        let package = p.to_owned();
+        let id = p.id.clone();
+        let package = p.clone();
         packages.insert(id, Rc::new(package));
     }
 

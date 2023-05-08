@@ -22,7 +22,7 @@ impl ManifestPath {
         let mut manifest_path = path.to_path_buf();
 
         if manifest_path.is_dir() && !manifest_path.ends_with("Cargo.toml") {
-            manifest_path.push("Cargo.toml")
+            manifest_path.push("Cargo.toml");
         }
 
         manifest_path = if !manifest_path.is_absolute() {
@@ -51,8 +51,13 @@ impl ManifestPath {
     /// If the path is not an absolute path to a `Cargo.toml` file, it will be
     /// attempted to be converted to it. If a directory is passed, it will be
     /// assumed to contain a `Cargo.toml` file
-    pub fn new(path: PathBuf) -> Self {
-        let manifest_path = Self::absolute_manifest_path_from(&path)
+    ///
+    /// # Panics
+    ///
+    /// Panics if a path to `Cargo.toml` file cannot be created.
+    #[must_use]
+    pub fn new(path: &Path) -> Self {
+        let manifest_path = Self::absolute_manifest_path_from(path)
             .unwrap_or_else(|e| {
                 let current_dir = std::env::current_dir()
                     .map(|p| p.to_string_lossy().into())
@@ -80,8 +85,17 @@ impl ManifestPath {
     /// This requires `Metadata` to be parsed (twice), so only use
     /// when it is unsure if the target is a workspace. Otherwise use
     /// [`ManifestPath::new`].
-    pub fn with_package_name(path: PathBuf, name: String) -> Self {
-        let mut s = Self::new(path);
+    ///
+    /// # Panics
+    ///
+    /// Panics if
+    ///
+    /// - The provided path does not point to a `Cargo.toml` file, or
+    /// - The provided `Cargo.toml` is a workspace manifest, but no manifest
+    ///   file with the provided package name exists
+    #[must_use]
+    pub fn with_package_name(path: &Path, name: &str) -> Self {
+        let mut s = Self::new(&path);
 
         let ctf = cargo_toml::Manifest::from_path(&s.0).unwrap_or_else(|e| {
             panic!(
@@ -94,7 +108,7 @@ impl ManifestPath {
         // equal to what we're looking for
         if ctf
             .package
-            .map_or(true, |p| !Self::equal_package_names(p.name(), &name))
+            .map_or(true, |p| !Self::equal_package_names(p.name(), name))
         {
             // It is probably a workspace, we'll have to find a `Cargo.toml`
             // file with matching name
@@ -120,16 +134,13 @@ impl ManifestPath {
                     {
                         if Self::equal_package_names(
                             parsed_config_toml.package.unwrap().name(),
-                            &name,
+                            name,
                         ) {
-                            return Self::new(manifest_path);
+                            return Self::new(&manifest_path);
                         }
                     }
-                    Ok(_) => {
-                        continue;
-                    }
-                    Err(_) => {
-                        // Might not be a manifest file at all
+                    Ok(_) | Err(_) => {
+                        // If `Err`, it might not be a manifest file at all
                         continue;
                     }
                 }
@@ -141,6 +152,7 @@ impl ManifestPath {
         }
     }
 
+    #[must_use]
     pub fn as_path(&self) -> &Path {
         &self.0
     }
@@ -150,8 +162,11 @@ impl ManifestPath {
     /// Optionally provide a list of features to be used when creating the metadata,
     /// however some combinations may not be viable (see [`CargoOpt`]).
     ///
-    /// May return a failure if the features provided are not of a possible
-    /// combination (such as `AllFeatures` with `NoDefaultFeatures`).
+    /// # Errors
+    ///
+    /// Returns an error variant if the metadata command fails, such as if
+    /// the features provided are not of a possible combination (such as
+    /// `AllFeatures` with `NoDefaultFeatures`).
     pub fn metadata(
         &self,
         features: Vec<CargoOpt>,
@@ -174,7 +189,7 @@ where
 {
     fn from(value: T) -> Self {
         fn inner(path: &Path) -> ManifestPath {
-            ManifestPath::new(path.to_path_buf())
+            ManifestPath::new(path)
         }
         inner(value.as_ref())
     }

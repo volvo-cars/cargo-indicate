@@ -5,7 +5,8 @@
 //! noticeable with caching and doing large fetches, but please keep this in
 //! mind.
 //! 
-//! See https://crates.io/policies#crawlers for more information.
+//! See [the crates.io crawler policy](https://crates.io/policies#crawlers) for
+//! more information.
 
 use std::{collections::HashMap, time::Duration};
 
@@ -26,6 +27,12 @@ pub struct CratesIoClient {
 }
 
 impl CratesIoClient {
+    /// Creates a new `crates.io` client and cache
+    ///
+    /// # Panics
+    ///
+    /// Panics if the given agent parameters are invalid.
+    #[must_use]
     pub fn new(user_agent: &str, rate_limit: Duration) -> Self {
         let client = SyncClient::new(user_agent, rate_limit).unwrap_or_else(|e| {
             panic!("could not create CratesIoClient due to error: {e}");
@@ -65,7 +72,7 @@ impl CratesIoClient {
 
     /// Returns the number of versions of a crate from the `crates.io` API
     pub fn versions_count(&mut self, crate_name: &str) -> Option<usize> {
-        self.versions(crate_name).map(|v| v.len())
+        self.versions(crate_name).map(Vec::len)
     }
 
     /// Retrieves the total amount of downloads for a crate, all versions

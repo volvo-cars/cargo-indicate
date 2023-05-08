@@ -265,11 +265,11 @@ fn main() {
         None
     };
 
-    let mut fqs: Vec<FullQuery>;
+    let mut full_queries: Vec<FullQuery>;
     if let Some(query_paths) = &query_paths {
-        fqs = Vec::with_capacity(query_paths.len());
+        full_queries = Vec::with_capacity(query_paths.len());
         for path in query_paths {
-            fqs.push(FullQuery::from_path(path).unwrap_or_else(|e| {
+            full_queries.push(FullQuery::from_path(path).unwrap_or_else(|e| {
                 panic!(
                     "could not parse query file {} due to error: {e}",
                     path.to_string_lossy()
@@ -287,7 +287,7 @@ fn main() {
             }
         }
 
-        fqs = Vec::with_capacity(queries.len());
+        full_queries = Vec::with_capacity(queries.len());
         let mut args = cli.args.into_iter().flatten();
 
         // Queries with index over the amount of arguments get no arguments
@@ -327,14 +327,14 @@ fn main() {
                     }));
             }
 
-            fqs.push(fqb.build());
+            full_queries.push(fqb.build());
         }
     } else {
         unreachable!("no query provided");
     }
 
     // If empty directory was provided we check that here
-    if fqs.is_empty() {
+    if full_queries.is_empty() {
         cmd.error(clap::error::ErrorKind::TooFewValues, "no queries provided")
             .exit();
     }
@@ -343,7 +343,7 @@ fn main() {
     if let Some(output_paths) = &cli.output {
         // If we have more than one output, it must be a list of files to write
         // each query to
-        if output_paths.len() > 1 && output_paths.len() != fqs.len() {
+        if output_paths.len() > 1 && output_paths.len() != full_queries.len() {
             cmd
                 .error(
                     clap::error::ErrorKind::WrongNumberOfValues,
@@ -354,9 +354,9 @@ fn main() {
     }
 
     let manifest_path = if let Some(package_name) = cli.package_name {
-        ManifestPath::with_package_name(cli.package, package_name)
+        ManifestPath::with_package_name(&cli.package, &package_name)
     } else {
-        ManifestPath::new(cli.package)
+        ManifestPath::new(&cli.package)
     };
 
     // How we execute the query depends on if the user defined any special
@@ -402,8 +402,8 @@ fn main() {
     // Reuse the same adapter for multiple queries
     let adapter = Rc::new(b.build());
 
-    let mut res_strings = Vec::with_capacity(fqs.len());
-    for query in fqs {
+    let mut res_strings = Vec::with_capacity(full_queries.len());
+    for query in full_queries {
         let res = execute_query_with_adapter(
             &query,
             Rc::clone(&adapter),
@@ -451,23 +451,18 @@ fn main() {
                 .map(|p| {
                     let mut pb = PathBuf::from(&dir_root);
 
-                    let true_file_prefix = match p.file_prefix() {
-                        Some(fs) => fs,
-                        None => panic!(
+                    let Some (true_file_prefix) = p.file_prefix() else {
+                        panic!(
                             "could not extract file stem from {}",
                             p.to_string_lossy()
-                        ),
+                        );
                     };
 
                     // To avoid overwriting when we have duplicate query name stems,
                     // we append a number to the stem when they are duplicates.
-                    let file_prefix = if !used_file_prefix
+                    let file_prefix = if used_file_prefix
                         .contains(true_file_prefix)
                     {
-                        used_file_prefix
-                            .insert(true_file_prefix.to_os_string());
-                        OsString::from(true_file_prefix)
-                    } else {
                         let mut i: u32 = 1;
                         let mut file_prefix = OsString::from(true_file_prefix);
                         while used_file_prefix.contains(file_prefix.as_os_str())
@@ -479,6 +474,10 @@ fn main() {
                         }
                         used_file_prefix.insert(file_prefix.clone());
                         file_prefix
+                    } else {
+                        used_file_prefix
+                            .insert(true_file_prefix.to_os_string());
+                        OsString::from(true_file_prefix)
                     };
 
                     pb.push(file_prefix);
@@ -512,7 +511,7 @@ fn main() {
                     panic!(
                         "could not write output to {} due to error: {e}",
                         path.to_string_lossy()
-                    )
+                    );
                 });
             },
             multiple_paths if output_paths.len() > 1 => {
@@ -527,7 +526,7 @@ fn main() {
                     
                     fs::write(path.as_path(), res).unwrap_or_else(|e| {
                         eprintln!("could not write output to {} due to error: {e}, skipping",
-                            path.to_string_lossy())
+                            path.to_string_lossy());
                     });
                 }
             }

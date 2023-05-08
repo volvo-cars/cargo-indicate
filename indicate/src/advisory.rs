@@ -36,14 +36,24 @@ impl AdvisoryClient {
     /// Creates a new client by fetching the default database from GitHub
     ///
     /// It is a good idea to create this lazily (for example using [`OnceCell`]
-    /// (once_cell::unsync::OnceCell)) since the operation is costly when not
+    /// (`once_cell::unsync::OnceCell`)) since the operation is costly when not
     /// needed.
+    ///
+    /// # Errors
+    ///
+    /// If the default advisory database cannot be fetched, an error variant
+    /// will be returned.
     pub fn new() -> Result<Self, rustsec::Error> {
         let db = Database::fetch()?;
         Ok(Self { db })
     }
 
     /// Create a new client from a advisory database file
+    ///
+    /// # Errors
+    ///
+    /// If an advisory database cannot be opened at the provided path, an error
+    /// variant will be returned.
     pub fn from_path(path: &Path) -> Result<Self, rustsec::Error> {
         let db = Database::open(path)?;
         Ok(Self { db })
@@ -60,6 +70,7 @@ impl AdvisoryClient {
     ///
     /// See also the `advisoryHistory` edge for the `Package`
     /// [`Vertex`](crate::vertex::Vertex).
+    #[must_use]
     pub fn all_advisories_for_package(
         &self,
         name: Name,

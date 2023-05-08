@@ -26,7 +26,7 @@ pub(crate) fn get_code_stats(
                 p
             })
             .collect::<Vec<_>>();
-        ls.get_statistics(target_paths.as_slice(), ignored_paths, config)
+        ls.get_statistics(target_paths.as_slice(), ignored_paths, config);
     } else {
         ls.get_statistics(&[root_path], ignored_paths, config);
     }
@@ -63,6 +63,7 @@ pub trait CodeStats {
     }
 
     /// Summarizes the code stats
+    #[must_use]
     fn summary(&self) -> Self;
 }
 
@@ -73,6 +74,7 @@ pub struct LanguageCodeStats {
 }
 
 impl LanguageCodeStats {
+    #[must_use]
     pub fn new(language_name: String, stats: tokei::Language) -> Self {
         Self {
             language: language_name,
@@ -80,10 +82,12 @@ impl LanguageCodeStats {
         }
     }
 
+    #[must_use]
     pub fn inaccurate(&self) -> bool {
         self.stats.inaccurate
     }
 
+    #[must_use]
     pub fn children(&self) -> Vec<LanguageBlob> {
         let mut b = Vec::with_capacity(self.stats.children.len());
         for (lang_type, reports) in &self.stats.children {
@@ -140,6 +144,7 @@ pub struct LanguageBlob {
 }
 
 impl LanguageBlob {
+    #[must_use]
     pub fn new(
         language: String,
         files: usize,
@@ -193,6 +198,6 @@ impl CodeStats for LanguageBlob {
 
     /// Return a new language blob where all children blobs have been summarized
     fn summary(&self) -> LanguageBlob {
-        Self::new(self.language.to_owned(), self.files, self.stats.summarise())
+        Self::new(self.language.clone(), self.files, self.stats.summarise())
     }
 }

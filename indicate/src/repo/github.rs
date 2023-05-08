@@ -1,6 +1,6 @@
-//! Module providing connection to the GitHub API, with caching using ETags and
-//! the `httpcache` feature. With this feature, `304 Not Modified` responses
-//! from the GitHub will instead be fetched from a local cache.
+//! Module providing connection to the GitHub API, with caching using `ETags`
+//! and the `httpcache` feature. With this feature, `304 Not Modified`
+//! responses from the GitHub will instead be fetched from a local cache.
 
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
@@ -28,6 +28,7 @@ pub struct GitHubRepositoryId {
 }
 
 impl GitHubRepositoryId {
+    #[must_use]
     pub fn new(owner: String, repo: String) -> Self {
         Self { owner, repo }
     }
@@ -106,6 +107,7 @@ impl GitHubClient {
     ///
     /// If this client is to await quota, it will sleep once it reaches its
     /// quota until it is replaced. This may take a _really_ long time.
+    #[must_use]
     pub fn new(await_quota: bool) -> Self {
         Self {
             repo_cache: HashMap::new(),
@@ -245,7 +247,7 @@ impl GitHubClient {
                         // Insert into the cache
                         let u = u.public_user().expect(
                             "could not convert user response to public user",
-                        ).to_owned();
+                        ).clone();
 
                         let arc_pubu = Arc::new(u);
                         self.user_cache
@@ -270,7 +272,7 @@ impl GitHubClient {
                                 _ => {}
                             }
                         }
-                        eprintln!("Failed to resolve GitHub user {} due to error: {e}", username);
+                        eprintln!("Failed to resolve GitHub user {username} due to error: {e}");
                         None
                     }
                 }

@@ -1,5 +1,6 @@
-# `cargo-indicate` Run queries against your dependency tree
+# `cargo-indicate`
 
+This is the cargo add-on for [indicate](./indicate), providing a user-friendly interface to its schema and functionality.
 
 ## Installation
 
@@ -15,10 +16,16 @@ Due to a known problem with the `cargo-geiger` `--features` flag, it may not
 always work as intended. See 
 [the issue on rust-secure-code/cargo-geiger](https://github.com/rust-secure-code/cargo-geiger/issues/379).
 
-You can install the custom command using
+You can install the custom command using from source using
 
 ```ignore
-cargo install --path .
+cargo install --path . --locked
+```
+
+in this directory, or from [crates.io](https://crates.io) using
+
+```ignore
+cargo install cargo-indicate
 ```
 
 which allows you to call the command using `cargo indicate`.

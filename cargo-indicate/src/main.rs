@@ -201,8 +201,8 @@ fn execute_queries(
     let mut res_strings = Vec::with_capacity(full_queries.len());
     for query in full_queries {
         let res = execute_query_with_adapter(
-            &query,
-            Rc::clone(&adapter),
+            query,
+            Rc::clone(adapter),
             max_results,
         );
         let transparent_res = transparent_results(res);

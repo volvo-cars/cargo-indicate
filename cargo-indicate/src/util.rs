@@ -126,23 +126,90 @@ pub(crate) fn file_prefix(path: &Path) -> Option<&OsStr> {
 
 #[cfg(test)]
 mod test {
-    use std::{ffi::OsStr, path::Path};
+    use std::{
+        ffi::OsStr,
+        path::{Path, PathBuf},
+        str::FromStr,
+    };
 
-    use crate::util::file_prefix;
+    use crate::util;
     use test_case::test_case;
 
-    #[test_case("", None ; "empty filename")]
-    #[test_case("some_name", Some(OsStr::new("some_name")) ; "no period")]
-    #[test_case(".some_name", Some(OsStr::new(".some_name")) ; "only leading period")]
-    #[test_case("some_name.jpg", Some(OsStr::new("some_name")) ; "suffix")]
-    #[test_case(".some_name.jpg", Some(OsStr::new("some_name")) ; "only leading period and suffix")]
-    #[test_case("some_name.tar.xz", Some(OsStr::new("some_name")) ; "tarball suffix")]
-    #[test_case("somedir/some_name", Some(OsStr::new("some_name")) ; "dir no period")]
-    #[test_case("somedir/.some_name", Some(OsStr::new(".some_name")) ; "dir only leading period")]
-    #[test_case("somedir/some_name.jpg", Some(OsStr::new("some_name")) ; "dir suffix")]
-    #[test_case("somedir/.some_name.jpg", Some(OsStr::new("some_name")) ; "dir only leading period and suffix")]
-    #[test_case("somedir/some_name.tar.xz", Some(OsStr::new("some_name")) ; "dir tarball suffix")]
-    fn test_file_prefix(path_str: &str, expected: Option<&OsStr>) {
-        assert_eq!(file_prefix(Path::new(path_str)), expected);
+    #[test_case(&[], "", &[] ; "no queries")]
+    #[test_case(&["hello.gql"], "", &["hello.out.json"] ; "single query")]
+    #[test_case(
+        &["hello.gql", "bye.gql"],
+        "",
+        &["hello.out.json", "bye.out.json"];
+        "two queries"
+    )]
+    #[test_case(
+        &["hello.gql", "some_dir/hello.gql"],
+        "",
+        &["hello.out.json", "hello1.out.json"];
+        "duplicate query name"
+    )]
+    #[test_case(
+        &["hello.gql", "some_dir/hello.gql", "other_dir/hello.gql"],
+        "",
+        &["hello.out.json", "hello1.out.json", "hello2.out.json"];
+        "triple query name"
+    )]
+    #[test_case(&[], "output_dir", &[] ; "no queries with output dir")]
+    #[test_case(
+        &["hello.gql"],
+        "output_dir",
+        &["output_dir/hello.out.json"];
+        "single query with output dir"
+    )]
+    #[test_case(
+        &["hello.gql", "bye.gql"],
+        "output_dir",
+        &["output_dir/hello.out.json", "output_dir/bye.out.json"];
+        "two queries with output dir"
+    )]
+    #[test_case(
+        &["hello.gql", "some_dir/hello.gql"],
+        "output_dir",
+        &["output_dir/hello.out.json", "output_dir/hello1.out.json"];
+        "duplicate query name with output dir"
+    )]
+    #[test_case(
+        &["hello.gql", "some_dir/hello.gql", "other_dir/hello.gql"],
+        "output_dir",
+        &["output_dir/hello.out.json", "output_dir/hello1.out.json", "output_dir/hello2.out.json"];
+        "triple query name with output dir"
+    )]
+    fn test_create_output_paths(
+        query_path_strs: &[&str],
+        output_dir_str: &str,
+        expected_strs: &[&str],
+    ) {
+        // Use string slices for nicer test case usage
+        let query_paths =
+            query_path_strs.iter().map(Path::new).collect::<Vec<_>>();
+        let output_dir = Path::new(output_dir_str);
+        let res = util::create_output_paths(query_paths.as_slice(), output_dir);
+
+        let expected = expected_strs
+            .iter()
+            .map(|s| PathBuf::from_str(*s).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(res, expected);
+    }
+
+    #[test_case("" => None ; "empty filename")]
+    #[test_case("some_name" => Some(OsStr::new("some_name")) ; "no period")]
+    #[test_case(".some_name" => Some(OsStr::new(".some_name")) ; "only leading period")]
+    #[test_case("some_name.jpg" => Some(OsStr::new("some_name")) ; "suffix")]
+    #[test_case(".some_name.jpg" => Some(OsStr::new("some_name")) ; "only leading period and suffix")]
+    #[test_case("some_name.tar.xz" => Some(OsStr::new("some_name")) ; "tarball suffix")]
+    #[test_case("somedir/some_name" => Some(OsStr::new("some_name")) ; "dir no period")]
+    #[test_case("somedir/.some_name" => Some(OsStr::new(".some_name")) ; "dir only leading period")]
+    #[test_case("somedir/some_name.jpg" => Some(OsStr::new("some_name")) ; "dir suffix")]
+    #[test_case("somedir/.some_name.jpg" => Some(OsStr::new("some_name")) ; "dir only leading period and suffix")]
+    #[test_case("somedir/some_name.tar.xz" => Some(OsStr::new("some_name")) ; "dir tarball suffix")]
+    fn test_file_prefix(path_str: &str) -> Option<&OsStr> {
+        util::file_prefix(Path::new(path_str))
     }
 }

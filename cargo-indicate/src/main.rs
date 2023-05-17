@@ -9,7 +9,8 @@ use clap::{builder::PossibleValue, ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
     query::FullQueryBuilder, repo::github::GitHubClient,
-    util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath, IndicateAdapter,
+    util::transparent_results, CargoOpt, IndicateAdapter,
+    IndicateAdapterBuilder, ManifestPath,
 };
 mod util;
 
@@ -195,7 +196,7 @@ struct IndicateCli {
 fn execute_queries(
     full_queries: &Vec<FullQuery>,
     adapter: &Rc<IndicateAdapter>,
-    max_results: Option<usize>
+    max_results: Option<usize>,
 ) -> Vec<String> {
     let mut res_strings = Vec::with_capacity(full_queries.len());
     for query in full_queries {
@@ -421,7 +422,7 @@ fn main() {
     // Reuse the same adapter for multiple queries
     let adapter = Rc::new(b.build());
     let res_strings = execute_queries(&full_queries, &adapter, cli.max_results);
-    
+
     // Use provided outputs, or create them in a directory, bases on the query
     // file names. `cli.output` and `cli.output_dir` are exclusive, guaranteed
     // by clap
@@ -449,12 +450,14 @@ fn main() {
         // We generate the file names from the names of our input queries
         // unwrap is safe, since clap ensures --output-dir cannot be used
         // with non-file queries
-        Some(
-            util::create_output_paths(
-    &query_paths.unwrap().iter().map(AsRef::as_ref).collect::<Vec<_>>(),
-    &dir_root
-            )
-        )
+        Some(util::create_output_paths(
+            &query_paths
+                .unwrap()
+                .iter()
+                .map(AsRef::as_ref)
+                .collect::<Vec<_>>(),
+            &dir_root,
+        ))
     } else {
         None
     };

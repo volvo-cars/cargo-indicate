@@ -1,5 +1,4 @@
 #![forbid(unsafe_code)]
-#![feature(path_file_prefix)]
 use std::{
     collections::BTreeSet,
     ffi::OsString,
@@ -451,9 +450,9 @@ fn main() {
                 .map(|p| {
                     let mut pb = PathBuf::from(&dir_root);
 
-                    let Some (true_file_prefix) = p.file_prefix() else {
+                    let Some (true_file_prefix) = util::file_prefix(p) else {
                         panic!(
-                            "could not extract file stem from {}",
+                            "could not extract file prefix from {}",
                             p.to_string_lossy()
                         );
                     };

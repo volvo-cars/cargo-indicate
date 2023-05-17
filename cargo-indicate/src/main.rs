@@ -9,7 +9,7 @@ use clap::{builder::PossibleValue, ArgGroup, CommandFactory, Parser};
 use indicate::{
     advisory::AdvisoryClient, execute_query_with_adapter, query::FullQuery,
     query::FullQueryBuilder, repo::github::GitHubClient,
-    util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath,
+    util::transparent_results, CargoOpt, IndicateAdapterBuilder, ManifestPath, IndicateAdapter,
 };
 mod util;
 
@@ -190,6 +190,28 @@ struct IndicateCli {
     /// invocations where execution time is not important.
     #[arg(long)]
     await_github_quota: bool,
+}
+
+fn execute_queries(
+    full_queries: &Vec<FullQuery>,
+    adapter: &Rc<IndicateAdapter>,
+    max_results: Option<usize>
+) -> Vec<String> {
+    let mut res_strings = Vec::with_capacity(full_queries.len());
+    for query in full_queries {
+        let res = execute_query_with_adapter(
+            &query,
+            Rc::clone(&adapter),
+            max_results,
+        );
+        let transparent_res = transparent_results(res);
+        res_strings.push(
+            serde_json::to_string_pretty(&transparent_res)
+                .expect("could not serialize result"),
+        );
+    }
+
+    res_strings
 }
 
 fn main() {
@@ -398,21 +420,8 @@ fn main() {
 
     // Reuse the same adapter for multiple queries
     let adapter = Rc::new(b.build());
-
-    let mut res_strings = Vec::with_capacity(full_queries.len());
-    for query in full_queries {
-        let res = execute_query_with_adapter(
-            &query,
-            Rc::clone(&adapter),
-            cli.max_results,
-        );
-        let transparent_res = transparent_results(res);
-        res_strings.push(
-            serde_json::to_string_pretty(&transparent_res)
-                .expect("could not serialize result"),
-        );
-    }
-
+    let res_strings = execute_queries(&full_queries, &adapter, cli.max_results);
+    
     // Use provided outputs, or create them in a directory, bases on the query
     // file names. `cli.output` and `cli.output_dir` are exclusive, guaranteed
     // by clap

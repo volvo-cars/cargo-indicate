@@ -1,7 +1,5 @@
 #![forbid(unsafe_code)]
 use std::{
-    collections::BTreeSet,
-    ffi::OsString,
     fs,
     path::{Path, PathBuf},
     rc::Rc,
@@ -442,49 +440,11 @@ fn main() {
         // We generate the file names from the names of our input queries
         // unwrap is safe, since clap ensures --output-dir cannot be used
         // with non-file queries
-        let mut used_file_prefix: BTreeSet<OsString> = BTreeSet::new();
         Some(
-            query_paths
-                .unwrap()
-                .iter()
-                .map(|p| {
-                    let mut pb = PathBuf::from(&dir_root);
-
-                    let Some (true_file_prefix) = util::file_prefix(p) else {
-                        panic!(
-                            "could not extract file prefix from {}",
-                            p.to_string_lossy()
-                        );
-                    };
-
-                    // To avoid overwriting when we have duplicate query name stems,
-                    // we append a number to the stem when they are duplicates.
-                    let file_prefix = if used_file_prefix
-                        .contains(true_file_prefix)
-                    {
-                        let mut i: u32 = 1;
-                        let mut file_prefix = OsString::from(true_file_prefix);
-                        while used_file_prefix.contains(file_prefix.as_os_str())
-                        {
-                            // This is to avoid file_prefix-1-2-3-4-....
-                            file_prefix = OsString::from(true_file_prefix);
-                            file_prefix.push(i.to_string());
-                            i += 1;
-                        }
-                        used_file_prefix.insert(file_prefix.clone());
-                        file_prefix
-                    } else {
-                        used_file_prefix
-                            .insert(true_file_prefix.to_os_string());
-                        OsString::from(true_file_prefix)
-                    };
-
-                    pb.push(file_prefix);
-                    pb.set_extension("out.json"); // first  `.` inserted automatically
-
-                    pb
-                })
-                .collect::<Vec<_>>(),
+            util::create_output_paths(
+    &query_paths.unwrap().iter().map(AsRef::as_ref).collect::<Vec<_>>(),
+    &dir_root
+            )
         )
     } else {
         None

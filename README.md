@@ -1,6 +1,21 @@
-# cargo-indicate 🚨
+<div align="center">
+    <h1>🚨 cargo-indicate 🚨</h1>
+    <i>Run GraphQL Queries on Your Dependency Graph</i>
+</div>
+<br />
 
-A tool for querying different signals for risks in your dependency tree.
+[![Crates.io (cargo-indicate)](https://img.shields.io/crates/v/cargo-indicate)](https://crates.io/crates/cvars)
+
+<br />
+
+This is the result of a Master's thesis written at LTH in collaboration with Volvo Cars by [Emil Eriksson](github.com/ginger51011).
+
+While `cargo-indicate` allows for experimenting, it might be a good idea to read the conclusions in this thesis, as they provide guidance and context
+on how to interpret the results, and provides context. The thesis also includes explanaition of the code and design decisions.
+
+This project relies heavily on [`trustfall`](https://github.com/obi1kenobi/trustfall), the query engine behind [`cargo-semver-checks`](https://github.com/obi1kenobi/cargo-semver-checks).
+
+## Project Structure
 
 - [`indicate`](./indicate) is the library providing central functionality
 - [`cargo-indicate`](./cargo-indicate/) is the cargo add-on itself

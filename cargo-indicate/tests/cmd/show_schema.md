@@ -227,6 +227,8 @@ type GitHubRepository implements Repository & Webpage {
     
     starsCount: Int!
     forksCount: Int!
+
+    # This is the sum of open issues and open PRs
     openIssuesCount: Int!
     watchersCount: Int!
     

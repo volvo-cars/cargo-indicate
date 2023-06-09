@@ -152,7 +152,6 @@ struct IndicateCli {
     /// in a GraphQL format, and exits
     #[arg(
         long,
-        exclusive = true,
         // Hack due to clap not supporting `required_unless` for groups
         group = "query_inputs"
     )]

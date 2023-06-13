@@ -280,16 +280,3 @@ type AffectedFunctionVersions {
 
 
 ```
-
-## `--show-schema` is exclusive
-
-```console
-$ cargo-indicate --show-schema -q ''
-? failed
-error: the argument '--show-schema' cannot be used with one or more of the other specified arguments
-
-Usage: cargo-indicate [..]
-
-For more information, try '--help'.
-
-```

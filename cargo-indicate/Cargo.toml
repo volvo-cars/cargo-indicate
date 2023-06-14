@@ -1,8 +1,11 @@
 [package]
-authors = ["Emil Jonathan Eriksson <eje1999@gmail.com>"]
+authors = ["Emil Jonathan Eriksson <eje1999+cargo-indicate@gmail.com>"]
 name = "cargo-indicate"
 version = "0.2.0"
 edition = "2021"
+description = "Crate for running GraphQL queries on Rust dependency trees"
+keywords = ["cargo", "cli", "search", "dependencies", "graphql"]
+categories = ["command-line-utilities", "development-tools::cargo-plugins"]
 
 [[bin]]
 name = "cargo-indicate"

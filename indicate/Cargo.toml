@@ -1,8 +1,11 @@
 [package]
-authors = ["Emil Jonathan Eriksson <eje1999@gmail.com>"]
+authors = ["Emil Jonathan Eriksson <eje1999+cargo-indicate@gmail.com>"]
 name = "indicate"
 version = "0.2.0"
 edition = "2021"
+description = "Library behind cargo-indicate"
+keywords = ["cargo", "search", "dependencies", "graphql"]
+categories = ["development-tools::cargo-plugins"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

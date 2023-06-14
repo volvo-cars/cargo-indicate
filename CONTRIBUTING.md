@@ -17,7 +17,7 @@ Issues can be created [here](https://github.com/volvo-cars/cargo-indicate/issues
 Before submitting an issue, please check if it has already been reported.
 
 Your issue should contain steps to reproduce the problem if applicable. Please
-follow the provided issue template.
+use any suitable issue template if one exists for your type of issue.
 
 ## Pull Requests
 

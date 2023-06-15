@@ -1,6 +1,7 @@
 # `cargo-indicate`
 
-This is the cargo add-on for [indicate](./indicate), providing a user-friendly interface to its schema and functionality.
+This is the cargo add-on for [indicate](./indicate), providing a user-friendly
+interface to its schema and functionality.
 
 ## Installation
 

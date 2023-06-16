@@ -7,6 +7,7 @@ description = "Crate for running GraphQL queries on Rust dependency trees"
 keywords = ["cargo", "cli", "search", "dependencies", "graphql"]
 categories = ["command-line-utilities", "development-tools::cargo-plugins"]
 readme = "../README.md"
+license = "MIT OR Apache-2.0"
 
 [[bin]]
 name = "cargo-indicate"

@@ -31,6 +31,10 @@ cargo install cargo-indicate
 
 which allows you to call the command using `cargo indicate`.
 
+**Note**: For some data sources, you currently need to set some environment variables.
+For GitHub and crates.io, you need to set `USER_AGENT`. For GitHub you also need to
+provide `GITHUB_API_TOKEN`.
+
 Run the following for help
 
 ```ignore

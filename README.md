@@ -9,7 +9,7 @@
 <br />
 
 This is the result of a Master's thesis written at LTH in collaboration with
-Volvo Cars by [Emil Eriksson](github.com/ginger51011).
+Volvo Cars by [Emil Eriksson](https://github.com/ginger51011).
 
 To get started, install `cargo-indicate` using
 

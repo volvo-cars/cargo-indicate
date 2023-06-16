@@ -7,6 +7,7 @@ description = "Library behind cargo-indicate"
 keywords = ["cargo", "search", "dependencies", "graphql"]
 categories = ["development-tools::cargo-plugins"]
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/volvo-cars/cargo-indicate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

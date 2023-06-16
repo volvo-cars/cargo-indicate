@@ -8,6 +8,7 @@ keywords = ["cargo", "cli", "search", "dependencies", "graphql"]
 categories = ["command-line-utilities", "development-tools::cargo-plugins"]
 readme = "../README.md"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/volvo-cars/cargo-indicate"
 
 [[bin]]
 name = "cargo-indicate"

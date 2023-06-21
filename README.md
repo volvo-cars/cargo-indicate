@@ -1,6 +1,6 @@
 <div align="center">
     <h1>🚨 cargo-indicate 🚨</h1>
-    <i>Run GraphQL Queries on Your Dependency Graph</i>
+    <i>Run GraphQL Queries on Your Rust Dependency Tree</i>
 </div>
 <br />
 

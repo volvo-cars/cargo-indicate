@@ -8,7 +8,7 @@
 
 <br />
 
-This is the result of a Master's thesis written at LTH in collaboration with
+This is the result of a [Master's thesis written at LTH](https://lup.lub.lu.se/student-papers/record/9133685) in collaboration with
 Volvo Cars by [Emil Eriksson](https://github.com/ginger51011).
 
 To get started, install `cargo-indicate` using

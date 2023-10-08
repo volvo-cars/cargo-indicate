@@ -1,7 +1,7 @@
 [package]
 authors = ["Emil Jonathan Eriksson <eje1999+cargo-indicate@gmail.com>"]
 name = "indicate"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Library behind cargo-indicate"
 keywords = ["cargo", "search", "dependencies", "graphql"]
